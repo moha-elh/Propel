@@ -5,7 +5,9 @@ WORKDIR /app
 
 # Copy dependencies first (better caching)
 COPY package*.json ./
-RUN npm install
+# --legacy-peer-deps: committed lock has @angular/core 21.2.16 vs animations 21.2.22
+# (exact peer), an upstream skew; ci keeps the build reproducible from the lockfile.
+RUN npm ci --legacy-peer-deps
 
 # Copy the rest of the project
 COPY . .

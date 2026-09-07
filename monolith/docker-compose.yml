@@ -63,11 +63,13 @@ services:
     networks:
       - cv-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/health/ready"]
-      interval: 5s
-      timeout: 3s
-      retries: 6
-      start_period: 10s
+      # keycloak image has no curl; probe /health/ready over bash /dev/tcp.
+      # Generous start_period: dev-mode boot + realm import takes ~60s+.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3; grep -q '200' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
 
   monolith:
     build:
@@ -124,35 +126,61 @@ services:
     networks:
       - cv-network
 
+  # AI agents: context must be ../ai_agents (Dockerfiles COPY services/*); env_file
+  # carries the LLM keys; cv-network so the monolith can reach them by hostname.
   cv-job-extractor:
-    build: ../ai_agents/services/job-extractor
+    build:
+      context: ../ai_agents
+      dockerfile: services/job-extractor/Dockerfile
     container_name: cv-job-extractor
+    env_file: ../ai_agents/services/job-extractor/.env
     ports: ["8001:8001"]
+    networks: [cv-network]
 
   cv-job-crawler:
-    build: ../ai_agents/services/job-crawler
+    build:
+      context: ../ai_agents
+      dockerfile: services/job-crawler/Dockerfile
     container_name: cv-job-crawler
+    env_file: ../ai_agents/services/job-crawler/.env
     ports: ["8006:8006"]
+    networks: [cv-network]
 
   cv-search-agent:
-    build: ../ai_agents/services/search-agent
+    build:
+      context: ../ai_agents
+      dockerfile: services/search-agent/Dockerfile
     container_name: cv-search-agent
+    env_file: ../ai_agents/services/search-agent/.env
     ports: ["8002:8002"]
+    networks: [cv-network]
 
   cv-template-agent:
-    build: ../ai_agents/services/template-agent
+    build:
+      context: ../ai_agents
+      dockerfile: services/template-agent/Dockerfile
     container_name: cv-template-agent
+    env_file: ../ai_agents/services/template-agent/.env
     ports: ["8003:8003"]
+    networks: [cv-network]
 
   cv-optimizer:
-    build: ../ai_agents/services/cv-optimizer
+    build:
+      context: ../ai_agents
+      dockerfile: services/cv-optimizer/Dockerfile
     container_name: cv-optimizer
+    env_file: ../ai_agents/services/cv-optimizer/.env
     ports: ["8004:8004"]
+    networks: [cv-network]
 
   cv-contact-agent:
-    build: ../ai_agents/services/contact-agent
+    build:
+      context: ../ai_agents
+      dockerfile: services/contact-agent/Dockerfile
     container_name: cv-contact-agent
+    env_file: ../ai_agents/services/contact-agent/.env
     ports: ["8005:8005"]
+    networks: [cv-network]
 
   minio:
     image: minio/minio:latest
@@ -174,6 +202,12 @@ services:
     container_name: cv-frontend
     ports:
       - "${FRONTEND_PORT:-4200}:80"
+    environment:
+      # nginx.conf.template needs these; empty values break proxy_pass at startup.
+      - GATEWAY_HOST=${GATEWAY_HOST:-cv-api-gateway}
+      - GATEWAY_PORT=${GATEWAY_PORT:-8080}
+      - FRONTEND_HOST=${FRONTEND_HOST:-localhost}
+      - FRONTEND_PORT=${FRONTEND_PORT:-4200}
     depends_on:
       - api-gateway
     networks:
