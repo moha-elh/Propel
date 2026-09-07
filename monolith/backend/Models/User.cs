@@ -40,6 +40,10 @@ public class User
     [MaxLength(255)]
     public string? AvatarUrl { get; set; }
 
+    /// <summary>MinIO object key of the chosen CV header photo (inside the profile-images bucket).</summary>
+    [MaxLength(500)]
+    public string? ProfilePhotoKey { get; set; }
+
     [Required]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

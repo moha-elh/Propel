@@ -20,12 +20,14 @@ from shared.backend_client import (
     get_user, get_user_experiences, get_user_projects, get_user_skills,
     get_user_educations, get_user_hackathons, get_user_interests,
     get_user_languages, get_user_certifications,
+    get_user_academic_activities, get_user_social_links, get_user_cvprofiles,
 )
 from agents.template.schemas import (
     CvEducation, CvExperience, CvExtracurricular, CvHackathon, CvHeader,
     CvLanguage, CvProject, CvSections, CvSkillGroup,
 )
 from agents.template.placeholders import format_constraints_hint, KNOWN_KEYS, parse_placeholders
+from shared.tools.json_utils import parse_llm_json
 
 logger = logging.getLogger(__name__)
 
@@ -60,17 +62,6 @@ CV_SECTIONS_SYSTEM_PROMPT = (
 )
 
 
-def _strip_json_fences(text: str) -> str:
-    text = text.strip()
-    fence = re.match(r"^```(?:json)?\s*(.*?)\s*```$", text, re.DOTALL)
-    if fence:
-        return fence.group(1).strip()
-    start, end = text.find("{"), text.rfind("}")
-    if start != -1 and end > start:
-        return text[start:end + 1]
-    return text
-
-
 async def _collect_profile(user_id: str) -> dict[str, Any]:
     profile: dict[str, Any] = {}
     if not user_id:
@@ -95,10 +86,11 @@ async def _collect_profile(user_id: str) -> dict[str, Any]:
 
     async def _safe(fetcher, key: str):
         try:
-            profile[key] = await fetcher(user_id)
+            items = await fetcher(user_id)
         except Exception as e:
             logger.warning("Failed to collect %s for %s: %s", key, user_id, e)
-            profile[key] = []
+            items = []
+        profile[key] = _sorted_items(items)
 
     await _safe(get_user_experiences, "experiences")
     await _safe(get_user_projects, "projects")
@@ -108,7 +100,48 @@ async def _collect_profile(user_id: str) -> dict[str, Any]:
     await _safe(get_user_interests, "interests")
     await _safe(get_user_languages, "languages")
     await _safe(get_user_certifications, "certifications")
+    await _safe(get_user_academic_activities, "academicActivities")
+    await _safe(get_user_social_links, "socialLinks")
+    await _safe(get_user_cvprofiles, "cvProfiles")
+
+    _enrich_header(profile)
     return profile
+
+
+def _sorted_items(items: list) -> list:
+    """Order collections by the optional sortOrder attribute (stable, 0 first)."""
+    try:
+        return sorted(items, key=lambda i: getattr(i, "sortOrder", 0) or 0)
+    except Exception:
+        return items
+
+
+def _enrich_header(profile: dict) -> None:
+    """Merge contact details from the user's primary CV profile (and social
+    links) into the header when the user record has no phone/location/linkedin."""
+    header = profile.get("header") or {}
+    for cvp in profile.get("cvProfiles", []) or []:
+        for src_key, dst_key in (
+            ("email", "email"), ("phone", "phone"), ("location", "location"),
+            ("website", "github"), ("linkedInUrl", "linkedin"),
+            ("githubUrl", "github"), ("title", "tagline"),
+        ):
+            if not header.get(dst_key) and getattr(cvp, src_key, None):
+                header[dst_key] = str(getattr(cvp, src_key))
+    if not header.get("linkedin"):
+        for link in profile.get("socialLinks", []) or []:
+            platform = str(getattr(link, "platform", "") or "").lower()
+            url = getattr(link, "url", None)
+            if url and "linkedin" in platform:
+                header["linkedin"] = str(url)
+                break
+    if not header.get("github"):
+        for link in profile.get("socialLinks", []) or []:
+            platform = str(getattr(link, "platform", "") or "").lower()
+            url = getattr(link, "url", None)
+            if url and ("github" in platform or "gitlab" in platform or "bitbucket" in platform):
+                header["github"] = str(url)
+                break
 
 
 def _example_collection(template_content: Optional[str], cap: int = 2500) -> dict[str, str]:
@@ -173,12 +206,26 @@ def _fallback_sections(
         d1, d2 = exp.startDate or "", exp.endDate or ""
         if d1 or d2:
             dates = f"{d1[:10]} - {d2[:10]}" if d2 else d1[:10]
+        if getattr(exp, "location", None):
+            role = f"{title} · {exp.location}" if not title.endswith(f" {exp.location}") else title
+        else:
+            role = title
+        bullets = _bullets(getattr(exp, "experienceDetails", []) or [])
+        if getattr(exp, "achievementsJson", None):
+            try:
+                extra = _bullets(json.loads(exp.achievementsJson))
+            except Exception:
+                extra = []
+            bullets.extend(x for x in extra if x not in bullets)
+        description = exp.description or ""
+        if getattr(exp, "employmentType", None):
+            description = f"{description}\n{exp.employmentType}".strip()
         sections.experiences.append(CvExperience(
-            role=title,
+            role=role,
             company=exp.company or "",
             dates=dates,
-            description=exp.description or "",
-            bullets=_bullets(getattr(exp, "experienceDetails", []) or []),
+            description=description,
+            bullets=bullets,
         ))
 
     for edu in profile.get("educations", []):
@@ -190,6 +237,10 @@ def _fallback_sections(
         d1, d2 = edu.startDate or "", edu.endDate or ""
         if d1 or d2:
             dates = f"{d1[:10]} - {d2[:10]}" if d2 else d1[:10]
+        if getattr(edu, "grade", None):
+            institution = f"{institution} · {edu.grade}".strip(" ·")
+        if getattr(edu, "country", None) and edu.country not in institution:
+            institution = f"{institution} · {edu.country}".strip(" ·")
         sections.educations.append(CvEducation(
             title=title or institution,
             institution=institution,
@@ -203,8 +254,11 @@ def _fallback_sections(
         d1, d2 = proj.startDate or "", proj.endDate or ""
         if d1 or d2:
             dates = f"{d1[:10]} - {d2[:10]}" if d2 else d1[:10]
+        name = proj.title.strip()
+        if getattr(proj, "category", None):
+            name = f"{name} · {proj.category}"
         sections.projects.append(CvProject(
-            name=proj.title.strip(),
+            name=name,
             dates=dates,
             bullets=_bullets(getattr(proj, "projectDetails", []) or []),
         ))
@@ -212,11 +266,31 @@ def _fallback_sections(
     for h in profile.get("hackathons", []):
         if not (h.name or "").strip():
             continue
-        event = " ".join(p for p in (h.organization or "", h.date or "") if p).strip()
+        dates = getattr(h, "startDate", None) or h.date or ""
+        if getattr(h, "endDate", None):
+            dates = f"{dates[:10]} - {h.endDate[:10]}" if dates else h.endDate[:10]
+        event = " ".join(p for p in (h.organization or "", str(dates or "")) if p).strip()
         sections.hackathons.append(CvHackathon(
             name=h.name.strip(),
             event=event,
             description=h.description or "",
+        ))
+
+    for act in profile.get("academicActivities", []) or []:
+        if not (act.title or "").strip():
+            continue
+        dates = ""
+        d1, d2 = act.startDate or "", act.endDate or ""
+        if d1 or d2:
+            dates = f"{d1[:10]} - {d2[:10]}" if d2 else d1[:10]
+        bullets = []
+        if getattr(act, "description", None):
+            bullets.append(act.description.strip())
+        sections.extracurricular.append(CvExtracurricular(
+            title=act.title.strip(),
+            role=act.role or "",
+            dates=dates,
+            bullets=bullets,
         ))
 
     for lang in profile.get("languages", []):
@@ -327,7 +401,7 @@ async def generate_cv_sections(
         ])
         text = response.content if hasattr(response, "content") else str(response)
         try:
-            sections = CvSections.model_validate_json(_strip_json_fences(str(text)))
+            sections = CvSections.model_validate(parse_llm_json(str(text)))
             _fill_header(cv_draft, profile, sections)
             return sections
         except Exception as e:
@@ -342,7 +416,7 @@ async def generate_cv_sections(
                 ),
             ])
             retry_text = retry.content if hasattr(retry, "content") else str(retry)
-            sections = CvSections.model_validate_json(_strip_json_fences(str(retry_text)))
+            sections = CvSections.model_validate(parse_llm_json(str(retry_text)))
             _fill_header(cv_draft, profile, sections)
             return sections
     except Exception as e:

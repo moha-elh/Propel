@@ -16,6 +16,76 @@
           <label>Name <span class="req">*</span></label>
           <input type="text" [(ngModel)]="formName" placeholder="e.g. Capgemini" name="coName">
         </div>
+
+        <div class="logo-field">
+          <div class="logo-avatar-wrap">
+            <div
+              class="logo-avatar"
+              [class.loading]="logoUploading()"
+              [title]="logoUploading() ? 'Uploading…' : 'Click to set the company logo'"
+              role="button"
+              tabindex="0"
+              (click)="toggleLogoMenu()"
+              (keydown.enter)="toggleLogoMenu()"
+              (dragover)="logoUploading() || $event.preventDefault()"
+              (drop)="onLogoDropped($event)"
+            >
+              @if (formLogoUrl()) {
+                <img [src]="formLogoUrl()" [alt]="formName() + ' logo'">
+              } @else if (logoUploading()) {
+                <i class="ti ti-loader ti-spin"></i>
+              } @else {
+                <span>{{ initials() }}</span>
+              }
+              <span class="logo-edit-badge"><i class="ti ti-edit"></i></span>
+            </div>
+
+            @if (logoMenuOpen()) {
+              <div class="logo-menu" (click)="$event.stopPropagation()">
+                <button type="button" class="logo-menu-item" (click)="logoFileInput.click()">
+                  <i class="ti ti-cloud-upload"></i> Upload image
+                  <input #logoFileInput type="file" hidden accept="image/jpeg,image/png,image/webp,image/gif" (change)="onLogoFilePicked($event)">
+                </button>
+                <button type="button" class="logo-menu-item" (click)="imagePickerOpen.set(true)">
+                  <i class="ti ti-photo"></i> Use one from Images
+                </button>
+                <button type="button" class="logo-menu-item" (click)="startLogoUrlMode()">
+                  <i class="ti ti-link"></i> Use external URL
+                </button>
+                @if (formLogoUrl()) {
+                  <div class="logo-menu-sep"></div>
+                  <button type="button" class="logo-menu-item danger" (click)="removeLogo()">
+                    <i class="ti ti-trash"></i> Remove logo
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="logo-side">
+            @if (logoUrlMode()) {
+              <div class="logo-url-row">
+                <input
+                  type="url"
+                  placeholder="https://example.com/logo.png"
+                  [ngModel]="logoUrlDraft()"
+                  (ngModelChange)="logoUrlDraft.set($event)"
+                  name="coLogoUrl"
+                  (keydown.enter)="saveLogoUrl()"
+                >
+                <button type="button" class="logo-url-ok" (click)="saveLogoUrl()">OK</button>
+              </div>
+              <p class="logo-hint">The image is added to your library so it works everywhere in the app.</p>
+            } @else {
+              <p class="logo-side-label">Company logo</p>
+              <p class="logo-hint">Click the tile to upload, pick from your image library or paste a URL. Drag &amp; drop also works.</p>
+              @if (formLogoUrl()) {
+                <p class="logo-current">Current: {{ formLogoUrl().length > 60 ? (formLogoUrl() | slice: 0 : 60) + '…' : formLogoUrl() }}</p>
+              }
+            }
+          </div>
+        </div>
+
         <div class="form-group">
           <label>Website</label>
           <input type="url" [(ngModel)]="formWebsite" placeholder="https://…" name="coWebsite">
@@ -90,5 +160,10 @@
       [fields]="autofillFields"
       (filled)="applyAutofill($event)"
     ></app-auto-fill-dialog>
+    <app-image-picker
+      [(open)]="imagePickerOpen"
+      title="Company logo"
+      (selected)="onLogoPicked($event)"
+    ></app-image-picker>
   </div>
 }

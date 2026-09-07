@@ -24,9 +24,9 @@
     <p class="taxonomy-empty" *ngIf="!selectedCategoryIds().length">No categories selected yet.</p>
   </section>
 
-  <form (ngSubmit)="submit()" class="dynamic-form">
+  <form (ngSubmit)="submit()" novalidate class="dynamic-form">
     <div class="fields-grid">
-      <div *ngFor="let field of fields" class="form-group" [class.full-width]="field.type === 'textarea'">
+      <div *ngFor="let field of fields" class="form-group" [class.full-width]="field.type === 'textarea'" [class.has-error]="fieldErrors[field.name]">
         <label [for]="field.name">{{ field.label }} <span *ngIf="field.required" class="required">*</span></label>
 
         <!-- Text Input -->
@@ -37,6 +37,8 @@
           [name]="field.name" 
           [placeholder]="field.placeholder || ''"
           [required]="field.required || false"
+          [attr.maxLength]="field.maxLength || null"
+          (ngModelChange)="clearFieldError(field.name)"
           class="form-control" />
 
         <!-- Number Input -->
@@ -45,6 +47,7 @@
           [id]="field.name" 
           [(ngModel)]="form[field.name]" 
           [name]="field.name" 
+          (ngModelChange)="clearFieldError(field.name)"
           class="form-control" />
 
         <!-- Date Input -->
@@ -53,6 +56,7 @@
           [id]="field.name" 
           [(ngModel)]="form[field.name]" 
           [name]="field.name" 
+          (ngModelChange)="clearFieldError(field.name)"
           class="form-control" />
 
         <!-- Textarea -->
@@ -61,14 +65,21 @@
           [(ngModel)]="form[field.name]" 
           [name]="field.name" 
           [placeholder]="field.placeholder || ''"
+          [attr.maxLength]="field.maxLength || null"
+          (ngModelChange)="clearFieldError(field.name)"
           rows="4"
           class="form-control"></textarea>
+        <small *ngIf="field.type === 'textarea' && field.maxLength" class="char-count">
+          {{ (form[field.name] ? form[field.name].length : 0) }}/{{ field.maxLength }}
+        </small>
+        <small class="field-error" *ngIf="fieldErrors[field.name]">{{ fieldErrors[field.name] }}</small>
 
         <!-- Select -->
         <select *ngIf="field.type === 'select'" 
           [id]="field.name" 
           [(ngModel)]="form[field.name]" 
           [name]="field.name" 
+          (ngModelChange)="clearFieldError(field.name)"
           class="form-control">
           <option *ngFor="let opt of field.options" [value]="opt">{{ opt }}</option>
         </select>
@@ -83,8 +94,9 @@
 
     <div class="form-actions">
       <button type="button" class="btn btn-secondary" (click)="cancel()">Cancel</button>
-      <button type="submit" class="btn btn-primary" [disabled]="saving">{{ saving ? 'Saving…' : 'Save Changes' }}</button>
+      <button type="submit" class="btn btn-primary" [disabled]="saving">{{ saving ? 'Saving…' : (id ? 'Save Changes' : 'Add ' + entityLabel) }}</button>
     </div>
+    <div class="form-error" *ngIf="errorMessage">{{ errorMessage }}</div>
   </form>
 </div>
 

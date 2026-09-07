@@ -40,9 +40,19 @@ namespace CV_Generator.Models
         [MaxLength(300)]
         public string? DiplomaFileUrl { get; set; }
 
+        [MaxLength(50)]
+        public string? Grade { get; set; }
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
+        [MaxLength(100)]
+        public string? Country { get; set; }
+
         [Required]
         public Guid UserId { get; set; }
 
+        public int SortOrder { get; set; } = 0;
 
     }
 }

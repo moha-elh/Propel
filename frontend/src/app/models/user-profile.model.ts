@@ -38,6 +38,7 @@ export interface UserProfile {
   personalWebsite?: string;
   bio?: string;
   professionalTitles?: ProfessionalTitle[];
+  profilePhotoKey?: string;
 }
 
 export interface UpdateUserProfileDto {
@@ -61,4 +62,5 @@ export interface UpdateUserProfileDto {
   bio?: string;
   professionalTitles?: string;
   preferencesJson?: string;
+  profilePhotoKey?: string;
 }

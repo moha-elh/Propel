@@ -5,7 +5,6 @@ namespace CV_Generator.Controllers;
 
 [ApiController]
 [Route("api/cv/{cvId}/export")]
-[Authorize]
 public class CvExportController : ControllerBase
 {
     [HttpPost("pdf")]

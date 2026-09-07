@@ -1,11 +1,9 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CV_Generator.Services;
 
 namespace CV_Generator.Controllers;
 
 [ApiController]
-[Authorize]
 [Route("api/[controller]")]
 public abstract class BaseApiController : ControllerBase
 {

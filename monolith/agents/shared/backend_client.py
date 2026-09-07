@@ -13,7 +13,8 @@ from shared.config import settings
 from shared.models.user_model import (
     UserResponse, ExperienceResponse, ProjectResponse, SkillResponse,
     EducationResponse, HackathonResponse, InterestResponse,
-    LanguageResponse, CertificationResponse,
+    LanguageResponse, CertificationResponse,AcademicActivityResponse,
+    SocialLinkResponse, CVProfileResponse,
 )
 from shared.models.workflow_model import WorkflowResponse
 
@@ -131,6 +132,18 @@ async def get_user_languages(user_id: UUID) -> List[LanguageResponse]:
 
 async def get_user_certifications(user_id: UUID) -> List[CertificationResponse]:
     return _typed(await _get(f"/api/certifications?userId={user_id}"), CertificationResponse)
+
+
+async def get_user_academic_activities(user_id: UUID) -> List[AcademicActivityResponse]:
+    return _typed(await _get(f"/api/academicactivities?userId={user_id}"), AcademicActivityResponse)
+
+
+async def get_user_social_links(user_id: UUID) -> List[SocialLinkResponse]:
+    return _typed(await _get(f"/api/sociallinks?userId={user_id}"), SocialLinkResponse)
+
+
+async def get_user_cvprofiles(user_id: UUID) -> List[CVProfileResponse]:
+    return _typed(await _get(f"/api/cvprofiles?userId={user_id}"), CVProfileResponse)
 
 
 async def get_experience(experience_id: UUID) -> ExperienceResponse | None:

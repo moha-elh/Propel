@@ -29,34 +29,16 @@ if (File.Exists(envFile))
 var port = int.Parse(Environment.GetEnvironmentVariable("PORT") ?? "5000");
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
-// Database
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? Environment.GetEnvironmentVariable("CONNECTION_STRING")
+// Database — CONNECTION_STRING env wins (Docker sets Host=postgres); appsettings
+// DefaultConnection is the local-dev fallback (Host=localhost).
+var connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING")
+    ?? builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Host=localhost;Port=5432;Database=cv_monolith;Username=postgres;Password=postgres";
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString, o => o.UseVector()));
 
-// Auth
-var jwtAuthority = Environment.GetEnvironmentVariable("JWT_AUTHORITY")
-    ?? builder.Configuration["JWT_AUTHORITY"]
-    ?? "http://localhost:9090/realms/cv-realm";
-builder.Services.AddAuthentication("Bearer")
-    .AddJwtBearer("Bearer", options =>
-    {
-        options.Authority = jwtAuthority;
-        options.RequireHttpsMetadata = false;
-        options.MapInboundClaims = false;
-        options.TokenValidationParameters.ValidateAudience = false;
-    })
-    .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, CV_Generator.Services.InternalServiceAuthHandler>(
-        CV_Generator.Services.InternalServiceAuthHandler.SchemeName, options => { });
-builder.Services.AddAuthorization(options =>
-{
-    options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder(
-            "Bearer", CV_Generator.Services.InternalServiceAuthHandler.SchemeName)
-        .RequireAuthenticatedUser()
-        .Build();
-});
+// Auth removed — single-user personal tool. All requests map to the owner
+// account (see CurrentUserService.DefaultUserId).
 
 // Event bus (in-process Kafka replacement)
 builder.Services.AddSingleton<IEventBus, SynchronousEventBus>();
@@ -108,8 +90,12 @@ builder.Services.AddScoped<ILlmSettingsService, LlmSettingsService>();
 builder.Services.AddScoped<IAgentLlmSettingsService, AgentLlmSettingsService>();
 builder.Services.AddHttpClient("agents", c =>
 {
-    c.BaseAddress = new Uri("http://localhost:8000");
+    c.BaseAddress = new Uri(agentBase);
     c.Timeout = TimeSpan.FromMinutes(4);
+});
+builder.Services.AddHttpClient("image-fetch", c =>
+{
+    c.Timeout = TimeSpan.FromSeconds(20);
 });
 
     builder.Services.AddHttpClient<ICategorizationClient, CategorizationClient>(c => c.BaseAddress = new Uri($"{agentBase}/api/agents/categorize"));
@@ -117,6 +103,11 @@ builder.Services.AddHttpClient("agents", c =>
     builder.Services.AddHttpClient<IDirectAiClient, DirectAiClient>(c =>
     {
         c.BaseAddress = new Uri($"{agentBase}/api/direct/");
+        c.Timeout = TimeSpan.FromMinutes(3);
+    });
+    builder.Services.AddHttpClient<ICompanyResearchClient, CompanyResearchClient>(c =>
+    {
+        c.BaseAddress = new Uri($"{agentBase}/api/agents/company-research/");
         c.Timeout = TimeSpan.FromMinutes(3);
     });
 builder.Services.AddScoped<ICategoryService, CategoryService>();
@@ -179,11 +170,18 @@ using (var scope = app.Services.CreateScope())
         {
             logger.LogError(ex, "Category seed failed");
         }
+
+        try
+        {
+            await CurrentUserService.EnsureDefaultUserAsync(db);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Default owner user seed failed");
+        }
     }
 
     app.UseCors();
-app.UseAuthentication();
-app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())
 {

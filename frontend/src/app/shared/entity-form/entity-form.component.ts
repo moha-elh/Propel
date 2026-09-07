@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { environment } from '@env/environment';
 import { ENTITY_FIELDS, EntityType, FieldConfig } from '@app/models/user-content.models';
 import { CategoryService } from '@app/services/category.service';
+import { ToastService } from '@app/services/toast.service';
 import { CategoryTreeComponent } from '@app/shared/components/category-tree/category-tree.component';
 import { AutoFillDialogComponent } from '@app/shared/components/auto-fill-dialog/auto-fill-dialog.component';
 import { AutofillField } from '@app/services/autofill.service';
@@ -22,17 +23,20 @@ export class EntityFormComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private categoryService = inject(CategoryService);
+  private toast = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
 
   entity: EntityType = 'projects';
   id: string | null = null;
   form: any = {};
   fields: any[] = [];
+  fieldErrors: Record<string, string> = {};
 
   selectedCategoryIds = signal<string[]>([]);
   taxonomyOpen = signal(false);
   nameMap = signal<Map<string, string>>(new Map());
   saving = false;
+  errorMessage: string | null = null;
   autofillOpen = signal(false);
 
   autofillFields = computed(() => this.fields);
@@ -166,9 +170,43 @@ export class EntityFormComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
+  validate(): boolean {
+    this.fieldErrors = {};
+    let ok = true;
+    for (const field of this.fields as FieldConfig[]) {
+      const value = this.form[field.name];
+      if (field.required) {
+        const empty =
+          value === undefined || value === null ||
+          (field.type === 'checkbox' ? !value : String(value).trim() === '');
+        if (empty) {
+          this.fieldErrors[field.name] = `${field.label} is required.`;
+          ok = false;
+        }
+      }
+      if (field.maxLength && typeof value === 'string' && value.length > field.maxLength) {
+        this.fieldErrors[field.name] = `${field.label} must be at most ${field.maxLength} characters.`;
+        ok = false;
+      }
+    }
+    return ok;
+  }
+
+  clearFieldError(name: string): void {
+    if (this.fieldErrors[name]) {
+      delete this.fieldErrors[name];
+    }
+  }
+
   submit() {
     if (this.saving) return;
+    if (!this.validate()) {
+      this.toast.error('Please fix the highlighted fields before saving.');
+      this.cdr.detectChanges();
+      return;
+    }
     this.saving = true;
+    this.errorMessage = null;
 
     const payload: any = {};
     this.fields.forEach(field => {
@@ -176,7 +214,8 @@ export class EntityFormComponent implements OnInit {
       if (field.type === 'date') {
         payload[field.name] = value && value !== '' ? new Date(value).toISOString() : null;
       } else if (field.type === 'number') {
-        payload[field.name] = value !== '' && value !== null ? Number(value) : null;
+        const n = value !== '' && value !== null ? Number(value) : 0;
+        payload[field.name] = isNaN(n) ? 0 : n;
       } else if (field.type === 'checkbox') {
         payload[field.name] = Boolean(value);
       } else {
@@ -209,7 +248,7 @@ export class EntityFormComponent implements OnInit {
         next: () => finish(this.id),
         error: err => {
           console.error('Update failed', err);
-          this.saving = false;
+          this.saveFailed(err);
         },
       });
     } else {
@@ -221,10 +260,31 @@ export class EntityFormComponent implements OnInit {
         },
         error: err => {
           console.error('Create failed', err);
-          this.saving = false;
+          this.saveFailed(err);
         },
       });
     }
+  }
+
+  private saveFailed(err: any): void {
+    this.saving = false;
+    const errBody = err?.error;
+    const msg = errBody?.errors || errBody?.message || errBody || err?.message;
+    if (typeof msg === 'string') {
+      this.errorMessage = msg;
+    } else if (msg && typeof msg === 'object') {
+      try {
+        const lines = Object.entries(msg)
+          .flatMap(([k, v]) => (Array.isArray(v) ? v : [v]))
+          .map(x => String(x));
+        this.errorMessage = lines.join(' ') || 'Save failed. Please check the form and try again.';
+      } catch {
+        this.errorMessage = 'Save failed. Please check the form and try again.';
+      }
+    } else {
+      this.errorMessage = 'Save failed. Please check the form and try again.';
+    }
+    this.cdr.detectChanges();
   }
 
   cancel() {

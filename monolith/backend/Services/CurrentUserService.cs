@@ -1,7 +1,5 @@
-using System.Security.Claims;
 using CV_Generator.Data;
 using CV_Generator.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace CV_Generator.Services;
 
@@ -10,58 +8,46 @@ public interface ICurrentUserService
     Guid? UserId { get; }
 }
 
+// Single-user tool: auth was removed, so every request maps to one fixed owner
+// account. An X-User-Id header still wins if present (kept for flexibility).
 public class CurrentUserService : ICurrentUserService
 {
-    private readonly Lazy<Guid?> _userId;
+    public static readonly Guid DefaultUserId = new("00000000-0000-0000-0000-000000000001");
 
-    public CurrentUserService(IHttpContextAccessor httpContextAccessor, AppDbContext db, IEventBus eventBus, ILogger<CurrentUserService> logger)
+    private readonly IHttpContextAccessor _http;
+
+    public CurrentUserService(IHttpContextAccessor httpContextAccessor)
     {
-        _userId = new Lazy<Guid?>(() => Resolve(httpContextAccessor.HttpContext, db, eventBus, logger));
+        _http = httpContextAccessor;
     }
 
-    private static Guid? Resolve(HttpContext? ctx, AppDbContext db, IEventBus eventBus, ILogger<CurrentUserService> logger)
+    public Guid? UserId
     {
-        if (ctx == null) return null;
-
-        var headerId = ctx.Request.Headers["X-User-Id"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(headerId) && Guid.TryParse(headerId, out var hid))
+        get
         {
-            return hid;
+            var headerId = _http.HttpContext?.Request.Headers["X-User-Id"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(headerId) && Guid.TryParse(headerId, out var hid))
+                return hid;
+            return DefaultUserId;
         }
+    }
 
-        var userIdClaim = ctx.User.FindFirstValue("user_id");
-        if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var uid))
+    // Seed the owner row so GetUserId() always resolves to a real user.
+    public static async Task EnsureDefaultUserAsync(AppDbContext db)
+    {
+        if (await db.Users.FindAsync(DefaultUserId) != null) return;
+
+        db.Users.Add(new User
         {
-            return uid;
-        }
-
-        var sub = ctx.User.FindFirstValue("sub");
-        if (string.IsNullOrEmpty(sub)) return null;
-
-        var user = db.Users.FirstOrDefault(u => u.KeycloakId == sub);
-        if (user != null)
-        {
-            return user.Id;
-        }
-
-        user = new User
-        {
-            KeycloakId = sub,
-            FirstName = ctx.User.FindFirstValue("given_name") ?? "",
-            LastName = ctx.User.FindFirstValue("family_name") ?? "",
-            Email = ctx.User.FindFirstValue("email") ?? "",
+            Id = DefaultUserId,
+            KeycloakId = "owner",
+            FirstName = Environment.GetEnvironmentVariable("OWNER_FIRST_NAME") ?? "Me",
+            LastName = Environment.GetEnvironmentVariable("OWNER_LAST_NAME") ?? "",
+            Email = Environment.GetEnvironmentVariable("OWNER_EMAIL") ?? "me@localhost",
             Role = Role.USER,
             CreatedAt = DateTime.UtcNow,
             IsActive = true,
-        };
-        db.Users.Add(user);
-        db.SaveChanges();
-
-        logger.LogInformation("Auto-created user {Id} from JWT sub={Sub}", user.Id, sub);
-        eventBus.PublishAsync(new UserCreatedEvent(user.Id, user.Email, user.FirstName, user.LastName));
-
-        return user.Id;
+        });
+        await db.SaveChangesAsync();
     }
-
-    public Guid? UserId => _userId.Value;
 }

@@ -1,9 +1,8 @@
-import json
 import logging
-import re
 from typing import Optional
 
 from shared.llm import get_llm
+from shared.tools.json_utils import parse_llm_json
 from shared.tools.pdf_utils import extract_text_from_pdf_url, get_chunks_from_text
 from shared.tools.rag_utils import retrieve_context_from_pdf_url
 from agents.job_extractor.prompt import get_job_extractor_messages, JOB_EXTRACTOR_PROMPT
@@ -20,32 +19,15 @@ def extract_text_from_url(url: str) -> str:
     raise ValueError("Could not extract text from URL")
 
 
-def _strip_json_fences(text: str) -> str:
-    """Take a model reply and extract the JSON payload (handles ```json fences and prose)."""
-    text = text.strip()
-    fence = re.match(r"^```(?:json)?\s*(.*?)\s*```$", text, re.DOTALL)
-    if fence:
-        return fence.group(1).strip()
-    start, end = text.find("{"), text.rfind("}")
-    if start != -1 and end > start:
-        return text[start:end + 1]
-    return text
-
-
 def _parse_job_result(content: str) -> JobExtractionResult:
     """Parse the model's text reply into JobExtractionResult. Provider-agnostic
     (no tool calling / JSON-mode requirement) — works on any chat model.
     """
-    raw = _strip_json_fences(content)
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError as e:
-        logger.error("Job extractor: invalid JSON from model (snippet: %r)", raw[:300])
+    data = parse_llm_json(content)
+    if not data:
         raise RuntimeError(
-            f"Job extractor: model returned invalid JSON: {e}. Snippet: {raw[:200]!r}"
-        ) from None
-    if not isinstance(data, dict):
-        raise RuntimeError("Job extractor: model output was not a JSON object")
+            f"Job extractor: model returned unsalvageable JSON (snippet: {content[:200]!r})"
+        )
     return JobExtractionResult.model_validate(data)
 
 

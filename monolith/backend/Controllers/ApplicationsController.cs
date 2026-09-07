@@ -7,7 +7,6 @@ using CV_Generator.Services;
 namespace CV_Generator.Controllers;
 
 [ApiController]
-[Authorize]
 [Route("api/[controller]")]
 public class ApplicationsController : ControllerBase
 {

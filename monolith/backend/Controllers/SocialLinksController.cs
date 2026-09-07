@@ -37,7 +37,8 @@ public class SocialLinksController : ApiControllerBase
             Id = s.Id,
             Platform = s.Platform,
             Url = s.Url,
-            UserId = s.UserId
+            UserId = s.UserId,
+            SortOrder = s.SortOrder
         }).ToList();
 
         return Ok(ApiResponse<List<SocialLinkResponseDto>>.Ok(response));
@@ -54,7 +55,8 @@ public class SocialLinksController : ApiControllerBase
             Id = link.Id,
             Platform = link.Platform,
             Url = link.Url,
-            UserId = link.UserId
+            UserId = link.UserId,
+            SortOrder = link.SortOrder
         };
         return Ok(ApiResponse<SocialLinkResponseDto>.Ok(response));
     }
@@ -62,12 +64,12 @@ public class SocialLinksController : ApiControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateSocialLinkDto dto)
     {
-        var link = new SocialLink { Platform = dto.Platform, Url = dto.Url, UserId = RequiredUserId };
+        var link = new SocialLink { Platform = dto.Platform, Url = dto.Url, UserId = RequiredUserId, SortOrder = dto.SortOrder };
         _db.SocialLinks.Add(link);
         await _db.SaveChangesAsync();
         SearchSyncHelper.TriggerSync(_scopeFactory, link.UserId, _logger, "SocialLink.Create");
 
-        var response = new SocialLinkResponseDto { Id = link.Id, Platform = link.Platform, Url = link.Url, UserId = link.UserId };
+        var response = new SocialLinkResponseDto { Id = link.Id, Platform = link.Platform, Url = link.Url, UserId = link.UserId, SortOrder = link.SortOrder };
         return CreatedAtAction(nameof(GetById), new { id = link.Id }, ApiResponse<SocialLinkResponseDto>.Created(response));
     }
 
@@ -79,10 +81,11 @@ public class SocialLinksController : ApiControllerBase
 
         link.Platform = dto.Platform;
         link.Url = dto.Url;
+        link.SortOrder = dto.SortOrder;
         await _db.SaveChangesAsync();
         SearchSyncHelper.TriggerSync(_scopeFactory, link.UserId, _logger, "SocialLink.Update");
 
-        var response = new SocialLinkResponseDto { Id = link.Id, Platform = link.Platform, Url = link.Url, UserId = link.UserId };
+        var response = new SocialLinkResponseDto { Id = link.Id, Platform = link.Platform, Url = link.Url, UserId = link.UserId, SortOrder = link.SortOrder };
         return Ok(ApiResponse<SocialLinkResponseDto>.Ok(response));
     }
 

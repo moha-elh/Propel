@@ -22,8 +22,15 @@ namespace CV_Generator.Models
         [MaxLength(300)]
         public string? CredentialUrl { get; set; }
 
+        [MaxLength(200)]
+        public string? CredentialId { get; set; }
+
+        public DateTime? ExpiryDate { get; set; }
+
         [Required]
         public Guid UserId { get; set; }
+
+        public int SortOrder { get; set; } = 0;
 
 
     }

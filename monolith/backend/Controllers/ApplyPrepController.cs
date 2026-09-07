@@ -6,7 +6,6 @@ using CV_Generator.Services;
 namespace CV_Generator.Controllers;
 
 [ApiController]
-[Authorize]
 [Route("api/applications")]
 public class ApplyPrepController : ControllerBase
 {

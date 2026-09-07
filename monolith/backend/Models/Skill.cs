@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Pgvector;
 
 namespace CV_Generator.Models;
 
@@ -25,6 +24,12 @@ public class Skill
     [MaxLength(50)]
     public string? Category { get; set; }
 
-    [Column(TypeName = "vector(384)")]
-    public Vector? NameEmbedding { get; set; }
+    [MaxLength(50)]
+    public string? Subcategory { get; set; }
+
+    public int? LastUsedYear { get; set; }
+
+    public bool IsCore { get; set; } = false;
+
+    public int SortOrder { get; set; } = 0;
 }

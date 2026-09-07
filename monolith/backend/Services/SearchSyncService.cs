@@ -66,14 +66,6 @@ public class SearchSyncService : ISearchSyncService
         _db.AgentDocumentChunks.AddRange(newChunks);
         await _db.SaveChangesAsync(ct);
 
-        await _db.Database.ExecuteSqlRawAsync(
-            """
-            UPDATE "AgentDocumentChunks"
-            SET "SearchVector" = to_tsvector('english', "Content")
-            WHERE "UserId" = {0} AND "SearchVector" IS NULL
-            """,
-            new object[] { userId }, ct);
-
         return chunks.Count;
     }
 

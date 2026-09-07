@@ -1,0 +1,87 @@
+@if (open()) {
+  <div class="modal-backdrop" (click)="close()">
+    <div class="ip-modal" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <h3>{{ title() }}</h3>
+        <button type="button" class="icon-btn" (click)="close()" aria-label="Close">✕</button>
+      </div>
+
+      <div class="ip-tabs">
+        <button type="button" class="ip-tab" [class.active]="mode() === 'library'" (click)="mode.set('library')"><i class="ti ti-photo"></i> Library {{ total() > 0 ? '(' + total() + ')' : '' }}</button>
+        @if (allowUpload()) {
+          <button type="button" class="ip-tab" [class.active]="mode() === 'upload'" (click)="mode.set('upload')"><i class="ti ti-cloud-upload"></i> Upload</button>
+        }
+        @if (allowUrl()) {
+          <button type="button" class="ip-tab" [class.active]="mode() === 'url'" (click)="mode.set('url')"><i class="ti ti-link"></i> URL</button>
+        }
+      </div>
+
+      <div class="ip-body">
+        @if (mode() === 'library') {
+          <div class="ip-search">
+            <input
+              type="text"
+              placeholder="Search images…"
+              [ngModel]="search()"
+              (ngModelChange)="onSearchInput($event)"
+              name="ipSearch"
+            >
+          </div>
+
+          @if (loading()) {
+            <div class="ip-state">Loading…</div>
+          } @else if (error()) {
+            <div class="ip-state err">{{ error() }}</div>
+          } @else if (images().length === 0) {
+            <div class="ip-state">No images yet — upload one or paste a URL.</div>
+          } @else {
+            <div class="ip-grid">
+              @for (img of images(); track img.id) {
+                <button type="button" class="ip-tile" (click)="choose(img)" [title]="img.name">
+                  <img [src]="img.url" [alt]="img.name" loading="lazy">
+                  <span class="ip-tile-name">{{ img.name }}</span>
+                </button>
+              }
+            </div>
+          }
+        }
+
+        @if (mode() === 'upload') {
+          <div
+            class="ip-drop"
+            [class.dragging]="dragged()"
+            (dragover)="dragged.set(true); $event.preventDefault()"
+            (dragleave)="dragged.set(false)"
+            (drop)="onDrop($event)"
+          >
+            <i class="ti ti-cloud-upload"></i>
+            <p>Drag an image here, or</p>
+            <div class="ip-actions">
+              <label class="btn btn-primary" [class.disabled]="uploading()">
+                {{ uploading() ? 'Uploading…' : 'Browse…' }}
+                <input type="file" hidden accept="image/jpeg,image/png,image/webp,image/gif" (change)="onFilePicked($event)">
+              </label>
+            </div>
+            <p class="ip-hint">JPG / PNG / WebP / GIF · max 10MB</p>
+          </div>
+        }
+
+        @if (mode() === 'url') {
+          <div class="ip-url">
+            <input
+              type="url"
+              placeholder="https://example.com/logo.png"
+              [ngModel]="urlInput()"
+              (ngModelChange)="urlInput.set($event)"
+              name="ipUrl"
+            >
+            <button type="button" class="btn btn-primary" [disabled]="uploading()" (click)="addFromUrl()">
+              {{ uploading() ? 'Adding…' : 'Add image' }}
+            </button>
+            <p class="ip-hint">The image is downloaded into your library when possible, so it works everywhere (CV photo, PDFs, company logos).</p>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

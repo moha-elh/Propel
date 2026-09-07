@@ -131,7 +131,7 @@ export class EntityListComponent implements OnInit {
       case 'skills':
         return { title: item.name, subtitle: item.category, typeLabel: 'Skill', meta: item.level, footer: item.yearsOfExperience ? `${item.yearsOfExperience} years` : '' };
       case 'experiences':
-        return { title: item.company, subtitle: item.position, typeLabel: 'Experience', meta: item.location, footer: this.formatDate(item.startDate), isCompleted: item.status === 'Completed' };
+        return { title: item.title, subtitle: item.company, typeLabel: 'Experience', meta: item.location, footer: this.formatDate(item.startDate), isCompleted: item.status === 'Completed' };
       case 'educations':
         return { title: item.institutionName || item.institution, subtitle: item.degreeType || item.degree, typeLabel: 'Education', meta: item.fieldOfStudy, footer: this.formatDate(item.startDate), isCompleted: item.status === 'Completed' };
       case 'certifications':

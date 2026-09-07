@@ -28,7 +28,8 @@ public record UpdateUserDto(
     string? DesiredJobTitle,
     decimal? DesiredSalaryMin,
     decimal? DesiredSalaryMax,
-    string? ProfessionalTitles
+    string? ProfessionalTitles,
+    string? ProfilePhotoKey
 );
 
 public record UserResponseDto(
@@ -59,5 +60,6 @@ public record UserResponseDto(
     string? DesiredJobTitle,
     decimal? DesiredSalaryMin,
     decimal? DesiredSalaryMax,
-    string? ProfessionalTitles
+    string? ProfessionalTitles,
+    string? ProfilePhotoKey
 );

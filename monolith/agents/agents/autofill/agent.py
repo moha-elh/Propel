@@ -1,38 +1,133 @@
 import datetime
-import json
 import logging
 import re
 from typing import Any, Optional
 
 from shared.llm import get_llm, ainvoke_with_fallback
+from shared.tools.json_utils import parse_llm_json
 from agents.autofill.prompt import get_autofill_messages
 from agents.autofill.schemas import AutofillRequest, AutofillResponse, FieldDef
 
 logger = logging.getLogger(__name__)
 
 
-def _strip_json_fences(text: str) -> str:
-    """Take a model reply and extract the JSON payload (handles ```json fences and prose)."""
-    text = text.strip()
-    fence = re.match(r"^```(?:json)?\s*(.*?)\s*```$", text, re.DOTALL)
-    if fence:
-        return fence.group(1).strip()
-    start, end = text.find("{"), text.rfind("}")
-    if start != -1 and end > start:
-        return text[start : end + 1]
-    return text
-
-
 def _parse_json(content: str) -> dict:
-    raw = _strip_json_fences(content)
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError as e:
-        logger.error("Autofill: invalid JSON from model (snippet: %r)", raw[:300])
-        raise RuntimeError(f"Autofill: model returned invalid JSON: {e}. Snippet: {raw[:200]!r}") from None
-    if not isinstance(data, dict):
-        raise RuntimeError("Autofill: model output was not a JSON object")
+    data = parse_llm_json(content)
+    if not data:
+        logger.warning("Autofill: model JSON unsalvageable; full content:\n%s", content)
+        raise RuntimeError(
+            f"Autofill: model returned unsalvageable JSON (snippet: {content[:200]!r})"
+        )
     return data
+
+
+_SKILL_ALIASES = ("skill", "technolog", "tool")
+
+# Deterministic safety net: when the model leaves a skills-ish textarea empty, pull
+# the technologies actually named in the description straight from the text. Order
+# of appearance is preserved; duplicates collapsed; capped to keep the field sane.
+# key = lowercase matcher, value = canonical display casing.
+_TECH_LEXICON = {
+    "java": "Java",
+    "spring boot": "Spring Boot",
+    "spring": "Spring",
+    "javascript": "JavaScript",
+    "typescript": "TypeScript",
+    "angular": "Angular",
+    "react": "React",
+    "vue": "Vue",
+    "node.js": "Node.js",
+    "node": "Node",
+    "python": "Python",
+    "django": "Django",
+    "flask": "Flask",
+    "fastapi": "FastAPI",
+    "kotlin": "Kotlin",
+    "golang": "Go",
+    "rust": "Rust",
+    "php": "PHP",
+    "ruby": "Ruby",
+    "swift": "Swift",
+    "c#": "C#",
+    "c++": "C++",
+    ".net": ".NET",
+    "asp.net": "ASP.NET",
+    "sql": "SQL",
+    "postgresql": "PostgreSQL",
+    "mysql": "MySQL",
+    "mariadb": "MariaDB",
+    "mongodb": "MongoDB",
+    "redis": "Redis",
+    "kafka": "Kafka",
+    "rabbitmq": "RabbitMQ",
+    "grpc": "gRPC",
+    "graphql": "GraphQL",
+    "docker": "Docker",
+    "docker-compose": "Docker Compose",
+    "kubernetes": "Kubernetes",
+    "k8s": "Kubernetes",
+    "nginx": "nginx",
+    "terraform": "Terraform",
+    "ansible": "Ansible",
+    "aws": "AWS",
+    "azure": "Azure",
+    "gcp": "GCP",
+    "git": "Git",
+    "github": "GitHub",
+    "gitlab": "GitLab",
+    "jenkins": "Jenkins",
+    "github actions": "GitHub Actions",
+    "ci/cd": "CI/CD",
+    "html": "HTML",
+    "css": "CSS",
+    "sass": "Sass",
+    "tailwind": "Tailwind",
+    "bootstrap": "Bootstrap",
+    "microservices": "Microservices",
+    "mapstruct": "MapStruct",
+    "maven": "Maven",
+    "gradle": "Gradle",
+    "hadoop": "Hadoop",
+    "spark": "Spark",
+    "tensorflow": "TensorFlow",
+    "pytorch": "PyTorch",
+    "numpy": "NumPy",
+    "pandas": "pandas",
+    "scikit-learn": "scikit-learn",
+    "matplotlib": "Matplotlib",
+    "keycloak": "Keycloak",
+    "oauth2": "OAuth2",
+    "oauth": "OAuth",
+    "jwt": "JWT",
+    "uvicorn": "uvicorn",
+    "pydantic": "Pydantic",
+    "sqlalchemy": "SQLAlchemy",
+    "alembic": "Alembic",
+    "celery": "Celery",
+    "ssr": "SSR",
+}
+
+
+def _extract_skills(text: str) -> str:
+    lower = text.lower()
+    found: list[str] = []
+    seen: set[str] = set()
+    for matcher, canonical in _TECH_LEXICON.items():
+        pattern = re.compile(r"(?<![a-z0-9])" + re.escape(matcher) + r"(?![a-z0-9])")
+        if pattern.search(lower):
+            key = matcher.lower()
+            if any(key != fk and key in fk for fk in seen):
+                continue  # subsumed by a longer match already found ("Spring" inside "Spring Boot")
+            if key not in seen:
+                seen.add(key)
+                found.append(canonical)
+    return ", ".join(found[:12])
+
+
+def _is_skill_field(field: FieldDef) -> bool:
+    name = (field.name or "").lower()
+    label = (field.label or "").lower()
+    return any(alias in name or alias in label for alias in _SKILL_ALIASES)
 
 
 def _normalize_date(val: Any) -> str:
@@ -131,5 +226,9 @@ async def autofill(req: AutofillRequest) -> AutofillResponse:
     for field in req.fields:
         if field.name in data:
             values[field.name] = _coerce(field, data[field.name])
+
+    for field in req.fields:
+        if _is_skill_field(field) and not values.get(field.name):
+            values[field.name] = _extract_skills(req.text)
 
     return AutofillResponse(values=values)

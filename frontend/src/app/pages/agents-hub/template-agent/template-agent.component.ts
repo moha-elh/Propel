@@ -14,6 +14,10 @@ import {
 } from '@app/models/template-render.models';
 import { TONES, LANGUAGES } from '@app/models/cv-generation.models';
 import { extractError } from '@app/shared/error-utils';
+import { ImagePickerComponent } from '@app/shared/components/image-picker/image-picker.component';
+import { ImageDto, ImageService } from '@app/services/image.service';
+import { UserProfileService } from '@app/services/user-profile.service';
+import { ToastService } from '@app/services/toast.service';
 
 type Phase = 'input' | 'prep' | 'running' | 'done';
 type InputTab = 'paste' | 'url' | 'history';
@@ -41,7 +45,7 @@ const DEFAULT_STEPS: UiStep[] = [
 @Component({
   selector: 'app-template-agent',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, ImagePickerComponent],
   templateUrl: './template-agent.component.html',
   styleUrl: './template-agent.component.scss',
 })
@@ -50,6 +54,9 @@ export class TemplateAgentComponent implements OnInit, OnDestroy {
   private readonly extractionService = inject(ExtractionService);
   private readonly renderService = inject(TemplateRenderService);
   private readonly route = inject(ActivatedRoute);
+  private readonly imagesApi = inject(ImageService);
+  private readonly profileSvc = inject(UserProfileService);
+  private readonly toast = inject(ToastService);
 
   tones = TONES;
   languages = LANGUAGES;
@@ -72,6 +79,10 @@ export class TemplateAgentComponent implements OnInit, OnDestroy {
   selectedLanguage = signal('en');
   saveToDocuments = signal(true);
   cvTitle = signal('');
+
+  photoPickerOpen = signal(false);
+  profilePhotoKey = signal<string>('');
+  cvPhotoPreview = signal<string | null>(null);
 
   steps = signal<UiStep[]>([...DEFAULT_STEPS].map(s => ({ ...s, data: null })));
   runId = signal<string | null>(null);
@@ -97,6 +108,50 @@ export class TemplateAgentComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadTemplates();
     this.loadHistory();
+    this.loadPhoto();
+  }
+
+  private async loadPhoto(): Promise<void> {
+    try {
+      const profile = await this.profileSvc.getMyProfile();
+      const key = profile?.profilePhotoKey ?? '';
+      this.profilePhotoKey.set(key);
+      if (key) {
+        const res = await this.imagesApi.list({ page: 1, pageSize: 200 });
+        const match = (res.data?.items ?? []).find(i => i.objectKey === key);
+        this.cvPhotoPreview.set(match?.url ?? null);
+      } else {
+        this.cvPhotoPreview.set(null);
+      }
+    } catch {
+      // non-fatal: photo selection just won't show
+    }
+  }
+
+  async onPhotoPicked(img: ImageDto): Promise<void> {
+    if (!img.objectKey) {
+      this.toast.error('URL-only images can\'t be used in the CV header — upload it or re-add it so it is downloaded');
+      return;
+    }
+    try {
+      await this.profileSvc.applyFields({ profilePhotoKey: img.objectKey });
+      this.profilePhotoKey.set(img.objectKey);
+      this.cvPhotoPreview.set(img.url);
+      this.toast.success('CV profile photo set — it will appear in the CV header');
+    } catch {
+      this.toast.error('Failed to set CV photo');
+    }
+  }
+
+  async removePhoto(): Promise<void> {
+    try {
+      await this.profileSvc.applyFields({ profilePhotoKey: '' });
+      this.profilePhotoKey.set('');
+      this.cvPhotoPreview.set(null);
+      this.toast.success('CV photo removed');
+    } catch {
+      this.toast.error('Failed to remove CV photo');
+    }
   }
 
   ngOnDestroy(): void {

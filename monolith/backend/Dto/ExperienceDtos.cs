@@ -26,6 +26,17 @@ public class CreateExperienceDto
     [Required]
     public Guid UserId { get; set; }
 
+    [MaxLength(150)]
+    public string? Location { get; set; }
+
+    [MaxLength(2000)]
+    public string? AchievementsJson { get; set; }
+
+    [MaxLength(50)]
+    public string? EmploymentType { get; set; }
+
+    public int SortOrder { get; set; } = 0;
+
 }
 
 public class UpdateExperienceDto
@@ -48,6 +59,17 @@ public class UpdateExperienceDto
     [Required]
     [MaxLength(20)]
     public string Status { get; set; } = "Ongoing";
+
+    [MaxLength(150)]
+    public string? Location { get; set; }
+
+    [MaxLength(2000)]
+    public string? AchievementsJson { get; set; }
+
+    [MaxLength(50)]
+    public string? EmploymentType { get; set; }
+
+    public int SortOrder { get; set; } = 0;
 }
 
 public class ExperienceResponseDto
@@ -60,4 +82,8 @@ public class ExperienceResponseDto
     public DateTime? EndDate { get; set; }
     public string Status { get; set; } = "Ongoing";
     public Guid UserId { get; set; }
+    public string? Location { get; set; }
+    public string? AchievementsJson { get; set; }
+    public string? EmploymentType { get; set; }
+    public int SortOrder { get; set; } = 0;
 }

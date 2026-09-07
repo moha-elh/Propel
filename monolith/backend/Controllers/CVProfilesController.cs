@@ -26,6 +26,8 @@ public class CVProfilesController : ApiControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] Guid? userId)
     {
+        userId ??= CurrentUserId;
+
         var profiles = userId.HasValue
             ? await _db.CVProfiles.Where(p => p.UserId == userId.Value).ToListAsync()
             : await _db.CVProfiles.ToListAsync();
@@ -35,6 +37,13 @@ public class CVProfilesController : ApiControllerBase
             Id = p.Id,
             Title = p.Title,
             Summary = p.Summary,
+            Email = p.Email,
+            Phone = p.Phone,
+            Location = p.Location,
+            Website = p.Website,
+            LinkedInUrl = p.LinkedInUrl,
+            GithubUrl = p.GithubUrl,
+            OpenToRelocate = p.OpenToRelocate,
             UserId = p.UserId
         }).ToList();
 
@@ -52,6 +61,13 @@ public class CVProfilesController : ApiControllerBase
             Id = p.Id,
             Title = p.Title,
             Summary = p.Summary,
+            Email = p.Email,
+            Phone = p.Phone,
+            Location = p.Location,
+            Website = p.Website,
+            LinkedInUrl = p.LinkedInUrl,
+            GithubUrl = p.GithubUrl,
+            OpenToRelocate = p.OpenToRelocate,
             UserId = p.UserId
         };
         return Ok(ApiResponse<CVProfileResponseDto>.Ok(response));
@@ -60,13 +76,13 @@ public class CVProfilesController : ApiControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateCVProfileDto dto)
     {
-        var profile = new CVProfile { Title = dto.Title, Summary = dto.Summary, UserId = RequiredUserId };
+        var profile = new CVProfile { Title = dto.Title, Summary = dto.Summary, Email = dto.Email, Phone = dto.Phone, Location = dto.Location, Website = dto.Website, LinkedInUrl = dto.LinkedInUrl, GithubUrl = dto.GithubUrl, OpenToRelocate = dto.OpenToRelocate, UserId = RequiredUserId };
 
         _db.CVProfiles.Add(profile);
         await _db.SaveChangesAsync();
         SearchSyncHelper.TriggerSync(_scopeFactory, profile.UserId, _logger, "CVProfile.Create");
 
-        var response = new CVProfileResponseDto { Id = profile.Id, Title = profile.Title, Summary = profile.Summary, UserId = profile.UserId };
+        var response = new CVProfileResponseDto { Id = profile.Id, Title = profile.Title, Summary = profile.Summary, Email = profile.Email, Phone = profile.Phone, Location = profile.Location, Website = profile.Website, LinkedInUrl = profile.LinkedInUrl, GithubUrl = profile.GithubUrl, OpenToRelocate = profile.OpenToRelocate, UserId = profile.UserId };
         return CreatedAtAction(nameof(GetById), new { id = profile.Id }, ApiResponse<CVProfileResponseDto>.Created(response));
     }
 
@@ -78,11 +94,18 @@ public class CVProfilesController : ApiControllerBase
 
         profile.Title = dto.Title;
         profile.Summary = dto.Summary;
+        profile.Email = dto.Email;
+        profile.Phone = dto.Phone;
+        profile.Location = dto.Location;
+        profile.Website = dto.Website;
+        profile.LinkedInUrl = dto.LinkedInUrl;
+        profile.GithubUrl = dto.GithubUrl;
+        profile.OpenToRelocate = dto.OpenToRelocate;
 
         await _db.SaveChangesAsync();
         SearchSyncHelper.TriggerSync(_scopeFactory, profile.UserId, _logger, "CVProfile.Update");
 
-        var response = new CVProfileResponseDto { Id = profile.Id, Title = profile.Title, Summary = profile.Summary, UserId = profile.UserId };
+        var response = new CVProfileResponseDto { Id = profile.Id, Title = profile.Title, Summary = profile.Summary, Email = profile.Email, Phone = profile.Phone, Location = profile.Location, Website = profile.Website, LinkedInUrl = profile.LinkedInUrl, GithubUrl = profile.GithubUrl, OpenToRelocate = profile.OpenToRelocate, UserId = profile.UserId };
         return Ok(ApiResponse<CVProfileResponseDto>.Ok(response));
     }
 

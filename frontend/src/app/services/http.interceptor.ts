@@ -21,6 +21,7 @@ const LLM_ENDPOINTS = [
   '/api/autofill/',
   '/api/direct-ai/',
   '/api/bime/',
+  '/api/company-research/',
   '/api/workflows/job-extractions',
   '/api/workflows/template-renders',
   '/api/workflows/generate-cv',

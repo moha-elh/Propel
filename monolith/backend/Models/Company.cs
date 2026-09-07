@@ -42,9 +42,43 @@ public class Company
     [MaxLength(100)]
     public string? Size { get; set; }
 
+    public Guid? LogoImageId { get; set; }
+
+    [MaxLength(2000)]
+    public string? LogoUrl { get; set; }
+
     public string? Note { get; set; }
 
     public string? Description { get; set; }
+
+    [MaxLength(500)]
+    public string? Address { get; set; }
+
+    /// <summary>Raw JSON array of contact email addresses (jsonb).</summary>
+    [MaxLength(3000)]
+    public string? EmailsJson { get; set; }
+
+    /// <summary>Raw JSON array of contact phone numbers (jsonb).</summary>
+    [MaxLength(3000)]
+    public string? PhonesJson { get; set; }
+
+    /// <summary>Raw JSON array of {"key","url"} social links (jsonb).</summary>
+    [MaxLength(6000)]
+    public string? SocialLinksJson { get; set; }
+
+    /// <summary>Raw JSON array of short factual strings (jsonb).</summary>
+    [MaxLength(6000)]
+    public string? CompanyFactsJson { get; set; }
+
+    /// <summary>Provenance of the research data, e.g. "web-research".</summary>
+    [MaxLength(50)]
+    public string? ResearchSource { get; set; }
+
+    /// <summary>The exact page the research result was extracted from.</summary>
+    [MaxLength(500)]
+    public string? ResearchLink { get; set; }
+
+    public DateTime? ResearchUpdatedAt { get; set; }
 
     [Required]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

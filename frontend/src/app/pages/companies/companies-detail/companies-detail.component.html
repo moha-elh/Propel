@@ -31,7 +31,13 @@
     @if (company(); as c) {
       <!-- ── Header card ─────────────────────────────────────────────── -->
       <section class="co-header">
-        <div class="avatar" [style.background]="avatarColor(c.name)">{{ initials(c.name) }}</div>
+        @if (c.logoUrl) {
+          <div class="avatar logo-avatar">
+            <img [src]="c.logoUrl" [alt]="c.name + ' logo'" loading="lazy" (error)="$event.target.hidden = true">
+          </div>
+        } @else {
+          <div class="avatar" [style.background]="avatarColor(c.name)">{{ initials(c.name) }}</div>
+        }
         <div class="co-main">
           <h1>{{ c.name }}</h1>
           <div class="co-meta">
@@ -161,6 +167,68 @@
         </section>
 
         <section class="col col-contacts">
+          <h2>Research</h2>
+          @if (c.researchSource !== 'web-research') {
+            <div class="panel empty-panel">
+              <p>No web research yet — pull this company's contact details, social links and facts from its homepage.</p>
+              <a class="btn btn-primary btn-sm" routerLink="/company-research">Run research</a>
+            </div>
+          } @else {
+            <div class="panel research-panel">
+              @if (c.researchLink || c.researchUpdatedAt) {
+                <p class="research-meta">
+                  @if (c.researchLink) {
+                    Source: <a [href]="c.researchLink" target="_blank" rel="noopener">{{ hostOf(c.researchLink) }}</a>
+                  }
+                  @if (c.researchUpdatedAt) { · {{ formatDateTime(c.researchUpdatedAt) }} }
+                </p>
+              }
+              @if (c.address) {
+                <div class="research-block">
+                  <span class="rb-label"><i class="ti ti-map-pin"></i> Address</span>
+                  <p class="rb-value">{{ c.address }}</p>
+                </div>
+              }
+              @if (c.emails && c.emails.length) {
+                <div class="research-block">
+                  <span class="rb-label"><i class="ti ti-mail"></i> Emails</span>
+                  @for (email of c.emails; track email) {
+                    <a class="rb-value link" [href]="'mailto:' + email">{{ email }}</a>
+                  }
+                </div>
+              }
+              @if (c.phones && c.phones.length) {
+                <div class="research-block">
+                  <span class="rb-label"><i class="ti ti-phone"></i> Phones</span>
+                  @for (phone of c.phones; track phone) {
+                    <a class="rb-value link" [href]="'tel:' + phone">{{ phone }}</a>
+                  }
+                </div>
+              }
+              @if (c.socialLinks && c.socialLinks.length) {
+                <div class="research-block">
+                  <span class="rb-label"><i class="ti ti-share"></i> Social</span>
+                  <div class="rb-social">
+                    @for (soc of c.socialLinks; track soc.key) {
+                      <a class="social-chip" [href]="soc.url" target="_blank" rel="noopener" [title]="soc.url">{{ soc.key }}</a>
+                    }
+                  </div>
+                </div>
+              }
+              @if (c.companyFacts && c.companyFacts.length) {
+                <div class="research-block">
+                  <span class="rb-label"><i class="ti ti-list-check"></i> Facts</span>
+                  <ul class="rb-facts">
+                    @for (fact of c.companyFacts; track fact) {
+                      <li>{{ fact }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+              <a class="btn btn-secondary btn-sm" routerLink="/company-research">Re-run research</a>
+            </div>
+          }
+
           <h2>Contacts</h2>
           @if (contacts().length === 0) {
             <div class="panel empty-panel">

@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
-import { HomeComponent } from './pages/home/home.component';
 import { LoginComponent } from './pages/login/login.component';
 // Register merged into LoginComponent — route redirects to /login?mode=sign-up
 
@@ -26,6 +25,8 @@ import { ContactPageComponent } from './pages/contact/contact-page.component';
 import { MailboxComponent } from './pages/mailbox/mailbox.component';
 import { CompaniesComponent } from './pages/companies/companies.component';
 import { CompaniesDetailComponent } from './pages/companies/companies-detail/companies-detail.component';
+import { CompanyResearchComponent } from './pages/company-research/company-research.component';
+import { CompanyResearchDetailComponent } from './pages/company-research-detail/company-research-detail.component';
 import { MyCvComponent } from './pages/my-cv/my-cv.component';
 import { AgentsHubComponent } from './pages/agents-hub/agents-hub.component';
 import { AgentGuideComponent } from './pages/agents-hub/agent-guide/agent-guide.component';
@@ -47,7 +48,7 @@ import { EntityListComponent } from './pages/entity-list/entity-list.component';
 import { EntityFormComponent } from './shared/entity-form/entity-form.component';
 
 export const routes: Routes = [
-  { path: '', component: HomeComponent },
+  { path: '', redirectTo: 'applications', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
   { path: 'register', redirectTo: '/login?mode=sign-up', pathMatch: 'full' },
   { path: 'about', component: AboutComponent },
@@ -117,5 +118,7 @@ export const routes: Routes = [
   },
   { path: 'companies', component: CompaniesComponent, canActivate: [authGuard] },
   { path: 'companies/:id', component: CompaniesDetailComponent, canActivate: [authGuard] },
-  { path: '**', redirectTo: '' },
+  { path: 'company-research', component: CompanyResearchComponent, canActivate: [authGuard] },
+  { path: 'company-research/:id', component: CompanyResearchDetailComponent, canActivate: [authGuard] },
+  { path: '**', redirectTo: 'applications' },
 ];

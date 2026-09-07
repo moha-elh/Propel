@@ -8,7 +8,7 @@ namespace CV_Generator.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ExperiencesController : ControllerBase
+public class ExperiencesController : ApiControllerBase
 {
     private readonly AppDbContext _db;
     private readonly ILogger<ExperiencesController> _logger;
@@ -24,6 +24,8 @@ public class ExperiencesController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] Guid? userId)
     {
+        userId ??= CurrentUserId;
+
         var experiences = userId.HasValue
             ? await _db.Experiences.Where(e => e.UserId == userId.Value).ToListAsync()
             : await _db.Experiences.ToListAsync();
@@ -50,7 +52,11 @@ public class ExperiencesController : ControllerBase
             EndDate = dto.EndDate,
             ReferenceUrl = dto.ReferenceUrl,
             Status = dto.Status,
-            UserId = dto.UserId
+            UserId = RequiredUserId,
+            Location = dto.Location,
+            AchievementsJson = dto.AchievementsJson,
+            EmploymentType = dto.EmploymentType,
+            SortOrder = dto.SortOrder
         };
 
         _db.Experiences.Add(exp);
@@ -74,6 +80,10 @@ public class ExperiencesController : ControllerBase
         exp.EndDate = dto.EndDate;
         exp.ReferenceUrl = dto.ReferenceUrl;
         exp.Status = dto.Status;
+        exp.Location = dto.Location;
+        exp.AchievementsJson = dto.AchievementsJson;
+        exp.EmploymentType = dto.EmploymentType;
+        exp.SortOrder = dto.SortOrder;
 
         await _db.SaveChangesAsync();
         SearchSyncHelper.TriggerSync(_scopeFactory, exp.UserId, _logger, "Experience.Update", exp.Id);
@@ -100,7 +110,11 @@ public class ExperiencesController : ControllerBase
         DateTime? EndDate,
         string? ReferenceUrl,
         string Status,
-        Guid UserId
+        Guid UserId,
+        string? Location = null,
+        string? AchievementsJson = null,
+        string? EmploymentType = null,
+        int SortOrder = 0
     );
 
     public record UpdateExperienceDto(
@@ -110,6 +124,10 @@ public class ExperiencesController : ControllerBase
         DateTime StartDate,
         DateTime? EndDate,
         string? ReferenceUrl,
-        string Status
+        string Status,
+        string? Location = null,
+        string? AchievementsJson = null,
+        string? EmploymentType = null,
+        int SortOrder = 0
     );
 }

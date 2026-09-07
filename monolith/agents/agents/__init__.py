@@ -12,6 +12,7 @@ from agents.pdf_thumbnails.router import router as pdf_thumbnails_router
 from agents.categorize.router import router as categorize_router
 from agents.autofill.router import router as autofill_router
 from agents.direct.router import router as direct_router
+from agents.company_research.router import router as company_research_router
 
 all_routers = [
     job_extractor_router,
@@ -28,4 +29,5 @@ all_routers = [
     categorize_router,
     autofill_router,
     direct_router,
+    company_research_router,
 ]

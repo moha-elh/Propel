@@ -56,6 +56,7 @@ public class AppDbContext : DbContext
     public DbSet<AgentLlmSetting> AgentLlmSettings => Set<AgentLlmSetting>();
     public DbSet<CvTemplate> CvTemplates => Set<CvTemplate>();
     public DbSet<ScheduleTemplate> ScheduleTemplates => Set<ScheduleTemplate>();
+    public DbSet<UserImage> UserImages => Set<UserImage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -190,6 +191,10 @@ public class AppDbContext : DbContext
                 .IsRequired()
                 .HasMaxLength(100)
                 .HasDefaultValue("Morocco");
+            entity.Property(e => e.EmailsJson).HasColumnType("jsonb");
+            entity.Property(e => e.PhonesJson).HasColumnType("jsonb");
+            entity.Property(e => e.SocialLinksJson).HasColumnType("jsonb");
+            entity.Property(e => e.CompanyFactsJson).HasColumnType("jsonb");
         });
 
         modelBuilder.Entity<EmailMessage>(entity =>

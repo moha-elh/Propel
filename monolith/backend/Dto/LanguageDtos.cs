@@ -12,6 +12,7 @@ public class CreateLanguageDto
     [MaxLength(20)]
     public string Level { get; set; } = string.Empty;
 
+    public int SortOrder { get; set; } = 0;
 }
 
 public class UpdateLanguageDto
@@ -23,6 +24,8 @@ public class UpdateLanguageDto
     [Required]
     [MaxLength(20)]
     public string Level { get; set; } = string.Empty;
+
+    public int SortOrder { get; set; } = 0;
 }
 
 public class LanguageResponseDto
@@ -31,4 +34,5 @@ public class LanguageResponseDto
     public string Name { get; set; } = string.Empty;
     public string Level { get; set; } = string.Empty;
     public Guid UserId { get; set; }
+    public int SortOrder { get; set; } = 0;
 }

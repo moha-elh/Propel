@@ -36,7 +36,8 @@ public class InterestsController : ApiControllerBase
         {
             Id = i.Id,
             Name = i.Name,
-            UserId = i.UserId
+            UserId = i.UserId,
+            SortOrder = i.SortOrder
         }).ToList();
 
         return Ok(ApiResponse<List<InterestResponseDto>>.Ok(response));
@@ -48,19 +49,19 @@ public class InterestsController : ApiControllerBase
         var interest = await _db.Interests.FindAsync(id);
         if (interest == null) return NotFound(ApiResponse<InterestResponseDto>.Error("Interest not found"));
 
-        var response = new InterestResponseDto { Id = interest.Id, Name = interest.Name, UserId = interest.UserId };
+        var response = new InterestResponseDto { Id = interest.Id, Name = interest.Name, UserId = interest.UserId, SortOrder = interest.SortOrder };
         return Ok(ApiResponse<InterestResponseDto>.Ok(response));
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateInterestDto dto)
     {
-        var interest = new Interest { Name = dto.Name, UserId = RequiredUserId };
+        var interest = new Interest { Name = dto.Name, UserId = RequiredUserId, SortOrder = dto.SortOrder };
         _db.Interests.Add(interest);
         await _db.SaveChangesAsync();
         SearchSyncHelper.TriggerSync(_scopeFactory, interest.UserId, _logger, "Interest.Create", interest.Id);
 
-        var response = new InterestResponseDto { Id = interest.Id, Name = interest.Name, UserId = interest.UserId };
+        var response = new InterestResponseDto { Id = interest.Id, Name = interest.Name, UserId = interest.UserId, SortOrder = interest.SortOrder };
         return CreatedAtAction(nameof(GetById), new { id = interest.Id }, ApiResponse<InterestResponseDto>.Created(response));
     }
 
@@ -71,10 +72,11 @@ public class InterestsController : ApiControllerBase
         if (interest == null) return NotFound(ApiResponse<InterestResponseDto>.Error("Interest not found"));
 
         interest.Name = dto.Name;
+        interest.SortOrder = dto.SortOrder;
         await _db.SaveChangesAsync();
         SearchSyncHelper.TriggerSync(_scopeFactory, interest.UserId, _logger, "Interest.Update", interest.Id);
 
-        var response = new InterestResponseDto { Id = interest.Id, Name = interest.Name, UserId = interest.UserId };
+        var response = new InterestResponseDto { Id = interest.Id, Name = interest.Name, UserId = interest.UserId, SortOrder = interest.SortOrder };
         return Ok(ApiResponse<InterestResponseDto>.Ok(response));
     }
 

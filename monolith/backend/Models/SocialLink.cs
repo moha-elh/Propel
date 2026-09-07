@@ -19,5 +19,7 @@ namespace CV_Generator.Models
 
         [Required]
         public Guid UserId { get; set; }
+
+        public int SortOrder { get; set; } = 0;
     }
 }

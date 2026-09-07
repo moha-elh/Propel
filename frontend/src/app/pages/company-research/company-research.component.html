@@ -1,0 +1,199 @@
+<div class="page">
+  <header class="page-head">
+    <div>
+      <h1>Company Research</h1>
+      <p class="sub">{{ total() }} {{ total() === 1 ? 'company' : 'companies' }} · crawl homepages and extract contacts, social links and company facts.</p>
+    </div>
+    <div class="head-actions">
+      <div class="search-box">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Search companies…" [ngModel]="search()" (ngModelChange)="onSearchInput($event)">
+      </div>
+      <app-refresh-button [loading]="refreshing()" (refresh)="onRefresh()" />
+    </div>
+  </header>
+
+  <div class="filter-bar">
+    <select class="filter-select" [ngModel]="sectorFilter()" (ngModelChange)="sectorFilter.set($event); onFilterChange()">
+      <option value="">All sectors</option>
+      @for (s of sectors(); track s) {
+        <option [value]="s">{{ s }}</option>
+      }
+    </select>
+
+    <select class="filter-select" [ngModel]="websiteFilter()" (ngModelChange)="websiteFilter.set($event); onFilterChange()">
+      <option value="all">Any website</option>
+      <option value="yes">Has website</option>
+      <option value="no">No website</option>
+    </select>
+
+    <select class="filter-select" [ngModel]="researchedFilter()" (ngModelChange)="researchedFilter.set($event); onFilterChange()">
+      <option value="all">Any research status</option>
+      <option value="yes">Researched</option>
+      <option value="no">Not researched</option>
+    </select>
+
+    <label class="minapps-label">
+      <span>Sort by</span>
+      <select class="filter-select" [ngModel]="sortBy()" (ngModelChange)="onSortByChange($event)">
+        <option value="name">Name</option>
+        <option value="researched">Last researched</option>
+        <option value="applied">Last applied</option>
+      </select>
+    </label>
+
+    @if (hasActiveFilters() || sortBy() !== 'name') {
+      <button class="reset-btn" (click)="resetFilters()">Reset</button>
+    }
+  </div>
+
+  <div class="data-types">
+    <span class="dt-label">Extract:</span>
+    @for (opt of dataTypeOptions; track opt.key) {
+      <button
+        type="button"
+        class="chip"
+        [class.on]="selectedTypes().has(opt.key)"
+        (click)="toggleType(opt.key)"
+        [title]="opt.desc"
+      >
+        <i [class]="opt.icon"></i>
+        {{ opt.label }}
+      </button>
+    }
+    <label class="all-toggle">
+      <input type="checkbox" [checked]="allTypesSelected()" (change)="selectAllTypes()">
+      All
+    </label>
+  </div>
+
+  <div class="run-bar">
+    <span class="run-count">
+      {{ selectedIds().size }} selected
+      @if (pageSelectedCount() > 0) {
+        <span class="run-page-sub"> ({{ pageSelectedCount() }} on this page)</span>
+      }
+    </span>
+    @if (selectedIds().size > 0) {
+      <button class="clear-btn" (click)="clearSelection()">Clear selection</button>
+    }
+    <button
+      class="btn-primary run-btn"
+      [disabled]="!canRun()"
+      (click)="run()"
+    >
+      <i class="ti ti-search"></i>
+      Research selected
+    </button>
+    <p class="run-hint">Only companies with a saved website are researched — companies without one are skipped with a hint.</p>
+  </div>
+
+  @if (loading()) {
+    <div class="skeleton-list">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+        <div class="skeleton-row"></div>
+      }
+    </div>
+  } @else if (companies().length === 0) {
+    <div class="empty">
+      <i class="ti ti-building"></i>
+      @if (hasActiveFilters()) {
+        <p>No companies match your filters.</p>
+      } @else {
+        <p>No companies to research. <a routerLink="/companies">Go to Companies</a> to add some first.</p>
+      }
+    </div>
+  } @else {
+    <div class="company-list">
+      <div class="list-head">
+        <label class="col-check">
+          <input type="checkbox" [checked]="companies().filter(c => !!c.websiteUrl).length > 0 && companies().every(c => isSelected(c.id) || !c.websiteUrl)" (change)="selectAllCurrentPage()">
+        </label>
+        <span class="col-name">Company</span>
+        <span class="col-site">Website</span>
+        <span class="col-linkedin">LinkedIn</span>
+        <span class="col-status">Status</span>
+      </div>
+
+      @for (company of companies(); track company.id) {
+        <div class="list-row" [class.selected]="isSelected(company.id)" (click)="openDetail(company)">
+          <label class="col-check" (click)="$event.stopPropagation()">
+            @if (company.websiteUrl) {
+              <input type="checkbox" [checked]="isSelected(company.id)" (change)="toggleSelect(company.id)">
+            } @else {
+              <span class="no-site" title="No website saved"></span>
+            }
+          </label>
+
+          <div class="col-name">
+            @if (company.logoUrl) {
+              <img class="co-logo" [src]="company.logoUrl" alt="" loading="lazy" (error)="$event.target.hidden = true">
+            }
+            <div class="co-meta">
+              <span class="co-name">{{ company.name }}</span>
+              @if (company.location || company.sector) {
+                <span class="co-sub">
+                  {{ coSub(company.location, company.sector) }}
+                </span>
+              }
+            </div>
+          </div>
+
+          <div class="col-site">
+            @if (company.websiteUrl) {
+              <a class="site-link" [href]="company.websiteUrl" target="_blank" rel="noopener" (click)="$event.stopPropagation()">{{ hostOf(company.websiteUrl) }}</a>
+            } @else {
+              <span class="no-site-tag">No website</span>
+            }
+          </div>
+
+          <div class="col-linkedin">
+            @if (company.linkedinUrl) {
+              <a class="site-link" [href]="company.linkedinUrl" target="_blank" rel="noopener" title="Open LinkedIn profile" (click)="$event.stopPropagation()">
+                <i class="ti ti-brand-linkedin"></i>
+                {{ hostOf(company.linkedinUrl) }}
+              </a>
+            } @else {
+              <span class="no-site-tag dim">—</span>
+            }
+          </div>
+
+          <div class="col-status">
+            @if (isRunning(company.id)) {
+              <span class="st running"><i class="ti ti-loader ti-spin"></i> Researching…</span>
+            } @else {
+              @if (statusFor(company.id).state === 'done') {
+                <span class="st done"><i class="ti ti-check"></i> {{ statusFor(company.id).message }}</span>
+              } @else if (statusFor(company.id).state === 'error') {
+                <span class="st err"><i class="ti ti-alert-circle"></i> {{ statusFor(company.id).message }}</span>
+              } @else {
+                <span class="st idle">
+                  @if (company.researchSource === 'web-research' && company.researchUpdatedAt) {
+                    <i class="ti ti-clock"></i> Researched {{ formatDate(company.researchUpdatedAt) }}
+                  } @else {
+                    Not researched yet
+                  }
+                </span>
+              }
+            }
+          </div>
+        </div>
+      }
+
+      <div class="table-foot">
+        <span class="foot-info">Page {{ page() }} of {{ pageCount() }} · {{ total() }} companies</span>
+        <div class="pager">
+          <button class="page-btn" [disabled]="page() <= 1" (click)="goToPage(page() - 1)" title="Previous page">‹</button>
+          @for (p of visiblePages(); track p) {
+            @if (p === -1) {
+              <span class="page-ellipsis">…</span>
+            } @else {
+              <button class="page-btn num" [class.active]="p === page()" (click)="goToPage(p)">{{ p }}</button>
+            }
+          }
+          <button class="page-btn" [disabled]="page() >= pageCount()" (click)="goToPage(page() + 1)" title="Next page">›</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

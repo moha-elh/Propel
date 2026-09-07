@@ -138,6 +138,30 @@
             />
           </div>
 
+          <div class="field">
+            <label class="field-label">CV header photo (optional)</label>
+            <div class="photo-row">
+              <button type="button" class="photo-btn" (click)="photoPickerOpen.set(true)" [class.set]="cvPhotoPreview()">
+                @if (cvPhotoPreview()) {
+                  <img [src]="cvPhotoPreview()" alt="CV photo">
+                  <span class="photo-change"><i class="ti ti-edit"></i></span>
+                } @else {
+                  <span class="photo-placeholder"><i class="ti ti-user-circle"></i></span>
+                }
+              </button>
+              <div class="photo-info">
+                <p class="photo-status">
+                  {{ profilePhotoKey() ? 'Photo set — injected into the CV header' : 'No photo — the header renders without one' }}
+                </p>
+                @if (profilePhotoKey()) {
+                  <button type="button" class="text-btn danger" (click)="removePhoto()">Remove photo</button>
+                } @else {
+                  <button type="button" class="text-btn" (click)="photoPickerOpen.set(true)">Choose from your image library…</button>
+                }
+              </div>
+            </div>
+          </div>
+
           <div class="toggle-row">
             <label class="toggle">
               <input type="checkbox" [checked]="saveToDocuments()" (change)="saveToDocuments.set($any($event.target).checked)" />
@@ -333,3 +357,9 @@
     }
   </div>
 </div>
+
+<app-image-picker
+  [(open)]="photoPickerOpen"
+  title="CV header photo"
+  (selected)="onPhotoPicked($event)"
+/>
