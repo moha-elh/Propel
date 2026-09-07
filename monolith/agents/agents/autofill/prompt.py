@@ -11,6 +11,8 @@ return them as a single JSON object whose keys are the exact field names provide
 Rules:
 1. Each JSON key must be EXACTLY the field name you are given — do not rename, pluralize,
    or guess new keys.
+1b. Your response MUST include EVERY key listed in the field block. None may be omitted —
+    include keys you could not fill, with "" (or null for numbers) as their value.
 2. Extract the value from the text. If a value is not present or cannot be determined, use:
      - For text/textarea/url fields: an empty string ""
      - For date fields: "" (the caller will drop blanks)
@@ -18,8 +20,11 @@ Rules:
      - Never invent facts that are not in the text.
 3. Select/choice fields MUST return one of the listed allowed options verbatim; if nothing
    matches, return the closest option or "" if asked (string) — prefer the exact option token.
-4. For list-ish textareas (e.g. skills, responsibilities), join the items into a single
-   human-friendly string, unless the field type allows an array.
+4. For list-ish textareas (e.g. skills, responsibilities, achievements), collect the concrete
+   items MENTIONED anywhere in the description — technologies, frameworks, languages, tools,
+   platforms, services — and join them into a single comma-separated string. Extracting the
+   technologies named in the text is expected, not 'inventing'; only facts that appear
+   NOWHERE in the text must be left empty.
 5. Return ONLY the JSON object — no markdown fences, no commentary, no prose."""
 
 
