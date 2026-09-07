@@ -1,9 +1,0 @@
-name,email,company,position,phone
-Jane Doe,jane.doe@techcorp.com,TechCorp,Senior Recruiter,+1-555-0101
-"Doe, Jane",jane.doe@techcorp.com,TechCorp,Senior Recruiter,+1-555-0101
-John Smith,john.smith@innovatech.io,"InnoTech, Inc.",Talent Lead,
-Pat O'Brien,pat.obrien@startup.io,StartupIO,Founder,+1-555-0102
-Maria "Majo" Garcia,maria.garcia@example.com,Example Labs,HR Manager,
-bad.email@@nope,Broken Person,Broken Corp,Recruiter,
-,,,,
-Sam Wilson,sam.wilson@techcorp.com,TechCorp,Engineering Manager,+1-555-0103
