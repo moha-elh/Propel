@@ -14,12 +14,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install deps first (package metadata + sources needed for the editable install).
+# Dependency layer — cached until pyproject.toml changes. Stub packages let the
+# editable install resolve all (heavy) deps without re-running on every source edit.
 COPY pyproject.toml ./
+RUN mkdir -p shared agents \
+    && touch shared/__init__.py agents/__init__.py \
+    && pip install -e .
+
+# Real source (editing this does NOT re-trigger the heavy pip layer above).
 COPY shared ./shared
 COPY agents ./agents
 COPY main.py ./
-RUN pip install -e .
 
 EXPOSE 8000
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

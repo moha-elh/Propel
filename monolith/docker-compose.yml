@@ -76,6 +76,11 @@ services:
       - MINIO_ENDPOINT=minio:9000
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/cv_monolith
     ports: ["${AGENTS_PORT:-8000}:8000"]
+    # Live source (editable install) — pick up code edits without a rebuild.
+    volumes:
+      - ./agents/agents:/app/agents
+      - ./agents/shared:/app/shared
+      - ./agents/main.py:/app/main.py
     depends_on:
       - monolith
     networks: [cv-network]

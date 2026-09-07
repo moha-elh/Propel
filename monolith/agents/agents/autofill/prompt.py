@@ -34,7 +34,10 @@ def _field_spec(field: FieldDef) -> str:
     if field.help:
         parts.append(f" ({field.help})")
     if field.options:
-        parts.append(f" — allowed: {', '.join('"' + _escape(o) + '"' for o in field.options)}")
+        # Build the quoted list outside the f-string (a literal " inside an
+        # f-string expression is a SyntaxError before Python 3.12).
+        allowed = ", ".join('"' + _escape(o) + '"' for o in field.options)
+        parts.append(f" — allowed: {allowed}")
     return "".join(parts)
 
 
@@ -81,11 +84,14 @@ def get_autofill_messages(text: str, entity_type: str, fields: List[FieldDef]) -
         if entity_type and entity_type != "generic"
         else ""
     )
+    # Built outside the f-string: a backslash inside an f-string expression is a
+    # SyntaxError before Python 3.12.
+    rules_block = f"\n\nField-specific rules:\n{rules}" if rules else ""
     prompt = (
         f"{_SYSTEM_HEADER}\n"
         f"{schema_hint}\n\n"
         f"Return a JSON object with these keys:\n{field_block}"
-        f"{('\n\nField-specific rules:\n' + rules) if rules else ''}\n\n"
+        f"{rules_block}\n\n"
         f"Now extract from this description:\n{text}"
     )
     return [SystemMessage(content=prompt)]
