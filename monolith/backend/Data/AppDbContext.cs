@@ -39,6 +39,7 @@ public class AppDbContext : DbContext
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
     public DbSet<GmailConnection> GmailConnections => Set<GmailConnection>();
     public DbSet<Contact> Contacts => Set<Contact>();
+    public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<Company> Companies => Set<Company>();
     public DbSet<EmailMessage> EmailMessages => Set<EmailMessage>();
     public DbSet<EmailSchedule> EmailSchedules => Set<EmailSchedule>();
@@ -179,6 +180,12 @@ public class AppDbContext : DbContext
         {
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.Email);
+        });
+
+        modelBuilder.Entity<Employee>(entity =>
+        {
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.Company);
         });
 
         modelBuilder.Entity<Company>(entity =>

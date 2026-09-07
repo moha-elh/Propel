@@ -55,6 +55,7 @@ public class ContactService : IContactService
                 Phone = c.Phone,
                 Company = c.Company,
                 Position = c.Position,
+                LinkedInUrl = c.LinkedInUrl,
                 Notes = c.Notes,
                 Source = c.Source,
                 IsFavorite = c.IsFavorite,
@@ -75,7 +76,7 @@ public class ContactService : IContactService
 
     public async Task<ContactDto> CreateContactAsync(Guid userId, CreateContactDto dto)
     {
-        ValidateContact(dto.Name, dto.Email);
+        ValidateContact(dto.Name, dto.Email, dto.Phone, dto.LinkedInUrl);
 
         var contact = new Contact
         {
@@ -83,13 +84,14 @@ public class ContactService : IContactService
             UserId = userId,
             Name = dto.Name.Trim(),
             Email = dto.Email.Trim().ToLower(),
-            Phone = dto.Phone,
-            Mobile = dto.Mobile,
-            Fax = dto.Fax,
-            Address = dto.Address,
-            Company = dto.Company,
-            Position = dto.Position,
-            Notes = dto.Notes,
+            Phone = NormalizeNull(dto.Phone),
+            Mobile = NormalizeNull(dto.Mobile),
+            Fax = NormalizeNull(dto.Fax),
+            Address = NormalizeNull(dto.Address),
+            Company = NormalizeNull(dto.Company),
+            Position = NormalizeNull(dto.Position),
+            LinkedInUrl = NormalizeNull(dto.LinkedInUrl),
+            Notes = NormalizeNull(dto.Notes),
             AvatarBase64 = dto.AvatarBase64,
             Source = dto.Source ?? "manual"
         };
@@ -113,13 +115,14 @@ public class ContactService : IContactService
             ValidateEmail(dto.Email);
             c.Email = dto.Email.Trim().ToLower();
         }
-        if (dto.Phone is not null) c.Phone = dto.Phone;
-        if (dto.Mobile is not null) c.Mobile = dto.Mobile;
-        if (dto.Fax is not null) c.Fax = dto.Fax;
-        if (dto.Address is not null) c.Address = dto.Address;
-        if (dto.Company is not null) c.Company = dto.Company;
-        if (dto.Position is not null) c.Position = dto.Position;
-        if (dto.Notes is not null) c.Notes = dto.Notes;
+        if (dto.Phone is not null) c.Phone = NormalizeNull(dto.Phone);
+        if (dto.Mobile is not null) c.Mobile = NormalizeNull(dto.Mobile);
+        if (dto.Fax is not null) c.Fax = NormalizeNull(dto.Fax);
+        if (dto.Address is not null) c.Address = NormalizeNull(dto.Address);
+        if (dto.Company is not null) c.Company = NormalizeNull(dto.Company);
+        if (dto.Position is not null) c.Position = NormalizeNull(dto.Position);
+        if (dto.LinkedInUrl is not null) c.LinkedInUrl = NormalizeNull(dto.LinkedInUrl);
+        if (dto.Notes is not null) c.Notes = NormalizeNull(dto.Notes);
         if (dto.IsFavorite.HasValue) c.IsFavorite = dto.IsFavorite.Value;
         if (dto.AvatarBase64 is not null) c.AvatarBase64 = dto.AvatarBase64;
         c.UpdatedAt = DateTime.UtcNow;
@@ -177,16 +180,19 @@ public class ContactService : IContactService
         var mobileIdx = headers.IndexOf("mobile");
         var faxIdx = headers.IndexOf("fax");
         var addressIdx = headers.IndexOf("address");
+        var linkedinIdx = headers.IndexOf("linkedin") >= 0 ? headers.IndexOf("linkedin") : headers.IndexOf("linkedinurl");
 
         if (nameIdx < 0) return 0;
 
-        // Dedup by email when present; phone-only rows dedup on company|name|phone.
+        // Dedup by email when present; phone-only rows dedup on company|name|phone;
+        // LinkedIn-only rows dedup on their profile URL.
         var seenKeys = new HashSet<string>(StringComparer.Ordinal);
         foreach (var c in _db.Set<Contact>().Where(c => c.UserId == userId))
         {
             if (!string.IsNullOrWhiteSpace(c.Email)) seenKeys.Add("email:" + c.Email.Trim().ToLower());
             else if (!string.IsNullOrWhiteSpace(c.Company) || !string.IsNullOrWhiteSpace(c.Name))
                 seenKeys.Add("by:" + (c.Company ?? "").Trim().ToLower() + "|" + c.Name.Trim().ToLower() + "|" + (c.Phone ?? ""));
+            if (!string.IsNullOrWhiteSpace(c.LinkedInUrl)) seenKeys.Add("li:" + c.LinkedInUrl.Trim().ToLower());
         }
 
         var contacts = new List<Contact>();
@@ -196,16 +202,15 @@ public class ContactService : IContactService
             var name = cols[nameIdx].Trim();
             var email = emailIdx >= 0 && cols.Count > emailIdx ? cols[emailIdx].Trim().ToLower() : "";
             var phone = phoneIdx >= 0 && cols.Count > phoneIdx ? cols[phoneIdx].Trim() : "";
-            if (name.Length == 0 || (email.Length == 0 && phone.Length == 0)) continue;
-            if (email.Length > 0)
-            {
-                var at = email.IndexOf('@');
-                if (at < 1 || at == email.Length - 1 || !email[(at + 1)..].Contains('.')) continue;
-            }
+            var linkedin = linkedinIdx >= 0 && cols.Count > linkedinIdx ? cols[linkedinIdx].Trim() : "";
+            if (name.Length == 0 || (email.Length == 0 && phone.Length == 0 && linkedin.Length == 0)) continue;
+            if (email.Length > 0 && !IsValidEmailShape(email)) continue;
 
             var key = email.Length > 0
                 ? "email:" + email
-                : "by:" + (companyIdx >= 0 && cols.Count > companyIdx ? cols[companyIdx] : "").Trim().ToLower() + "|" + name.ToLower() + "|" + phone;
+                : linkedin.Length > 0
+                    ? "li:" + linkedin
+                    : "by:" + (companyIdx >= 0 && cols.Count > companyIdx ? cols[companyIdx] : "").Trim().ToLower() + "|" + name.ToLower() + "|" + phone;
             if (!seenKeys.Add(key)) continue;
 
             contacts.Add(new Contact
@@ -220,6 +225,7 @@ public class ContactService : IContactService
                 Address = addressIdx >= 0 && cols.Count > addressIdx ? cols[addressIdx].Trim() : null,
                 Company = companyIdx >= 0 && cols.Count > companyIdx ? cols[companyIdx].Trim() : null,
                 Position = positionIdx >= 0 && cols.Count > positionIdx ? cols[positionIdx].Trim() : null,
+                LinkedInUrl = linkedin.Length > 0 ? linkedin : null,
                 Source = "csv"
             });
         }
@@ -229,6 +235,97 @@ public class ContactService : IContactService
         _db.Set<Contact>().AddRange(contacts);
         await _db.SaveChangesAsync();
         return contacts.Count;
+    }
+
+    /// <summary>
+    /// Batch-create contacts parsed from an AI response after user review.
+    /// Dedups against the user's existing contacts by email, else LinkedIn URL,
+    /// else company|name|phone; per-row skip reasons are reported back.
+    /// </summary>
+    public async Task<ContactExtractResultDto> ExtractContactsAsync(Guid userId, List<CreateContactDto> rows)
+    {
+        var result = new ContactExtractResultDto();
+        if (rows is null || rows.Count == 0) return result;
+
+        var existing = await _db.Set<Contact>().Where(c => c.UserId == userId).ToListAsync();
+        var seenKeys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var c in existing)
+        {
+            if (!string.IsNullOrWhiteSpace(c.Email)) seenKeys.Add("email:" + c.Email.Trim().ToLower());
+            else if (!string.IsNullOrWhiteSpace(c.Company) || !string.IsNullOrWhiteSpace(c.Name))
+                seenKeys.Add("by:" + (c.Company ?? "").Trim().ToLower() + "|" + c.Name.Trim().ToLower() + "|" + (c.Phone ?? ""));
+            if (!string.IsNullOrWhiteSpace(c.LinkedInUrl)) seenKeys.Add("li:" + c.LinkedInUrl.Trim().ToLower());
+        }
+
+        void Skip(string reason)
+        {
+            result.Skipped++;
+            result.Errors.Add(reason);
+        }
+
+        var contacts = new List<Contact>();
+        foreach (var (row, idx) in rows.Select((r, i) => (r, i)))
+        {
+            var name = row.Name?.Trim() ?? "";
+            var email = row.Email?.Trim().ToLower() ?? "";
+            var phone = row.Phone?.Trim() ?? "";
+            var linkedin = row.LinkedInUrl?.Trim() ?? "";
+
+            if (name.Length == 0)
+            {
+                Skip($"Row {idx + 1}: name is required");
+                continue;
+            }
+            if (email.Length == 0 && phone.Length == 0 && linkedin.Length == 0)
+            {
+                Skip($"Row {idx + 1}: needs an email, phone or LinkedIn URL");
+                continue;
+            }
+            if (email.Length > 0 && !IsValidEmailShape(email))
+            {
+                Skip($"Row {idx + 1}: invalid email '{email}' for '{name}'");
+                continue;
+            }
+
+            var key = email.Length > 0
+                ? "email:" + email
+                : linkedin.Length > 0
+                    ? "li:" + linkedin.ToLower()
+                    : "by:" + (row.Company ?? "").Trim().ToLower() + "|" + name.ToLower() + "|" + phone;
+            if (!seenKeys.Add(key))
+            {
+                Skip($"Row {idx + 1}: '{name}' already exists (same email/LinkedIn/company+phone)");
+                continue;
+            }
+
+            contacts.Add(new Contact
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Name = name,
+                Email = email,
+                Phone = string.IsNullOrWhiteSpace(phone) ? null : phone,
+                Mobile = NormalizeNull(row.Mobile),
+                Fax = NormalizeNull(row.Fax),
+                Address = NormalizeNull(row.Address),
+                Company = NormalizeNull(row.Company),
+                Position = NormalizeNull(row.Position),
+                LinkedInUrl = linkedin.Length > 0 ? linkedin : null,
+                Notes = NormalizeNull(row.Notes),
+                AvatarBase64 = row.AvatarBase64,
+                Source = "extract",
+                IsFavorite = row.IsFavorite
+            });
+        }
+
+        if (contacts.Count > 0)
+        {
+            _db.Set<Contact>().AddRange(contacts);
+            await _db.SaveChangesAsync();
+        }
+
+        result.Imported = contacts.Count;
+        return result;
     }
 
     public async Task<int> ImportFromJobOffersAsync(Guid userId)
@@ -296,28 +393,43 @@ public class ContactService : IContactService
     {
         Id = c.Id, UserId = c.UserId, Name = c.Name, Email = c.Email, Phone = c.Phone,
         Mobile = c.Mobile, Fax = c.Fax, Address = c.Address,
-        Company = c.Company, Position = c.Position, Notes = c.Notes,
+        Company = c.Company, Position = c.Position,
+        LinkedInUrl = c.LinkedInUrl, Notes = c.Notes,
         Source = c.Source, IsFavorite = c.IsFavorite, AvatarBase64 = c.AvatarBase64,
         CreatedAt = c.CreatedAt, UpdatedAt = c.UpdatedAt
     };
 
-    private static void ValidateContact(string name, string email)
+    /// <summary>
+    /// A contact needs a name plus at least one reachable channel (email, phone or LinkedIn).
+    /// Emails, when present, must look like local@domain.tld.
+    /// </summary>
+    private static void ValidateContact(string name, string? email, string? phone, string? linkedInUrl)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Contact name is required");
-        ValidateEmail(email);
+        if (string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(phone) && string.IsNullOrWhiteSpace(linkedInUrl))
+            throw new ArgumentException("A contact needs an email, phone or LinkedIn URL");
+        if (!string.IsNullOrWhiteSpace(email))
+            ValidateEmail(email);
     }
 
     private static void ValidateEmail(string email)
     {
-        if (string.IsNullOrWhiteSpace(email))
-            throw new ArgumentException("Contact email is required");
+        if (IsValidEmailShape(email)) return;
+        throw new ArgumentException($"Invalid email address '{email}'");
+    }
+
+    private static bool IsValidEmailShape(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return false;
         // Placeholder addresses (recruiter@company.com) and real ones both pass;
         // anything without a basic local@domain.tld shape is rejected.
         var at = email.IndexOf('@');
-        if (at < 1 || at == email.Length - 1 || !email[(at + 1)..].Contains('.'))
-            throw new ArgumentException($"Invalid email address '{email}'");
+        return at >= 1 && at != email.Length - 1 && email[(at + 1)..].Contains('.');
     }
+
+    private static string? NormalizeNull(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     /// <summary>RFC4180-style CSV parsing: quoted fields, escaped quotes, CRLF/LF.</summary>
     private static List<List<string>> ParseCsv(string csvContent)

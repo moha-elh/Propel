@@ -98,6 +98,18 @@ public class ContactsController : BaseApiController
         return NoContent();
     }
 
+    [HttpPost("extract")]
+    public async Task<IActionResult> Extract([FromBody] List<CreateContactDto> rows)
+    {
+        var userId = GetUserId();
+        if (rows is null || rows.Count == 0)
+            return BadRequest(ApiResponse<ContactExtractResultDto>.Error("No contacts provided"));
+        var result = await _contactSvc.ExtractContactsAsync(userId, rows);
+        if (result.Imported > 0)
+            SearchSyncHelper.TriggerSync(_scopeFactory, userId, _logger, "Contact.Create");
+        return Ok(ApiResponse<ContactExtractResultDto>.Ok(result, $"{result.Imported} imported, {result.Skipped} skipped"));
+    }
+
     [HttpPost("import-csv")]
     public async Task<IActionResult> ImportCsv([FromBody] ImportCsvDto dto)
     {

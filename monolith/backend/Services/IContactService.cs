@@ -14,4 +14,5 @@ public interface IContactService
     Task<long> GetContactCountAsync(Guid userId);
     Task<ContactDto?> ToggleFavoriteAsync(Guid id, Guid userId);
     Task<List<ContactDto>> GetByCompanyAsync(Guid userId, string companyName);
+    Task<ContactExtractResultDto> ExtractContactsAsync(Guid userId, List<CreateContactDto> rows);
 }

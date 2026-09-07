@@ -12,6 +12,7 @@ public class ContactDto
     public string? Address { get; set; }
     public string? Company { get; set; }
     public string? Position { get; set; }
+    public string? LinkedInUrl { get; set; }
     public string? Notes { get; set; }
     public string? AvatarBase64 { get; set; }
     public string Source { get; set; } = "manual";
@@ -30,6 +31,7 @@ public class CreateContactDto
     public string? Address { get; set; }
     public string? Company { get; set; }
     public string? Position { get; set; }
+    public string? LinkedInUrl { get; set; }
     public string? Notes { get; set; }
     public string? Source { get; set; }
     public bool IsFavorite { get; set; }
@@ -46,9 +48,17 @@ public class UpdateContactDto
     public string? Address { get; set; }
     public string? Company { get; set; }
     public string? Position { get; set; }
+    public string? LinkedInUrl { get; set; }
     public string? Notes { get; set; }
     public bool? IsFavorite { get; set; }
     public string? AvatarBase64 { get; set; }
+}
+
+public class ContactExtractResultDto
+{
+    public int Imported { get; set; }
+    public int Skipped { get; set; }
+    public List<string> Errors { get; set; } = [];
 }
 
 public class ImportCsvDto
