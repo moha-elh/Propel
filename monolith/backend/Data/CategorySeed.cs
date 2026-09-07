@@ -1,10 +1,13 @@
+using System.Linq;
 using CV_Generator.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace CV_Generator.Data;
 
 /// <summary>
-/// Idempotent seeder for the curated category taxonomy. Runs once at startup when CategoryNodes is empty.
+/// Idempotent seeder for the curated category taxonomy. Runs at startup:
+/// fresh DBs get the full per-entity tree; existing installs get a projects-scope
+/// drift refresh (tree replaced + curated tags re-assigned when the seed changes).
 /// Trees are per entity-scope; the top-level node name doubles as the Domain.
 /// </summary>
 public static class CategorySeed
@@ -18,24 +21,105 @@ public static class CategorySeed
 
     public static async Task SeedAsync(AppDbContext db)
     {
-        if (await db.CategoryNodes.AnyAsync())
+        if (!await db.CategoryNodes.AnyAsync())
+        {
+            var all = new List<(string Scope, List<SeedNode> Roots)>
+            {
+                ("projects", Projects()),
+                ("experiences", Experiences()),
+                ("educations", Educations()),
+                ("certifications", Certifications()),
+                ("skills", Skills()),
+                ("languages", Languages()),
+                ("hackathons", Hackathons()),
+                ("interests", Interests()),
+                ("academicactivities", AcademicActivities()),
+            };
+
+            foreach (var (scope, roots) in all)
+                Plant(db, scope, roots);
+
+            await db.SaveChangesAsync();
+            return;
+        }
+
+        // Existing install: keep tree fresh when the projects seed spec changes.
+        await RefreshProjectsScopeAsync(db);
+    }
+
+    private static async Task RefreshProjectsScopeAsync(AppDbContext db)
+    {
+        var expectedRoots = Projects().Select(r => Slug(r.Name)).OrderBy(x => x).ToList();
+        var existingRoots = (await db.CategoryNodes
+                .Where(n => n.Scope == "projects" && n.Level == 0)
+                .Select(n => n.Path)
+                .ToListAsync())
+            .Select(p => p.TrimStart('/'))
+            .OrderBy(x => x)
+            .ToList();
+
+        if (expectedRoots.All(existingRoots.Contains))
             return;
 
-        var all = new List<(string Scope, List<SeedNode> Roots)>
+        db.CategoryNodes.RemoveRange(await db.CategoryNodes.Where(n => n.Scope == "projects").ToListAsync());
+        await db.SaveChangesAsync();
+
+        Plant(db, "projects", Projects());
+        await db.SaveChangesAsync();
+
+        await AssignProjectTagsAsync(db);
+    }
+
+    /// <summary>
+    /// Curated one-time tag re-assignment for existing projects whenever the projects
+    /// taxonomy is rebuilt. Matched by title (rows under the blank user are skipped);
+    /// tags are MANUAL so subsequent auto re-syncs preserve them.
+    /// </summary>
+    private static async Task AssignProjectTagsAsync(AppDbContext db)
+    {
+        var nodeIdByName = await db.CategoryNodes
+            .Where(n => n.Scope == "projects")
+            .ToDictionaryAsync(n => n.Name, n => n.Id);
+
+        var assignments = new Dictionary<string, string[]>
         {
-            ("projects", Projects()),
-            ("experiences", Experiences()),
-            ("educations", Educations()),
-            ("certifications", Certifications()),
-            ("skills", Skills()),
-            ("languages", Languages()),
-            ("hackathons", Hackathons()),
-            ("interests", Interests()),
-            ("academicactivities", AcademicActivities()),
+            ["Kooralik"] = new[]
+            {
+                "Web Development", "Backend / API Development",
+                "Java", "Angular", "Spring / Spring Boot",
+                "PostgreSQL", "Kafka", "gRPC",
+                "Docker", "Microservices", "Event-Driven",
+                "PoC / Experiment",
+            },
+            ["Snake Game"] = new[]
+            {
+                "Game Development", "Web Development",
+                "JavaScript", "Coursework",
+            },
         };
 
-        foreach (var (scope, roots) in all)
-            Plant(db, scope, roots);
+        foreach (var (title, tagNames) in assignments)
+        {
+            var project = await db.Projects.FirstOrDefaultAsync(
+                p => p.Title == title && p.UserId != Guid.Empty);
+            if (project == null)
+                continue;
+
+            foreach (var name in tagNames)
+            {
+                if (nodeIdByName.TryGetValue(name, out var nodeId))
+                {
+                    db.EntityCategoryTags.Add(new EntityCategoryTag
+                    {
+                        UserId = project.UserId,
+                        SourceType = "projects",
+                        SourceId = project.Id,
+                        CategoryNodeId = nodeId,
+                        AssignedBy = "MANUAL",
+                    });
+                }
+            }
+        }
 
         await db.SaveChangesAsync();
     }
@@ -70,82 +154,186 @@ public static class CategorySeed
     // ── Projects ──────────────────────────────────────────────────────────────
     private static List<SeedNode> Projects() => new()
     {
-        new SeedNode { Name = "Web", Children = new()
+        new SeedNode { Name = "Domain", Children = new()
         {
-            new SeedNode { Name = "Full Stack", Keywords = new(){"fullstack","full-stack"} },
-            new SeedNode { Name = "Frontend", Keywords = new(){"front-end","ui","spa"} },
-            new SeedNode { Name = "Backend", Keywords = new(){"back-end","server"} },
-            new SeedNode { Name = "API", Keywords = new(){"rest","graphql","web api"} },
-            new SeedNode { Name = "Microservices" },
+            new SeedNode { Name = "Web Development", Keywords = new(){ "web", "website" } },
+            new SeedNode { Name = "Mobile Development", Keywords = new(){ "mobile", "android", "ios" } },
+            new SeedNode { Name = "Desktop Development", Keywords = new(){ "desktop" } },
+            new SeedNode { Name = "Backend / API Development", Keywords = new(){ "backend", "back-end", "api", "server" } },
+            new SeedNode { Name = "Machine Learning / AI", Keywords = new(){ "machine learning", "ai" } },
+            new SeedNode { Name = "Data Science", Keywords = new(){ "data science" } },
+            new SeedNode { Name = "Data Engineering", Keywords = new(){ "etl", "data pipeline" } },
+            new SeedNode { Name = "DevOps / Cloud", Keywords = new(){ "devops", "cloud" } },
+            new SeedNode { Name = "Networking", Keywords = new(){ "network", "protocol" } },
+            new SeedNode { Name = "Cybersecurity", Keywords = new(){ "cybersecurity", "pentest" } },
+            new SeedNode { Name = "Automation", Keywords = new(){ "automation", "scripting" } },
+            new SeedNode { Name = "Game Development", Keywords = new(){ "game", "gamedev" } },
+            new SeedNode { Name = "Embedded / IoT", Keywords = new(){ "embedded", "iot" } },
+            new SeedNode { Name = "CLI / Terminal Tooling", Keywords = new(){ "cli", "terminal" } },
         }},
-        new SeedNode { Name = "AI / ML", Children = new()
+        new SeedNode { Name = "Programming Languages", Children = new()
         {
-            new SeedNode { Name = "Machine Learning", Children = new()
+            new SeedNode { Name = "JavaScript", Keywords = new(){ "js" } },
+            new SeedNode { Name = "TypeScript", Keywords = new(){ "ts" } },
+            new SeedNode { Name = "Java", Keywords = new(){ "java", "jvm" } },
+            new SeedNode { Name = "C++", Keywords = new(){ "cpp" } },
+            new SeedNode { Name = "C#", Keywords = new(){ "csharp", ".net" } },
+            new SeedNode { Name = "Python", Keywords = new(){ "python" } },
+            new SeedNode { Name = "Rust", Keywords = new(){ "rust" } },
+            new SeedNode { Name = "Go", Keywords = new(){ "golang", "go" } },
+            new SeedNode { Name = "Kotlin", Keywords = new(){ "kotlin" } },
+            new SeedNode { Name = "Swift", Keywords = new(){ "swift" } },
+            new SeedNode { Name = "PHP", Keywords = new(){ "php" } },
+            new SeedNode { Name = "Ruby", Keywords = new(){ "ruby" } },
+            new SeedNode { Name = "Dart", Keywords = new(){ "dart" } },
+            new SeedNode { Name = "SQL", Keywords = new(){ "sql" } },
+            new SeedNode { Name = "Shell / Bash", Keywords = new(){ "bash", "shell" } },
+        }},
+        new SeedNode { Name = "Frameworks & Libraries", Children = new()
+        {
+            new SeedNode { Name = "Frontend", Children = new()
             {
-                new SeedNode { Name = "Classification" },
-                new SeedNode { Name = "Regression" },
-                new SeedNode { Name = "Clustering" },
+                new SeedNode { Name = "Angular", Keywords = new(){ "angular" } },
+                new SeedNode { Name = "React", Keywords = new(){ "react" } },
+                new SeedNode { Name = "Vue.js", Keywords = new(){ "vue" } },
+                new SeedNode { Name = "Svelte", Keywords = new(){ "svelte" } },
+                new SeedNode { Name = "Next.js", Keywords = new(){ "next.js", "nextjs" } },
+                new SeedNode { Name = "Tailwind CSS", Keywords = new(){ "tailwind" } },
             }},
-            new SeedNode { Name = "Deep Learning", Children = new()
+            new SeedNode { Name = "Backend", Children = new()
             {
-                new SeedNode { Name = "Computer Vision", Keywords = new(){"cv","image"}, Children = new()
-                {
-                    new SeedNode { Name = "Classification" },
-                    new SeedNode { Name = "Segmentation" },
-                    new SeedNode { Name = "Detection", Keywords = new(){"object detection"} },
-                    new SeedNode { Name = "Image Processing" },
-                }},
-                new SeedNode { Name = "NLP", Keywords = new(){"natural language"} },
+                new SeedNode { Name = "Spring / Spring Boot", Keywords = new(){ "spring", "spring boot" } },
+                new SeedNode { Name = "ASP.NET Core", Keywords = new(){ "asp.net", ".net core" } },
+                new SeedNode { Name = "Django", Keywords = new(){ "django" } },
+                new SeedNode { Name = "Flask", Keywords = new(){ "flask" } },
+                new SeedNode { Name = "FastAPI", Keywords = new(){ "fastapi" } },
+                new SeedNode { Name = "Express.js", Keywords = new(){ "express", "node" } },
+                new SeedNode { Name = "NestJS", Keywords = new(){ "nestjs" } },
+                new SeedNode { Name = "Laravel", Keywords = new(){ "laravel" } },
             }},
-            new SeedNode { Name = "Generative AI", Children = new()
+            new SeedNode { Name = "Mobile / Desktop", Children = new()
             {
-                new SeedNode { Name = "LLM", Keywords = new(){"large language model","gpt"} },
-                new SeedNode { Name = "RAG", Keywords = new(){"retrieval augmented generation"} },
-                new SeedNode { Name = "AI Agents", Keywords = new(){"agent","agentic"} },
+                new SeedNode { Name = "Flutter", Keywords = new(){ "flutter" } },
+                new SeedNode { Name = "React Native", Keywords = new(){ "react native" } },
+                new SeedNode { Name = "Android SDK", Keywords = new(){ "android sdk" } },
+                new SeedNode { Name = "Electron", Keywords = new(){ "electron" } },
             }},
-            new SeedNode { Name = "Data Science" },
+            new SeedNode { Name = "Data Access", Children = new()
+            {
+                new SeedNode { Name = "Hibernate / JPA", Keywords = new(){ "hibernate", "jpa" } },
+                new SeedNode { Name = "Entity Framework", Keywords = new(){ "entity framework", "ef core" } },
+                new SeedNode { Name = "SQLAlchemy", Keywords = new(){ "sqlalchemy" } },
+                new SeedNode { Name = "Prisma", Keywords = new(){ "prisma" } },
+            }},
         }},
-        new SeedNode { Name = "DevOps", Children = new()
+        new SeedNode { Name = "Databases & Storage", Children = new()
         {
-            new SeedNode { Name = "Docker", Keywords = new(){"container"} },
-            new SeedNode { Name = "CI/CD", Keywords = new(){"cicd","pipeline"} },
-            new SeedNode { Name = "Infrastructure", Keywords = new(){"iac","terraform"} },
-            new SeedNode { Name = "Monitoring" },
-            new SeedNode { Name = "Automation" },
+            new SeedNode { Name = "PostgreSQL", Keywords = new(){ "postgresql", "postgres" } },
+            new SeedNode { Name = "MySQL", Keywords = new(){ "mysql" } },
+            new SeedNode { Name = "SQLite", Keywords = new(){ "sqlite" } },
+            new SeedNode { Name = "MongoDB", Keywords = new(){ "mongodb", "mongo" } },
+            new SeedNode { Name = "Redis", Keywords = new(){ "redis" } },
+            new SeedNode { Name = "Elasticsearch", Keywords = new(){ "elasticsearch" } },
+            new SeedNode { Name = "Cassandra", Keywords = new(){ "cassandra" } },
+            new SeedNode { Name = "S3 / MinIO", Keywords = new(){ "s3", "minio", "object storage" } },
         }},
-        new SeedNode { Name = "Data", Children = new()
+        new SeedNode { Name = "Messaging & APIs", Children = new()
         {
-            new SeedNode { Name = "Databases", Keywords = new(){"sql","nosql"} },
-            new SeedNode { Name = "Data Engineering" },
-            new SeedNode { Name = "Data Pipelines" },
-            new SeedNode { Name = "Data Visualization" },
+            new SeedNode { Name = "Kafka", Keywords = new(){ "kafka" } },
+            new SeedNode { Name = "RabbitMQ", Keywords = new(){ "rabbitmq" } },
+            new SeedNode { Name = "gRPC", Keywords = new(){ "grpc" } },
+            new SeedNode { Name = "GraphQL", Keywords = new(){ "graphql" } },
+            new SeedNode { Name = "REST APIs", Keywords = new(){ "rest", "restful" } },
+            new SeedNode { Name = "WebSockets", Keywords = new(){ "websocket", "socket" } },
+            new SeedNode { Name = "MQTT", Keywords = new(){ "mqtt" } },
         }},
-        new SeedNode { Name = "Distributed Systems", Children = new()
+        new SeedNode { Name = "Cloud & Infrastructure", Children = new()
         {
-            new SeedNode { Name = "Microservices" },
-            new SeedNode { Name = "Event Driven", Keywords = new(){"event-driven","kafka"} },
-            new SeedNode { Name = "Messaging" },
-            new SeedNode { Name = "Service Discovery" },
+            new SeedNode { Name = "AWS", Keywords = new(){ "aws" } },
+            new SeedNode { Name = "GCP", Keywords = new(){ "gcp", "google cloud" } },
+            new SeedNode { Name = "Azure", Keywords = new(){ "azure" } },
+            new SeedNode { Name = "Docker", Keywords = new(){ "docker", "container" } },
+            new SeedNode { Name = "Kubernetes", Keywords = new(){ "kubernetes", "k8s" } },
+            new SeedNode { Name = "Docker Compose", Keywords = new(){ "docker-compose" } },
+            new SeedNode { Name = "Nginx", Keywords = new(){ "nginx" } },
+            new SeedNode { Name = "Linux", Keywords = new(){ "linux" } },
         }},
-        new SeedNode { Name = "Academic", Children = new()
+        new SeedNode { Name = "DevOps & Automation", Children = new()
         {
-            new SeedNode { Name = "Research" },
-            new SeedNode { Name = "PFA" },
-            new SeedNode { Name = "PFE" },
-            new SeedNode { Name = "Coursework" },
+            new SeedNode { Name = "CI/CD", Children = new()
+            {
+                new SeedNode { Name = "GitHub Actions", Keywords = new(){ "github actions" } },
+                new SeedNode { Name = "GitLab CI/CD", Keywords = new(){ "gitlab ci" } },
+                new SeedNode { Name = "Jenkins", Keywords = new(){ "jenkins" } },
+                new SeedNode { Name = "Azure DevOps", Keywords = new(){ "azure devops", "pipeline" } },
+            }},
+            new SeedNode { Name = "Automation (IaC)", Children = new()
+            {
+                new SeedNode { Name = "Ansible", Keywords = new(){ "ansible" } },
+                new SeedNode { Name = "Terraform", Keywords = new(){ "terraform" } },
+                new SeedNode { Name = "Helm", Keywords = new(){ "helm" } },
+                new SeedNode { Name = "Cron / Scripting", Keywords = new(){ "cron", "scripting" } },
+            }},
+            new SeedNode { Name = "Monitoring", Children = new()
+            {
+                new SeedNode { Name = "Prometheus", Keywords = new(){ "prometheus" } },
+                new SeedNode { Name = "Grafana", Keywords = new(){ "grafana" } },
+                new SeedNode { Name = "ELK Stack", Keywords = new(){ "elasticsearch", "kibana" } },
+            }},
         }},
-        new SeedNode { Name = "Hackathons", Children = new()
+        new SeedNode { Name = "Data, AI & ML", Children = new()
         {
-            new SeedNode { Name = "AI" },
-            new SeedNode { Name = "Web" },
-            new SeedNode { Name = "Data" },
-            new SeedNode { Name = "Other" },
+            new SeedNode { Name = "Machine Learning", Keywords = new(){ "ml" } },
+            new SeedNode { Name = "Deep Learning", Keywords = new(){ "deep learning" } },
+            new SeedNode { Name = "NLP", Keywords = new(){ "nlp", "natural language" } },
+            new SeedNode { Name = "Computer Vision", Keywords = new(){ "computer vision" } },
+            new SeedNode { Name = "LLM / RAG", Keywords = new(){ "llm", "rag", "gpt", "retrieval" } },
+            new SeedNode { Name = "AI Agents", Keywords = new(){ "agent" } },
+            new SeedNode { Name = "Data Pipelines", Keywords = new(){ "pipeline", "etl" } },
+            new SeedNode { Name = "Data Visualization", Keywords = new(){ "visualization", "dashboard" } },
+            new SeedNode { Name = "ML Frameworks", Children = new()
+            {
+                new SeedNode { Name = "TensorFlow", Keywords = new(){ "tensorflow" } },
+                new SeedNode { Name = "PyTorch", Keywords = new(){ "pytorch" } },
+                new SeedNode { Name = "scikit-learn", Keywords = new(){ "scikit-learn", "sklearn" } },
+                new SeedNode { Name = "Hugging Face", Keywords = new(){ "huggingface", "transformers" } },
+                new SeedNode { Name = "LangChain", Keywords = new(){ "langchain" } },
+            }},
         }},
-        new SeedNode { Name = "Learning", Children = new()
+        new SeedNode { Name = "Testing & Quality", Children = new()
         {
-            new SeedNode { Name = "Tutorials" },
-            new SeedNode { Name = "Experiments" },
-            new SeedNode { Name = "Proof of Concepts", Keywords = new(){"poc"} },
+            new SeedNode { Name = "Unit Tests", Keywords = new(){ "junit", "pytest", "xunit" } },
+            new SeedNode { Name = "Integration Tests", Keywords = new(){ "integration test" } },
+            new SeedNode { Name = "E2E Tests", Keywords = new(){ "e2e", "playwright", "cypress" } },
+            new SeedNode { Name = "Code Quality / Linting", Keywords = new(){ "lint", "coverage", "sonarqube" } },
+            new SeedNode { Name = "Observability", Keywords = new(){ "observability", "tracing" } },
+        }},
+        new SeedNode { Name = "Security", Children = new()
+        {
+            new SeedNode { Name = "Auth / SSO", Keywords = new(){ "oauth", "jwt", "keycloak", "sso" } },
+            new SeedNode { Name = "Encryption", Keywords = new(){ "encryption", "crypto" } },
+            new SeedNode { Name = "Vulnerability Scanning", Keywords = new(){ "vulnerability scan" } },
+            new SeedNode { Name = "Penetration Testing", Keywords = new(){ "pentest", "penetration" } },
+        }},
+        new SeedNode { Name = "Architecture", Children = new()
+        {
+            new SeedNode { Name = "Microservices", Keywords = new(){ "microservice" } },
+            new SeedNode { Name = "Monolith", Keywords = new(){ "monolith" } },
+            new SeedNode { Name = "Event-Driven", Keywords = new(){ "event-driven", "event driven" } },
+            new SeedNode { Name = "MVC", Keywords = new(){ "mvc" } },
+            new SeedNode { Name = "Hexagonal / Clean Architecture", Keywords = new(){ "hexagonal", "clean architecture" } },
+            new SeedNode { Name = "Design Patterns", Keywords = new(){ "design pattern" } },
+        }},
+        new SeedNode { Name = "Project Type", Children = new()
+        {
+            new SeedNode { Name = "PFE", Keywords = new(){ "pfe", "final year" } },
+            new SeedNode { Name = "PFA", Keywords = new(){ "pfa" } },
+            new SeedNode { Name = "Hackathon", Keywords = new(){ "hackathon" } },
+            new SeedNode { Name = "Coursework", Keywords = new(){ "course", "school", "assignment" } },
+            new SeedNode { Name = "Open Source", Keywords = new(){ "open source" } },
+            new SeedNode { Name = "Internal Tool" },
+            new SeedNode { Name = "PoC / Experiment", Keywords = new(){ "poc", "prototype", "experiment" } },
+            new SeedNode { Name = "Portfolio / Showcase" },
         }},
     };
 

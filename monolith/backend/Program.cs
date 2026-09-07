@@ -93,12 +93,21 @@ builder.Services.AddHttpClient("agents", c =>
     c.BaseAddress = new Uri(agentBase);
     c.Timeout = TimeSpan.FromMinutes(4);
 });
+builder.Services.AddHttpClient("image-fetch", c =>
+{
+    c.Timeout = TimeSpan.FromSeconds(20);
+});
 
     builder.Services.AddHttpClient<ICategorizationClient, CategorizationClient>(c => c.BaseAddress = new Uri($"{agentBase}/api/agents/categorize"));
     builder.Services.AddHttpClient<IAutofillClient, AutofillClient>(c => c.BaseAddress = new Uri($"{agentBase}/api/agents/autofill/"));
     builder.Services.AddHttpClient<IDirectAiClient, DirectAiClient>(c =>
     {
         c.BaseAddress = new Uri($"{agentBase}/api/direct/");
+        c.Timeout = TimeSpan.FromMinutes(3);
+    });
+    builder.Services.AddHttpClient<ICompanyResearchClient, CompanyResearchClient>(c =>
+    {
+        c.BaseAddress = new Uri($"{agentBase}/api/agents/company-research/");
         c.Timeout = TimeSpan.FromMinutes(3);
     });
 builder.Services.AddScoped<ICategoryService, CategoryService>();

@@ -68,7 +68,11 @@ public class EducationsController : ApiControllerBase
             Status = e.Status,
             City = e.City,
             DiplomaFileUrl = e.DiplomaFileUrl,
-            UserId = e.UserId
+            Grade = e.Grade,
+            Description = e.Description,
+            Country = e.Country,
+            UserId = e.UserId,
+            SortOrder = e.SortOrder
         };
 
         return Ok(ApiResponse<EducationResponseDto>.Ok(response));
@@ -88,7 +92,11 @@ public class EducationsController : ApiControllerBase
             Status = dto.Status,
             City = dto.City,
             DiplomaFileUrl = dto.DiplomaFileUrl,
-            UserId = RequiredUserId
+            Grade = dto.Grade,
+            Description = dto.Description,
+            Country = dto.Country,
+            UserId = RequiredUserId,
+            SortOrder = dto.SortOrder
         };
 
         _db.Educations.Add(edu);
@@ -109,7 +117,11 @@ public class EducationsController : ApiControllerBase
             Status = edu.Status,
             City = edu.City,
             DiplomaFileUrl = edu.DiplomaFileUrl,
-            UserId = edu.UserId
+            Grade = edu.Grade,
+            Description = edu.Description,
+            Country = edu.Country,
+            UserId = edu.UserId,
+            SortOrder = edu.SortOrder
         };
 
         return Created($"/api/educations/{edu.Id}", ApiResponse<EducationResponseDto>.Created(response));
@@ -130,6 +142,10 @@ public class EducationsController : ApiControllerBase
         edu.Status = dto.Status;
         edu.City = dto.City;
         edu.DiplomaFileUrl = dto.DiplomaFileUrl;
+        edu.Grade = dto.Grade;
+        edu.Description = dto.Description;
+        edu.Country = dto.Country;
+        edu.SortOrder = dto.SortOrder;
 
         await _db.SaveChangesAsync();
         SearchSyncHelper.TriggerSync(_scopeFactory, edu.UserId, _logger, "Education.Update", edu.Id);
@@ -146,7 +162,11 @@ public class EducationsController : ApiControllerBase
             Status = edu.Status,
             City = edu.City,
             DiplomaFileUrl = edu.DiplomaFileUrl,
-            UserId = edu.UserId
+            Grade = edu.Grade,
+            Description = edu.Description,
+            Country = edu.Country,
+            UserId = edu.UserId,
+            SortOrder = edu.SortOrder
         };
 
         return Ok(ApiResponse<EducationResponseDto>.Ok(response));

@@ -15,6 +15,15 @@ public class CreateSkillDto
 
     [MaxLength(50)]
     public string? Category { get; set; }
+
+    [MaxLength(50)]
+    public string? Subcategory { get; set; }
+
+    public int? LastUsedYear { get; set; }
+
+    public bool IsCore { get; set; } = false;
+
+    public int SortOrder { get; set; } = 0;
 }
 
 public class UpdateSkillDto
@@ -30,6 +39,15 @@ public class UpdateSkillDto
 
     [MaxLength(50)]
     public string? Category { get; set; }
+
+    [MaxLength(50)]
+    public string? Subcategory { get; set; }
+
+    public int? LastUsedYear { get; set; }
+
+    public bool IsCore { get; set; } = false;
+
+    public int SortOrder { get; set; } = 0;
 }
 
 public class SkillResponseDto
@@ -40,4 +58,8 @@ public class SkillResponseDto
     public int? YearsOfExperience { get; set; }
     public Guid? UserId { get; set; }
     public string? Category { get; set; }
+    public string? Subcategory { get; set; }
+    public int? LastUsedYear { get; set; }
+    public bool IsCore { get; set; } = false;
+    public int SortOrder { get; set; } = 0;
 }

@@ -20,6 +20,25 @@ namespace CV_Generator.Models
         [Required]
         public Guid UserId { get; set; }
 
+        [MaxLength(150)]
+        public string? Email { get; set; }
+
+        [MaxLength(50)]
+        public string? Phone { get; set; }
+
+        [MaxLength(200)]
+        public string? Location { get; set; }
+
+        [MaxLength(300)]
+        public string? Website { get; set; }
+
+        [MaxLength(300)]
+        public string? LinkedInUrl { get; set; }
+
+        [MaxLength(300)]
+        public string? GithubUrl { get; set; }
+
+        public bool OpenToRelocate { get; set; } = false;
 
     }
 }

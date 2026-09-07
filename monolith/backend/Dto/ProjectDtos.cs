@@ -8,11 +8,14 @@ public class CreateProjectDto
     [MaxLength(150)]
     public required string Title { get; set; }
 
-    [MaxLength(1000)]
+    [MaxLength(3000)]
     public string? Description { get; set; }
 
     [MaxLength(50)]
     public string? Role { get; set; }
+
+    [MaxLength(1000)]
+    public string? Achievements { get; set; }
 
     [Required]
     public DateTime StartDate { get; set; }
@@ -30,6 +33,13 @@ public class CreateProjectDto
     public string Status { get; set; } = "Ongoing";
 
     public string? SkillsJson { get; set; }
+
+    [MaxLength(100)]
+    public string? Category { get; set; }
+
+    public int? TeamSize { get; set; }
+
+    public int SortOrder { get; set; } = 0;
 }
 
 public class UpdateProjectDto
@@ -38,11 +48,14 @@ public class UpdateProjectDto
     [MaxLength(150)]
     public required string Title { get; set; }
 
-    [MaxLength(1000)]
+    [MaxLength(3000)]
     public string? Description { get; set; }
 
     [MaxLength(50)]
     public string? Role { get; set; }
+
+    [MaxLength(1000)]
+    public string? Achievements { get; set; }
 
     [Required]
     public DateTime StartDate { get; set; }
@@ -60,6 +73,13 @@ public class UpdateProjectDto
     public string Status { get; set; } = "Ongoing";
 
     public string? SkillsJson { get; set; }
+
+    [MaxLength(100)]
+    public string? Category { get; set; }
+
+    public int? TeamSize { get; set; }
+
+    public int SortOrder { get; set; } = 0;
 }
 
 public class ProjectResponseDto
@@ -68,6 +88,7 @@ public class ProjectResponseDto
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? Role { get; set; }
+    public string? Achievements { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public string? RepositoryUrl { get; set; }
@@ -75,4 +96,7 @@ public class ProjectResponseDto
     public string Status { get; set; } = "Completed";
     public Guid UserId { get; set; }
     public string? SkillsJson { get; set; }
+    public string? Category { get; set; }
+    public int? TeamSize { get; set; }
+    public int SortOrder { get; set; } = 0;
 }

@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Pgvector;
 
 namespace CV_Generator.Models;
 
@@ -35,8 +34,14 @@ public class Experience
     [Required]
     public Guid UserId { get; set; }
 
-    public string? AiSummaryJson { get; set; }
+    [MaxLength(150)]
+    public string? Location { get; set; }
 
-    [Column(TypeName = "vector(384)")]
-    public Vector? DescriptionEmbedding { get; set; }
+    [MaxLength(2000)]
+    public string? AchievementsJson { get; set; }
+
+    [MaxLength(50)]
+    public string? EmploymentType { get; set; }
+
+    public int SortOrder { get; set; } = 0;
 }

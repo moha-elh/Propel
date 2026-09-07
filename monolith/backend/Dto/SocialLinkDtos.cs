@@ -12,6 +12,7 @@ public class CreateSocialLinkDto
     [MaxLength(300)]
     public string Url { get; set; } = string.Empty;
 
+    public int SortOrder { get; set; } = 0;
 }
 
 public class UpdateSocialLinkDto
@@ -23,6 +24,8 @@ public class UpdateSocialLinkDto
     [Required]
     [MaxLength(300)]
     public string Url { get; set; } = string.Empty;
+
+    public int SortOrder { get; set; } = 0;
 }
 
 public class SocialLinkResponseDto
@@ -31,4 +34,5 @@ public class SocialLinkResponseDto
     public string Platform { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
     public Guid UserId { get; set; }
+    public int SortOrder { get; set; } = 0;
 }

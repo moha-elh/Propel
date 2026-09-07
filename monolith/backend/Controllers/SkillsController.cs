@@ -8,7 +8,7 @@ namespace CV_Generator.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class SkillsController : ControllerBase
+public class SkillsController : ApiControllerBase
 {
     private readonly AppDbContext _db;
     private readonly ILogger<SkillsController> _logger;
@@ -24,6 +24,8 @@ public class SkillsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] Guid? userId)
     {
+        userId ??= CurrentUserId;
+
         var skills = userId.HasValue
             ? await _db.Skills.Where(s => s.UserId == userId.Value).ToListAsync()
             : await _db.Skills.ToListAsync();
@@ -46,8 +48,12 @@ public class SkillsController : ControllerBase
             Name = dto.Name,
             Level = dto.Level,
             YearsOfExperience = dto.YearsOfExperience,
-            UserId = dto.UserId,
-            Category = dto.Category
+            UserId = RequiredUserId,
+            Category = dto.Category,
+            Subcategory = dto.Subcategory,
+            LastUsedYear = dto.LastUsedYear,
+            IsCore = dto.IsCore,
+            SortOrder = dto.SortOrder
         };
 
         _db.Skills.Add(skill);
@@ -68,6 +74,10 @@ public class SkillsController : ControllerBase
         skill.Level = dto.Level;
         skill.YearsOfExperience = dto.YearsOfExperience;
         skill.Category = dto.Category;
+        skill.Subcategory = dto.Subcategory;
+        skill.LastUsedYear = dto.LastUsedYear;
+        skill.IsCore = dto.IsCore;
+        skill.SortOrder = dto.SortOrder;
 
         await _db.SaveChangesAsync();
         SearchSyncHelper.TriggerSync(_scopeFactory, skill.UserId, _logger, "Skill.Update", skill.Id);
@@ -86,6 +96,6 @@ public class SkillsController : ControllerBase
         return NoContent();
     }
 
-    public record CreateSkillDto(string Name, string? Level, int? YearsOfExperience, Guid UserId, string? Category);
-    public record UpdateSkillDto(string Name, string? Level, int? YearsOfExperience, string? Category);
+    public record CreateSkillDto(string Name, string? Level, int? YearsOfExperience, Guid UserId, string? Category, string? Subcategory = null, int? LastUsedYear = null, bool IsCore = false, int SortOrder = 0);
+    public record UpdateSkillDto(string Name, string? Level, int? YearsOfExperience, string? Category, string? Subcategory = null, int? LastUsedYear = null, bool IsCore = false, int SortOrder = 0);
 }

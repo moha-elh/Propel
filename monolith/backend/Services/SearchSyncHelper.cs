@@ -27,7 +27,11 @@ public static class SearchSyncHelper
                 logger.LogDebug("Search sync completed for user {UserId} after {Source}", userId, source);
 
                 // Hybrid category tagging (LLM + keyword), preserving any manual tags.
-                if (entityId != default && ScopeMap.TryGetValue(source.Split('.')[0], out var scopeName))
+                // Skipped on CREATE: the auto-categorizer was over-tagging unrelated facets
+                // (new extraction-derived project). Categories are set via the form instead.
+                if (entityId != default &&
+                    !source.EndsWith(".Create", StringComparison.Ordinal) &&
+                    ScopeMap.TryGetValue(source.Split('.')[0], out var scopeName))
                 {
                     try
                     {

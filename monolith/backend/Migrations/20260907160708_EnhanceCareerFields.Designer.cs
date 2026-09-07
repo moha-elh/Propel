@@ -3,6 +3,7 @@ using System;
 using CV_Generator.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -13,9 +14,11 @@ using Pgvector;
 namespace CV_Generator.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260907160708_EnhanceCareerFields")]
+    partial class EnhanceCareerFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1782,8 +1785,8 @@ namespace CV_Generator.Migrations
                         .HasColumnType("character varying(300)");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(3000)
-                        .HasColumnType("character varying(3000)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("timestamp with time zone");

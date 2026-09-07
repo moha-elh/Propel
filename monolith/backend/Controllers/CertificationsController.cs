@@ -39,7 +39,10 @@ public class CertificationsController : ApiControllerBase
             IssuingOrganization = c.IssuingOrganization,
             IssueDate = c.IssueDate,
             CredentialUrl = c.CredentialUrl,
-            UserId = c.UserId
+            CredentialId = c.CredentialId,
+            ExpiryDate = c.ExpiryDate,
+            UserId = c.UserId,
+            SortOrder = c.SortOrder
         }).ToList();
 
         return Ok(ApiResponse<List<CertificationResponseDto>>.Ok(response));
@@ -58,7 +61,10 @@ public class CertificationsController : ApiControllerBase
             IssuingOrganization = c.IssuingOrganization,
             IssueDate = c.IssueDate,
             CredentialUrl = c.CredentialUrl,
-            UserId = c.UserId
+            CredentialId = c.CredentialId,
+            ExpiryDate = c.ExpiryDate,
+            UserId = c.UserId,
+            SortOrder = c.SortOrder
         };
         return Ok(ApiResponse<CertificationResponseDto>.Ok(response));
     }
@@ -72,7 +78,10 @@ public class CertificationsController : ApiControllerBase
             IssuingOrganization = dto.IssuingOrganization,
             IssueDate = dto.IssueDate,
             CredentialUrl = dto.CredentialUrl,
-            UserId = RequiredUserId
+            CredentialId = dto.CredentialId,
+            ExpiryDate = dto.ExpiryDate,
+            UserId = RequiredUserId,
+            SortOrder = dto.SortOrder
         };
 
         _db.Certifications.Add(cert);
@@ -86,7 +95,10 @@ public class CertificationsController : ApiControllerBase
             IssuingOrganization = cert.IssuingOrganization,
             IssueDate = cert.IssueDate,
             CredentialUrl = cert.CredentialUrl,
-            UserId = cert.UserId
+            CredentialId = cert.CredentialId,
+            ExpiryDate = cert.ExpiryDate,
+            UserId = cert.UserId,
+            SortOrder = cert.SortOrder
         };
         return CreatedAtAction(nameof(GetById), new { id = cert.Id }, ApiResponse<CertificationResponseDto>.Created(response));
     }
@@ -101,6 +113,9 @@ public class CertificationsController : ApiControllerBase
         cert.IssuingOrganization = dto.IssuingOrganization;
         cert.IssueDate = dto.IssueDate;
         cert.CredentialUrl = dto.CredentialUrl;
+        cert.CredentialId = dto.CredentialId;
+        cert.ExpiryDate = dto.ExpiryDate;
+        cert.SortOrder = dto.SortOrder;
 
         await _db.SaveChangesAsync();
         SearchSyncHelper.TriggerSync(_scopeFactory, cert.UserId, _logger, "Certification.Update", cert.Id);
@@ -112,7 +127,10 @@ public class CertificationsController : ApiControllerBase
             IssuingOrganization = cert.IssuingOrganization,
             IssueDate = cert.IssueDate,
             CredentialUrl = cert.CredentialUrl,
-            UserId = cert.UserId
+            CredentialId = cert.CredentialId,
+            ExpiryDate = cert.ExpiryDate,
+            UserId = cert.UserId,
+            SortOrder = cert.SortOrder
         };
         return Ok(ApiResponse<CertificationResponseDto>.Ok(response));
     }

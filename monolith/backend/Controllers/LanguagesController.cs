@@ -37,7 +37,8 @@ public class LanguagesController : ApiControllerBase
             Id = l.Id,
             Name = l.Name,
             Level = l.Level,
-            UserId = l.UserId
+            UserId = l.UserId,
+            SortOrder = l.SortOrder
         }).ToList();
 
         return Ok(ApiResponse<List<LanguageResponseDto>>.Ok(response));
@@ -54,7 +55,8 @@ public class LanguagesController : ApiControllerBase
             Id = l.Id,
             Name = l.Name,
             Level = l.Level,
-            UserId = l.UserId
+            UserId = l.UserId,
+            SortOrder = l.SortOrder
         };
         return Ok(ApiResponse<LanguageResponseDto>.Ok(response));
     }
@@ -62,12 +64,12 @@ public class LanguagesController : ApiControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateLanguageDto dto)
     {
-        var language = new Language { Name = dto.Name, Level = dto.Level, UserId = RequiredUserId };
+        var language = new Language { Name = dto.Name, Level = dto.Level, UserId = RequiredUserId, SortOrder = dto.SortOrder };
         _db.Languages.Add(language);
         await _db.SaveChangesAsync();
         SearchSyncHelper.TriggerSync(_scopeFactory, language.UserId, _logger, "Language.Create", language.Id);
 
-        var response = new LanguageResponseDto { Id = language.Id, Name = language.Name, Level = language.Level, UserId = language.UserId };
+        var response = new LanguageResponseDto { Id = language.Id, Name = language.Name, Level = language.Level, UserId = language.UserId, SortOrder = language.SortOrder };
         return CreatedAtAction(nameof(GetById), new { id = language.Id }, ApiResponse<LanguageResponseDto>.Created(response));
     }
 
@@ -79,10 +81,11 @@ public class LanguagesController : ApiControllerBase
 
         language.Name = dto.Name;
         language.Level = dto.Level;
+        language.SortOrder = dto.SortOrder;
         await _db.SaveChangesAsync();
         SearchSyncHelper.TriggerSync(_scopeFactory, language.UserId, _logger, "Language.Update", language.Id);
 
-        var response = new LanguageResponseDto { Id = language.Id, Name = language.Name, Level = language.Level, UserId = language.UserId };
+        var response = new LanguageResponseDto { Id = language.Id, Name = language.Name, Level = language.Level, UserId = language.UserId, SortOrder = language.SortOrder };
         return Ok(ApiResponse<LanguageResponseDto>.Ok(response));
     }
 

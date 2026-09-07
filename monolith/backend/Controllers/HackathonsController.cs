@@ -38,10 +38,14 @@ public class HackathonsController : ApiControllerBase
             Name = h.Name,
             Organization = h.Organization,
             Date = h.Date,
+            StartDate = h.StartDate,
+            EndDate = h.EndDate,
             Description = h.Description,
             Role = h.Role,
             Result = h.Result,
-            UserId = h.UserId
+            ProjectUrl = h.ProjectUrl,
+            UserId = h.UserId,
+            SortOrder = h.SortOrder
         }).ToList();
 
         return Ok(ApiResponse<List<HackathonResponseDto>>.Ok(response));
@@ -59,10 +63,14 @@ public class HackathonsController : ApiControllerBase
             Name = h.Name,
             Organization = h.Organization,
             Date = h.Date,
+            StartDate = h.StartDate,
+            EndDate = h.EndDate,
             Description = h.Description,
             Role = h.Role,
             Result = h.Result,
-            UserId = h.UserId
+            ProjectUrl = h.ProjectUrl,
+            UserId = h.UserId,
+            SortOrder = h.SortOrder
         };
         return Ok(ApiResponse<HackathonResponseDto>.Ok(response));
     }
@@ -75,10 +83,14 @@ public class HackathonsController : ApiControllerBase
             Name = dto.Name,
             Organization = dto.Organization,
             Date = dto.Date,
+            StartDate = dto.StartDate,
+            EndDate = dto.EndDate,
             Description = dto.Description,
             Role = dto.Role,
             Result = dto.Result,
-            UserId = RequiredUserId
+            ProjectUrl = dto.ProjectUrl,
+            UserId = RequiredUserId,
+            SortOrder = dto.SortOrder
         };
 
         _db.Hackathons.Add(h);
@@ -91,10 +103,14 @@ public class HackathonsController : ApiControllerBase
             Name = h.Name,
             Organization = h.Organization,
             Date = h.Date,
+            StartDate = h.StartDate,
+            EndDate = h.EndDate,
             Description = h.Description,
             Role = h.Role,
             Result = h.Result,
-            UserId = h.UserId
+            ProjectUrl = h.ProjectUrl,
+            UserId = h.UserId,
+            SortOrder = h.SortOrder
         };
         return CreatedAtAction(nameof(GetById), new { id = h.Id }, ApiResponse<HackathonResponseDto>.Created(response));
     }
@@ -108,9 +124,13 @@ public class HackathonsController : ApiControllerBase
         h.Name = dto.Name;
         h.Organization = dto.Organization;
         h.Date = dto.Date;
+        h.StartDate = dto.StartDate;
+        h.EndDate = dto.EndDate;
         h.Description = dto.Description;
         h.Role = dto.Role;
         h.Result = dto.Result;
+        h.ProjectUrl = dto.ProjectUrl;
+        h.SortOrder = dto.SortOrder;
 
         await _db.SaveChangesAsync();
         SearchSyncHelper.TriggerSync(_scopeFactory, h.UserId, _logger, "Hackathon.Update", h.Id);
@@ -121,10 +141,14 @@ public class HackathonsController : ApiControllerBase
             Name = h.Name,
             Organization = h.Organization,
             Date = h.Date,
+            StartDate = h.StartDate,
+            EndDate = h.EndDate,
             Description = h.Description,
             Role = h.Role,
             Result = h.Result,
-            UserId = h.UserId
+            ProjectUrl = h.ProjectUrl,
+            UserId = h.UserId,
+            SortOrder = h.SortOrder
         };
         return Ok(ApiResponse<HackathonResponseDto>.Ok(response));
     }

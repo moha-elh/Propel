@@ -8,7 +8,7 @@ namespace CV_Generator.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ProjectsController : ControllerBase
+public class ProjectsController : ApiControllerBase
 {
     private readonly AppDbContext _db;
     private readonly ILogger<ProjectsController> _logger;
@@ -24,6 +24,8 @@ public class ProjectsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] Guid? userId)
     {
+        userId ??= CurrentUserId;
+
         var projects = userId.HasValue
             ? await _db.Projects.Where(p => p.UserId == userId.Value).ToListAsync()
             : await _db.Projects.ToListAsync();
@@ -52,8 +54,11 @@ public class ProjectsController : ControllerBase
             RepositoryUrl = dto.RepositoryUrl,
             DemoUrl = dto.DemoUrl,
             Status = dto.Status,
-            UserId = dto.UserId,
-            SkillsJson = dto.SkillsJson
+            UserId = RequiredUserId,
+            SkillsJson = dto.SkillsJson,
+            Category = dto.Category,
+            TeamSize = dto.TeamSize,
+            SortOrder = dto.SortOrder
         };
 
         _db.Projects.Add(project);
@@ -80,6 +85,9 @@ public class ProjectsController : ControllerBase
         project.DemoUrl = dto.DemoUrl;
         project.Status = dto.Status;
         project.SkillsJson = dto.SkillsJson;
+        project.Category = dto.Category;
+        project.TeamSize = dto.TeamSize;
+        project.SortOrder = dto.SortOrder;
 
         await _db.SaveChangesAsync();
         SearchSyncHelper.TriggerSync(_scopeFactory, project.UserId, _logger, "Project.Update", project.Id);
@@ -109,7 +117,10 @@ public class ProjectsController : ControllerBase
         string? DemoUrl,
         string Status,
         Guid UserId,
-        string? SkillsJson
+        string? SkillsJson,
+        string? Category = null,
+        int? TeamSize = null,
+        int SortOrder = 0
     );
 
     public record UpdateProjectDto(
@@ -122,6 +133,9 @@ public class ProjectsController : ControllerBase
         string? RepositoryUrl,
         string? DemoUrl,
         string Status,
-        string? SkillsJson
+        string? SkillsJson,
+        string? Category = null,
+        int? TeamSize = null,
+        int SortOrder = 0
     );
 }

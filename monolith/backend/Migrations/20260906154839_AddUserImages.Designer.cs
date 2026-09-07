@@ -3,6 +3,7 @@ using System;
 using CV_Generator.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -13,9 +14,11 @@ using Pgvector;
 namespace CV_Generator.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260906154839_AddUserImages")]
+    partial class AddUserImages
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -39,13 +42,6 @@ namespace CV_Generator.Migrations
 
                     b.Property<string>("Organization")
                         .HasColumnType("text");
-
-                    b.Property<string>("Role")
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("timestamp with time zone");
@@ -514,29 +510,6 @@ namespace CV_Generator.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Email")
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<string>("GithubUrl")
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<string>("LinkedInUrl")
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<string>("Location")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<bool>("OpenToRelocate")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Phone")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
                     b.Property<string>("Summary")
                         .IsRequired()
                         .HasColumnType("text");
@@ -548,10 +521,6 @@ namespace CV_Generator.Migrations
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
-
-                    b.Property<string>("Website")
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
 
                     b.HasKey("Id");
 
@@ -613,16 +582,9 @@ namespace CV_Generator.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("CredentialId")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
                     b.Property<string>("CredentialUrl")
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
-
-                    b.Property<DateTime?>("ExpiryDate")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("IssueDate")
                         .HasColumnType("timestamp with time zone");
@@ -635,9 +597,6 @@ namespace CV_Generator.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -653,14 +612,6 @@ namespace CV_Generator.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Address")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("CompanyFactsJson")
-                        .HasMaxLength(6000)
-                        .HasColumnType("jsonb");
-
                     b.Property<string>("Country")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -673,10 +624,6 @@ namespace CV_Generator.Migrations
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
-
-                    b.Property<string>("EmailsJson")
-                        .HasMaxLength(3000)
-                        .HasColumnType("jsonb");
 
                     b.Property<int?>("FoundedYear")
                         .HasColumnType("integer");
@@ -708,24 +655,9 @@ namespace CV_Generator.Migrations
                     b.Property<string>("Note")
                         .HasColumnType("text");
 
-                    b.Property<string>("PhonesJson")
-                        .HasMaxLength(3000)
-                        .HasColumnType("jsonb");
-
                     b.Property<string>("Region")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ResearchLink")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("ResearchSource")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime?>("ResearchUpdatedAt")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Sector")
                         .HasMaxLength(200)
@@ -734,10 +666,6 @@ namespace CV_Generator.Migrations
                     b.Property<string>("Size")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
-
-                    b.Property<string>("SocialLinksJson")
-                        .HasMaxLength(6000)
-                        .HasColumnType("jsonb");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1059,18 +987,10 @@ namespace CV_Generator.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<string>("Country")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.Property<string>("DegreeType")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("DiplomaFileUrl")
                         .HasMaxLength(300)
@@ -1084,17 +1004,10 @@ namespace CV_Generator.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<string>("Grade")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
                     b.Property<string>("InstitutionName")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
 
                     b.Property<string>("Specialization")
                         .HasMaxLength(100)
@@ -1288,9 +1201,8 @@ namespace CV_Generator.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("AchievementsJson")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                    b.Property<string>("AiSummaryJson")
+                        .HasColumnType("text");
 
                     b.Property<string>("Company")
                         .HasMaxLength(150)
@@ -1300,23 +1212,15 @@ namespace CV_Generator.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<string>("EmploymentType")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                    b.Property<Vector>("DescriptionEmbedding")
+                        .HasColumnType("vector(384)");
 
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Location")
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
                     b.Property<string>("ReferenceUrl")
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("timestamp with time zone");
@@ -1389,9 +1293,6 @@ namespace CV_Generator.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
-                    b.Property<DateTime?>("EndDate")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1400,21 +1301,11 @@ namespace CV_Generator.Migrations
                     b.Property<string>("Organization")
                         .HasColumnType("text");
 
-                    b.Property<string>("ProjectUrl")
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
                     b.Property<string>("Result")
                         .HasColumnType("text");
 
                     b.Property<string>("Role")
                         .HasColumnType("text");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("StartDate")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -1434,9 +1325,6 @@ namespace CV_Generator.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -1658,9 +1546,6 @@ namespace CV_Generator.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
@@ -1773,17 +1658,19 @@ namespace CV_Generator.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
-                    b.Property<string>("Category")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                    b.Property<string>("AiSummaryJson")
+                        .HasColumnType("text");
 
                     b.Property<string>("DemoUrl")
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(3000)
-                        .HasColumnType("character varying(3000)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Vector>("DescriptionEmbedding")
+                        .HasColumnType("vector(384)");
 
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("timestamp with time zone");
@@ -1799,9 +1686,6 @@ namespace CV_Generator.Migrations
                     b.Property<string>("SkillsJson")
                         .HasColumnType("text");
 
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -1809,9 +1693,6 @@ namespace CV_Generator.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
-
-                    b.Property<int?>("TeamSize")
-                        .HasColumnType("integer");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -1999,12 +1880,6 @@ namespace CV_Generator.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<bool>("IsCore")
-                        .HasColumnType("boolean");
-
-                    b.Property<int?>("LastUsedYear")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Level")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
@@ -2014,12 +1889,8 @@ namespace CV_Generator.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Subcategory")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                    b.Property<Vector>("NameEmbedding")
+                        .HasColumnType("vector(384)");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -2042,9 +1913,6 @@ namespace CV_Generator.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
 
                     b.Property<string>("Url")
                         .IsRequired()

@@ -38,6 +38,9 @@ public class CompaniesController : BaseApiController
         [FromQuery] string? search,
         [FromQuery] string? country,
         [FromQuery] string? city,
+        [FromQuery] string? sector,
+        [FromQuery] bool? hasWebsite,
+        [FromQuery] bool? researched,
         [FromQuery] int? minApps,
         [FromQuery] string? sortBy,
         [FromQuery] string? sortDir,
@@ -56,6 +59,26 @@ public class CompaniesController : BaseApiController
                 (c.Sector != null && c.Sector.ToLower().Contains(term)) ||
                 (c.Country != null && c.Country.ToLower().Contains(term)) ||
                 (c.Note != null && c.Note.ToLower().Contains(term)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(sector))
+        {
+            var sectorTerm = sector.Trim().ToLower();
+            query = query.Where(c => c.Sector != null && c.Sector.ToLower().Contains(sectorTerm));
+        }
+
+        if (hasWebsite.HasValue)
+        {
+            query = hasWebsite.Value
+                ? query.Where(c => c.WebsiteUrl != null && c.WebsiteUrl.Length > 0)
+                : query.Where(c => c.WebsiteUrl == null || c.WebsiteUrl.Length == 0);
+        }
+
+        if (researched.HasValue)
+        {
+            query = researched.Value
+                ? query.Where(c => c.ResearchSource == "web-research")
+                : query.Where(c => c.ResearchSource != "web-research" || c.ResearchSource == null);
         }
 
         if (!string.IsNullOrWhiteSpace(country))
@@ -128,6 +151,9 @@ public class CompaniesController : BaseApiController
             "applied" or "lastapplied" => descending
                 ? enriched.OrderByDescending(c => c.LastAppliedAt ?? DateTime.MinValue)
                 : enriched.OrderBy(c => c.LastAppliedAt ?? DateTime.MinValue),
+            "researched" or "lastresearched" => descending
+                ? enriched.OrderByDescending(c => c.ResearchUpdatedAt ?? DateTime.MinValue).ThenBy(c => c.Name)
+                : enriched.OrderBy(c => c.ResearchUpdatedAt ?? DateTime.MinValue).ThenBy(c => c.Name),
             _ => descending
                 ? enriched.OrderByDescending(c => c.Name)
                 : enriched.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase),
@@ -140,6 +166,21 @@ public class CompaniesController : BaseApiController
             .ToList();
 
         return Ok(ApiResponse<CompanyListResponse>.Ok(new CompanyListResponse { Items = items, Total = filteredTotal }));
+    }
+
+    /// <summary>Distinct non-empty sectors for filter dropdowns.</summary>
+    [HttpGet("sectors")]
+    public async Task<IActionResult> GetSectors()
+    {
+        var userId = GetUserId();
+        var sectors = await _db.Companies.AsNoTracking()
+            .Where(c => c.UserId == userId && c.Sector != null && c.Sector.Trim().Length > 0)
+            .Select(c => c.Sector!.Trim())
+            .Distinct()
+            .OrderBy(s => s)
+            .ToListAsync();
+
+        return Ok(ApiResponse<List<string>>.Ok(sectors));
     }
 
     [HttpGet("{id}")]
@@ -199,6 +240,9 @@ public class CompaniesController : BaseApiController
         if (duplicate is not null)
             return Conflict(ApiResponse<CompanyDto>.Error($"'{duplicate.Name}' is already in your list"));
 
+        var logo = await ResolveLogoAsync(userId, dto.LogoImageId, dto.LogoUrl);
+        if (logo.Error != null) return BadRequest(ApiResponse<CompanyDto>.Error(logo.Error));
+
         var company = new Company
         {
             Id = Guid.NewGuid(),
@@ -213,6 +257,8 @@ public class CompaniesController : BaseApiController
             FoundedYear = dto.FoundedYear,
             LinkedInUrl = dto.LinkedInUrl,
             Size = dto.Size,
+            LogoImageId = dto.LogoImageId,
+            LogoUrl = logo.LogoUrl,
             Note = dto.Note,
             Description = dto.Description
         };
@@ -256,6 +302,13 @@ public class CompaniesController : BaseApiController
         if (dto.FoundedYear.HasValue) company.FoundedYear = dto.FoundedYear;
         if (dto.LinkedInUrl != null) company.LinkedInUrl = dto.LinkedInUrl;
         if (dto.Size != null) company.Size = dto.Size;
+        if (dto.LogoUrl != null)
+        {
+            var logo = await ResolveLogoAsync(userId, dto.LogoImageId, dto.LogoUrl);
+            if (logo.Error != null) return BadRequest(ApiResponse<CompanyDto>.Error(logo.Error));
+            company.LogoUrl = logo.LogoUrl;
+            company.LogoImageId = dto.LogoImageId;
+        }
         if (dto.Note != null) company.Note = dto.Note;
         if (dto.Description != null) company.Description = dto.Description;
         company.UpdatedAt = DateTime.UtcNow;
@@ -281,6 +334,31 @@ public class CompaniesController : BaseApiController
     private async Task<Company?> FindByNameAsync(Guid userId, string name)
         => await _db.Companies.FirstOrDefaultAsync(c =>
             c.UserId == userId && c.Name.ToLower() == name.ToLower());
+
+    /// <summary>
+    /// Resolves the logo: when the client references a library image, verify ownership and
+    /// fall back to the image's stored URL; an explicit URL is kept as-is (empty string clears).
+    /// </summary>
+    private async Task<(string? Error, string? LogoUrl)> ResolveLogoAsync(Guid userId, Guid? imageId, string? logoUrl)
+    {
+        if (string.IsNullOrWhiteSpace(logoUrl))
+        {
+            if (imageId.HasValue)
+            {
+                var image = await _db.UserImages.FirstOrDefaultAsync(i => i.Id == imageId.Value && i.UserId == userId);
+                if (image is null) return ("Logo image not found in your library", null);
+                return (null, image.Url);
+            }
+            return (null, null);
+        }
+
+        if (imageId.HasValue)
+        {
+            var owned = await _db.UserImages.AnyAsync(i => i.Id == imageId.Value && i.UserId == userId);
+            if (!owned) return ("Logo image not found in your library", null);
+        }
+        return (null, logoUrl.Trim());
+    }
 
     /// <summary>Application count + last applied date for one company (normalized name match).</summary>
     private async Task<(int Count, DateTime? Last)> GetCompanyStatsAsync(Guid userId, string companyName)
@@ -309,8 +387,18 @@ public class CompaniesController : BaseApiController
         FoundedYear = c.FoundedYear,
         LinkedInUrl = c.LinkedInUrl,
         Size = c.Size,
+        LogoImageId = c.LogoImageId,
+        LogoUrl = c.LogoUrl,
         Note = c.Note,
         Description = c.Description,
+        Address = c.Address,
+        Emails = CompanyResearchJson.ParseList(c.EmailsJson),
+        Phones = CompanyResearchJson.ParseList(c.PhonesJson),
+        SocialLinks = CompanyResearchJson.ParseSocialLinks(c.SocialLinksJson),
+        CompanyFacts = CompanyResearchJson.ParseList(c.CompanyFactsJson),
+        ResearchSource = c.ResearchSource,
+        ResearchLink = c.ResearchLink,
+        ResearchUpdatedAt = c.ResearchUpdatedAt,
         CreatedAt = c.CreatedAt,
         UpdatedAt = c.UpdatedAt
     };

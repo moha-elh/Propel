@@ -37,10 +37,12 @@ public class AcademicActivitiesController : ApiControllerBase
             Id = a.Id,
             Title = a.Title,
             Organization = a.Organization,
+            Role = a.Role,
             Description = a.Description,
             StartDate = a.StartDate,
             EndDate = a.EndDate,
-            UserId = a.UserId
+            UserId = a.UserId,
+            SortOrder = a.SortOrder
         }).ToList();
 
         return Ok(ApiResponse<List<AcademicActivityResponseDto>>.Ok(response));
@@ -57,10 +59,12 @@ public class AcademicActivitiesController : ApiControllerBase
             Id = a.Id,
             Title = a.Title,
             Organization = a.Organization,
+            Role = a.Role,
             Description = a.Description,
             StartDate = a.StartDate,
             EndDate = a.EndDate,
-            UserId = a.UserId
+            UserId = a.UserId,
+            SortOrder = a.SortOrder
         };
         return Ok(ApiResponse<AcademicActivityResponseDto>.Ok(response));
     }
@@ -72,10 +76,12 @@ public class AcademicActivitiesController : ApiControllerBase
         {
             Title = dto.Title,
             Organization = dto.Organization,
+            Role = dto.Role,
             Description = dto.Description,
             StartDate = dto.StartDate,
             EndDate = dto.EndDate,
-            UserId = RequiredUserId
+            UserId = RequiredUserId,
+            SortOrder = dto.SortOrder
         };
 
         _db.AcademicActivities.Add(a);
@@ -87,10 +93,12 @@ public class AcademicActivitiesController : ApiControllerBase
             Id = a.Id,
             Title = a.Title,
             Organization = a.Organization,
+            Role = a.Role,
             Description = a.Description,
             StartDate = a.StartDate,
             EndDate = a.EndDate,
-            UserId = a.UserId
+            UserId = a.UserId,
+            SortOrder = a.SortOrder
         };
         return CreatedAtAction(nameof(GetById), new { id = a.Id }, ApiResponse<AcademicActivityResponseDto>.Created(response));
     }
@@ -103,9 +111,11 @@ public class AcademicActivitiesController : ApiControllerBase
 
         a.Title = dto.Title;
         a.Organization = dto.Organization;
+        a.Role = dto.Role;
         a.Description = dto.Description;
         a.StartDate = dto.StartDate;
         a.EndDate = dto.EndDate;
+        a.SortOrder = dto.SortOrder;
 
         await _db.SaveChangesAsync();
         SearchSyncHelper.TriggerSync(_scopeFactory, a.UserId, _logger, "AcademicActivity.Update", a.Id);
@@ -115,10 +125,12 @@ public class AcademicActivitiesController : ApiControllerBase
             Id = a.Id,
             Title = a.Title,
             Organization = a.Organization,
+            Role = a.Role,
             Description = a.Description,
             StartDate = a.StartDate,
             EndDate = a.EndDate,
-            UserId = a.UserId
+            UserId = a.UserId,
+            SortOrder = a.SortOrder
         };
         return Ok(ApiResponse<AcademicActivityResponseDto>.Ok(response));
     }

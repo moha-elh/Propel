@@ -16,6 +16,12 @@ public class CreateCertificationDto
     [MaxLength(300)]
     public string? CredentialUrl { get; set; }
 
+    [MaxLength(200)]
+    public string? CredentialId { get; set; }
+
+    public DateTime? ExpiryDate { get; set; }
+
+    public int SortOrder { get; set; } = 0;
 }
 
 public class UpdateCertificationDto
@@ -31,6 +37,13 @@ public class UpdateCertificationDto
 
     [MaxLength(300)]
     public string? CredentialUrl { get; set; }
+
+    [MaxLength(200)]
+    public string? CredentialId { get; set; }
+
+    public DateTime? ExpiryDate { get; set; }
+
+    public int SortOrder { get; set; } = 0;
 }
 
 public class CertificationResponseDto
@@ -40,5 +53,8 @@ public class CertificationResponseDto
     public string? IssuingOrganization { get; set; }
     public DateTime? IssueDate { get; set; }
     public string? CredentialUrl { get; set; }
+    public string? CredentialId { get; set; }
+    public DateTime? ExpiryDate { get; set; }
     public Guid UserId { get; set; }
+    public int SortOrder { get; set; } = 0;
 }

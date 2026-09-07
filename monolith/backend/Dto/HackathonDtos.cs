@@ -9,9 +9,14 @@ public class CreateHackathonDto
     public string Name { get; set; } = string.Empty;
     public string? Organization { get; set; }
     public DateTime? Date { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
     public string? Description { get; set; }
     public string? Role { get; set; }
     public string? Result { get; set; }
+    [MaxLength(300)]
+    public string? ProjectUrl { get; set; }
+    public int SortOrder { get; set; } = 0;
 }
 
 public class UpdateHackathonDto
@@ -21,9 +26,14 @@ public class UpdateHackathonDto
     public string Name { get; set; } = string.Empty;
     public string? Organization { get; set; }
     public DateTime? Date { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
     public string? Description { get; set; }
     public string? Role { get; set; }
     public string? Result { get; set; }
+    [MaxLength(300)]
+    public string? ProjectUrl { get; set; }
+    public int SortOrder { get; set; } = 0;
 }
 
 public class HackathonResponseDto
@@ -32,8 +42,13 @@ public class HackathonResponseDto
     public string Name { get; set; } = string.Empty;
     public string? Organization { get; set; }
     public DateTime? Date { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
     public string? Description { get; set; }
     public string? Role { get; set; }
     public string? Result { get; set; }
+    [MaxLength(300)]
+    public string? ProjectUrl { get; set; }
     public Guid UserId { get; set; }
+    public int SortOrder { get; set; } = 0;
 }

@@ -139,6 +139,7 @@ public class TemplateRenderService
             // Step 2: Compile PDF + optionally save to Documents
             await ExecuteStepAsync(run, 2, ct, async () =>
             {
+                var photoUser = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == run.UserId, ct);
                 var pdf = await _templateAgent.CompilePdfAsync(new PdfInput
                 {
                     UserId = run.UserId.ToString(),
@@ -153,6 +154,7 @@ public class TemplateRenderService
                     Tone = run.Tone ?? "professional",
                     Provider = templateLlm.Provider,
                     Model = templateLlm.Model,
+                    PhotoKey = photoUser?.ProfilePhotoKey,
                 }, ct);
 
                 if (pdf == null || string.IsNullOrWhiteSpace(pdf.FilePath))

@@ -109,6 +109,7 @@ public class UsersController : ControllerBase
         user.DesiredSalaryMin = dto.DesiredSalaryMin;
         user.DesiredSalaryMax = dto.DesiredSalaryMax;
         user.ProfessionalTitles = dto.ProfessionalTitles;
+        if (dto.ProfilePhotoKey != null) user.ProfilePhotoKey = string.IsNullOrWhiteSpace(dto.ProfilePhotoKey) ? null : dto.ProfilePhotoKey.Trim();
 
         await _db.SaveChangesAsync();
         SearchSyncHelper.TriggerSync(_scopeFactory, user.Id, _logger, "User.Update");
@@ -135,6 +136,7 @@ public class UsersController : ControllerBase
         u.Headline, u.Bio, u.City, u.Country, u.AuthorizedCountry,
         u.RequiresVisaSponsorship, u.NoticePeriod, u.EmploymentTypes,
         u.RemotePreference, u.WillingToRelocate, u.DesiredJobTitle,
-        u.DesiredSalaryMin, u.DesiredSalaryMax, u.ProfessionalTitles
+        u.DesiredSalaryMin, u.DesiredSalaryMax, u.ProfessionalTitles,
+        u.ProfilePhotoKey
     );
 }
