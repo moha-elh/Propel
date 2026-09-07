@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
-import { HomeComponent } from './pages/home/home.component';
 import { LoginComponent } from './pages/login/login.component';
 // Register merged into LoginComponent — route redirects to /login?mode=sign-up
 
@@ -47,7 +46,7 @@ import { EntityListComponent } from './pages/entity-list/entity-list.component';
 import { EntityFormComponent } from './shared/entity-form/entity-form.component';
 
 export const routes: Routes = [
-  { path: '', component: HomeComponent },
+  { path: '', redirectTo: 'applications', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
   { path: 'register', redirectTo: '/login?mode=sign-up', pathMatch: 'full' },
   { path: 'about', component: AboutComponent },
@@ -117,5 +116,5 @@ export const routes: Routes = [
   },
   { path: 'companies', component: CompaniesComponent, canActivate: [authGuard] },
   { path: 'companies/:id', component: CompaniesDetailComponent, canActivate: [authGuard] },
-  { path: '**', redirectTo: '' },
+  { path: '**', redirectTo: 'applications' },
 ];

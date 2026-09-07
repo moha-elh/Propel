@@ -8,7 +8,6 @@ namespace CV_Generator.Controllers;
 
 [ApiController]
 [Route("api/autofill")]
-[Authorize]
 public class AutofillController : ControllerBase
 {
     private readonly IAutofillClient _client;

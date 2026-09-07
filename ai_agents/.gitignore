@@ -1,7 +1,0 @@
-./tests/results/*
-
-venv/
-*.tex
-output/
-*.html
-*.tex

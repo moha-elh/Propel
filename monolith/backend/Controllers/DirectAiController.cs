@@ -12,7 +12,6 @@ namespace CV_Generator.Controllers;
 
 [ApiController]
 [Route("api/direct-ai")]
-[Authorize]
 public class DirectAiController : ControllerBase
 {
     private readonly IDirectAiClient _client;

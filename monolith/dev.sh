@@ -8,29 +8,17 @@ COMPOSE_FILE="docker-compose.yml"
 
 SERVICES=(
   "postgres"
-  "keycloak-db keycloak"
   "minio"
-  "cv-job-extractor"
-  "cv-job-crawler"
-  "cv-search-agent"
-  "cv-template-agent"
-  "cv-optimizer"
-  "cv-contact-agent"
+  "agents"
 )
 
 LABELS=(
   "1) postgres"
-  "2) keycloak (+ keycloak-db)"
-  "3) minio"
-  "4) job-extractor"
-  "5) job-crawler"
-  "6) search-agent"
-  "7) template-agent"
-  "8) cv-optimizer"
-  "9) contact-agent"
+  "2) minio"
+  "3) agents (unified AI sidecar :8000)"
 )
 
-ALL_SERVICES="1 2 3 4 5 6 7 8 9"
+ALL_SERVICES="1 2 3"
 
 load_defaults() {
   if [[ -f "$CONFIG_FILE" ]]; then
@@ -73,7 +61,7 @@ pick_services() {
 
   local validated=""
   for num in $input; do
-    if [[ "$num" =~ ^[1-9]$ ]]; then
+    if [[ "$num" =~ ^[1-3]$ ]]; then
       validated="$validated $num"
     fi
   done

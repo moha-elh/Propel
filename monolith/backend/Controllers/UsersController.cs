@@ -12,7 +12,6 @@ using CV_Generator.Dto;
 namespace CV_Generator.Controllers;
 
 [ApiController]
-[Authorize]
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
 {
@@ -20,13 +19,15 @@ public class UsersController : ControllerBase
     private readonly IEventBus _eventBus;
     private readonly ILogger<UsersController> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ICurrentUserService _currentUser;
 
-    public UsersController(AppDbContext db, IEventBus eventBus, ILogger<UsersController> logger, IServiceScopeFactory scopeFactory)
+    public UsersController(AppDbContext db, IEventBus eventBus, ILogger<UsersController> logger, IServiceScopeFactory scopeFactory, ICurrentUserService currentUser)
     {
         _db = db;
         _eventBus = eventBus;
         _logger = logger;
         _scopeFactory = scopeFactory;
+        _currentUser = currentUser;
     }
 
     [HttpGet]
@@ -45,80 +46,10 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("me")]
-    [Authorize]
     public async Task<IActionResult> GetMe()
     {
-        var keycloakId = User.FindFirstValue("sub");
-        if (string.IsNullOrEmpty(keycloakId))
-            return Unauthorized(ApiResponse<UserResponseDto>.Error("Invalid token"));
-
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.KeycloakId == keycloakId);
-        if (user == null)
-        {
-            user = new User
-            {
-                KeycloakId = keycloakId,
-                FirstName = User.FindFirstValue("given_name") ?? "",
-                LastName = User.FindFirstValue("family_name") ?? "",
-                Email = User.FindFirstValue("email") ?? "",
-                Role = Role.USER,
-                CreatedAt = DateTime.UtcNow,
-                IsActive = true
-            };
-            _db.Users.Add(user);
-            await _db.SaveChangesAsync();
-
-            _logger.LogInformation("Created user {Id} from JWT (sub={KeycloakId})", user.Id, keycloakId);
-
-            await _eventBus.PublishAsync(new UserCreatedEvent(user.Id, user.Email, user.FirstName, user.LastName));
-        }
-
-        return Ok(ApiResponse<UserResponseDto>.Ok(ToDto(user)));
-    }
-
-    [HttpPost("sync")]
-    [Authorize]
-    public async Task<IActionResult> Sync()
-    {
-        var keycloakId = User.FindFirstValue("sub");
-        if (string.IsNullOrEmpty(keycloakId))
-            return Unauthorized(ApiResponse<UserResponseDto>.Error("Invalid token"));
-
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.KeycloakId == keycloakId);
-
-        var firstName = User.FindFirstValue("given_name") ?? "";
-        var lastName = User.FindFirstValue("family_name") ?? "";
-        var email = User.FindFirstValue("email") ?? "";
-
-        if (user == null)
-        {
-            user = new User
-            {
-                KeycloakId = keycloakId,
-                FirstName = firstName,
-                LastName = lastName,
-                Email = email,
-                Role = Role.USER,
-                CreatedAt = DateTime.UtcNow,
-                IsActive = true
-            };
-            _db.Users.Add(user);
-            _logger.LogInformation("Created user {Id} via sync", user.Id);
-        }
-        else
-        {
-            user.FirstName = firstName;
-            user.LastName = lastName;
-            user.Email = email;
-
-            await _db.SaveChangesAsync();
-            return Ok(ApiResponse<UserResponseDto>.Ok(ToDto(user)));
-        }
-
-        await _db.SaveChangesAsync();
-
-        await _eventBus.PublishAsync(new UserCreatedEvent(user.Id, user.Email, user.FirstName, user.LastName));
-
+        var user = await _db.Users.FindAsync(_currentUser.UserId);
+        if (user == null) return NotFound(ApiResponse<UserResponseDto>.Error("User not found"));
         return Ok(ApiResponse<UserResponseDto>.Ok(ToDto(user)));
     }
 

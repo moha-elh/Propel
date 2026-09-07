@@ -10,7 +10,6 @@ namespace CV_Generator.Controllers;
 
 [ApiController]
 [Route("api/cv/templates")]
-[Authorize]
 public class CvTemplatesController : ControllerBase
 {
     private readonly AppDbContext _db;

@@ -8,7 +8,6 @@ using CV_Generator.Models;
 namespace CV_Generator.Controllers;
 
 [ApiController]
-[Authorize]
 [Route("api/cv/sections")]
 public class CvSectionsController : ControllerBase
 {

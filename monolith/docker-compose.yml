@@ -1,6 +1,7 @@
 services:
   postgres:
-    image: postgres:17-alpine
+    # pgvector image (not plain postgres) — migrations CREATE EXTENSION vector.
+    image: pgvector/pgvector:pg17
     container_name: cv-monolith-db
     environment:
       - POSTGRES_DB=cv_monolith
@@ -18,59 +19,6 @@ services:
     networks:
       - cv-network
 
-  keycloak-db:
-    image: postgres:17-alpine
-    container_name: cv-keycloak-db
-    environment:
-      - POSTGRES_DB=keycloak
-      - POSTGRES_USER=keycloak
-      - POSTGRES_PASSWORD=keycloak_secret
-    volumes:
-      - keycloak_db_data:/var/lib/postgresql/data
-    networks:
-      - cv-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U keycloak"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-
-  keycloak:
-    image: docker.io/keycloak/keycloak:26.2
-    container_name: cv-keycloak
-    ports:
-      - "${KEYCLOAK_EXTERNAL_PORT:-9090}:${KEYCLOAK_PORT:-8080}"
-    environment:
-      - KC_DB=postgres
-      - KC_DB_URL_HOST=keycloak-db
-      - KC_DB_URL_DATABASE=keycloak
-      - KC_DB_USERNAME=keycloak
-      - KC_DB_PASSWORD=keycloak_secret
-      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN_USERNAME:-admin}
-      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
-      - KC_HTTP_ENABLED=true
-      - KC_HEALTH_ENABLED=true
-      - KC_HOSTNAME_STRICT=false
-      - KC_PROXY=edge
-      - KC_FEATURES=token-exchange
-      - JAVA_OPTS_APPEND=-Xms256m -Xmx512m
-    command: ["start-dev", "--import-realm"]
-    volumes:
-      - ./gateway/keycloak-realm:/opt/keycloak/data/import
-    depends_on:
-      keycloak-db:
-        condition: service_healthy
-    networks:
-      - cv-network
-    healthcheck:
-      # keycloak image has no curl; probe /health/ready over bash /dev/tcp.
-      # Generous start_period: dev-mode boot + realm import takes ~60s+.
-      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3; grep -q '200' <&3"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-
   monolith:
     build:
       context: .
@@ -81,18 +29,14 @@ services:
     environment:
       - PORT=5000
       - CONNECTION_STRING=Host=postgres;Port=5432;Database=cv_monolith;Username=postgres;Password=postgres
-      - JWT_AUTHORITY=http://keycloak:8080/realms/cv-realm
-      - JOB_EXTRACTOR_URL=http://cv-job-extractor:8001/api/v1/
-      - SEARCH_AGENT_URL=http://cv-search-agent:8002/api/v1/
-      - TEMPLATE_AGENT_URL=http://cv-template-agent:8003/api/v1/
-      - CV_OPTIMIZER_URL=http://cv-optimizer:8004/api/v1/
-      - CONTACT_AGENT_URL=http://cv-contact-agent:8005/api/v1/
-      - JOB_CRAWLER_URL=http://cv-job-crawler:8006/api/v1/
-      - JOB_OFFER_SERVICE_URL=http://cv-job-offer-service:8086
+      # Owner identity for this single-user tool (auth removed).
+      - OWNER_FIRST_NAME=${OWNER_FIRST_NAME:-Me}
+      - OWNER_LAST_NAME=${OWNER_LAST_NAME:-}
+      - OWNER_EMAIL=${OWNER_EMAIL:-me@localhost}
+      # All AI agents live in the unified sidecar (see agents service below).
+      - AGENTS_URL=http://agents:8000
     depends_on:
       postgres:
-        condition: service_healthy
-      keycloak:
         condition: service_healthy
     networks:
       - cv-network
@@ -103,83 +47,37 @@ services:
     ports:
       - "${GATEWAY_PORT:-8080}:${GATEWAY_PORT:-8080}"
     environment:
-      - KEYCLOAK_HOST=keycloak
-      - KEYCLOAK_PORT=${KEYCLOAK_PORT:-8080}
-      - KEYCLOAK_EXTERNAL_HOST=${KEYCLOAK_EXTERNAL_HOST:-localhost}
-      - KEYCLOAK_EXTERNAL_PORT=${KEYCLOAK_EXTERNAL_PORT:-9090}
-      - KEYCLOAK_REALM=cv-realm
-      - KEYCLOAK_CLIENT_ID=cv-gateway
-      - KEYCLOAK_CLIENT_SECRET=change-me-in-production
       - GATEWAY_HOST=${GATEWAY_HOST:-cv-api-gateway}
       - GATEWAY_PORT=${GATEWAY_PORT:-8080}
       - MONOLITH_HOST=monolith
       - MONOLITH_PORT=5000
-      - KEYCLOAK_ADMIN_USERNAME=${KEYCLOAK_ADMIN_USERNAME:-admin}
-      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
       - FRONTEND_HOST=${FRONTEND_HOST:-localhost}
       - FRONTEND_PORT=${FRONTEND_PORT:-4200}
+      # Owner identity reported to the SPA (auth removed).
+      - OWNER_FIRST_NAME=${OWNER_FIRST_NAME:-Me}
+      - OWNER_LAST_NAME=${OWNER_LAST_NAME:-}
+      - OWNER_EMAIL=${OWNER_EMAIL:-me@localhost}
     depends_on:
       monolith:
         condition: service_started
-      keycloak:
-        condition: service_healthy
     networks:
       - cv-network
 
-  # AI agents: context must be ../ai_agents (Dockerfiles COPY services/*); env_file
-  # carries the LLM keys; cv-network so the monolith can reach them by hostname.
-  cv-job-extractor:
+  # Unified AI agent sidecar — all 14 agents in one FastAPI process on :8000.
+  # The monolith reaches it via AGENTS_URL. LLM keys come from agents/.env.
+  agents:
     build:
-      context: ../ai_agents
-      dockerfile: services/job-extractor/Dockerfile
-    container_name: cv-job-extractor
-    env_file: ../ai_agents/services/job-extractor/.env
-    ports: ["8001:8001"]
-    networks: [cv-network]
-
-  cv-job-crawler:
-    build:
-      context: ../ai_agents
-      dockerfile: services/job-crawler/Dockerfile
-    container_name: cv-job-crawler
-    env_file: ../ai_agents/services/job-crawler/.env
-    ports: ["8006:8006"]
-    networks: [cv-network]
-
-  cv-search-agent:
-    build:
-      context: ../ai_agents
-      dockerfile: services/search-agent/Dockerfile
-    container_name: cv-search-agent
-    env_file: ../ai_agents/services/search-agent/.env
-    ports: ["8002:8002"]
-    networks: [cv-network]
-
-  cv-template-agent:
-    build:
-      context: ../ai_agents
-      dockerfile: services/template-agent/Dockerfile
-    container_name: cv-template-agent
-    env_file: ../ai_agents/services/template-agent/.env
-    ports: ["8003:8003"]
-    networks: [cv-network]
-
-  cv-optimizer:
-    build:
-      context: ../ai_agents
-      dockerfile: services/cv-optimizer/Dockerfile
-    container_name: cv-optimizer
-    env_file: ../ai_agents/services/cv-optimizer/.env
-    ports: ["8004:8004"]
-    networks: [cv-network]
-
-  cv-contact-agent:
-    build:
-      context: ../ai_agents
-      dockerfile: services/contact-agent/Dockerfile
-    container_name: cv-contact-agent
-    env_file: ../ai_agents/services/contact-agent/.env
-    ports: ["8005:8005"]
+      context: ./agents
+      dockerfile: Dockerfile
+    container_name: cv-agents
+    env_file: ./agents/.env
+    environment:
+      - BACKEND_BASE_URL=http://monolith:5000
+      - MINIO_ENDPOINT=minio:9000
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/cv_monolith
+    ports: ["${AGENTS_PORT:-8000}:8000"]
+    depends_on:
+      - monolith
     networks: [cv-network]
 
   minio:
@@ -215,7 +113,6 @@ services:
 
 volumes:
   monolith_db_data:
-  keycloak_db_data:
   minio_data:
 
 networks:

@@ -25,7 +25,6 @@ public class GmailController : BaseApiController
         return Redirect(url);
     }
 
-    [AllowAnonymous]
     [HttpGet("callback")]
     public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string state)
     {
