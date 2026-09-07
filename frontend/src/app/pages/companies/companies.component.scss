@@ -205,6 +205,15 @@ select.filter-select {
   > * { min-width: 0; }
 }
 
+.co-logo {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: 5px;
+  background: var(--bg-2, #f5f6f8);
+}
+
 .co-name {
   font-weight: 600;
   color: var(--text);

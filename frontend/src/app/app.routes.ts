@@ -25,6 +25,8 @@ import { ContactPageComponent } from './pages/contact/contact-page.component';
 import { MailboxComponent } from './pages/mailbox/mailbox.component';
 import { CompaniesComponent } from './pages/companies/companies.component';
 import { CompaniesDetailComponent } from './pages/companies/companies-detail/companies-detail.component';
+import { CompanyResearchComponent } from './pages/company-research/company-research.component';
+import { CompanyResearchDetailComponent } from './pages/company-research-detail/company-research-detail.component';
 import { MyCvComponent } from './pages/my-cv/my-cv.component';
 import { AgentsHubComponent } from './pages/agents-hub/agents-hub.component';
 import { AgentGuideComponent } from './pages/agents-hub/agent-guide/agent-guide.component';
@@ -116,5 +118,7 @@ export const routes: Routes = [
   },
   { path: 'companies', component: CompaniesComponent, canActivate: [authGuard] },
   { path: 'companies/:id', component: CompaniesDetailComponent, canActivate: [authGuard] },
+  { path: 'company-research', component: CompanyResearchComponent, canActivate: [authGuard] },
+  { path: 'company-research/:id', component: CompanyResearchDetailComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: 'applications' },
 ];

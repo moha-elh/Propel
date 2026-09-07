@@ -5,11 +5,13 @@ import { APP_NAME } from '@app/app-name';
 import { UserProfileService } from '@app/services/user-profile.service';
 import { AuthService } from '@app/services/auth.service';
 import { UserProfile, UpdateUserProfileDto, ProfessionalTitle } from '@app/models/user-profile.model';
+import { ImagePickerComponent } from '@app/shared/components/image-picker/image-picker.component';
+import { ImageDto } from '@app/services/image.service';
 
 @Component({
   selector: 'app-personal-info',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ImagePickerComponent],
   templateUrl: './personal-info.component.html',
   styleUrl: './personal-info.component.scss',
 })
@@ -23,6 +25,13 @@ export class PersonalInfoComponent implements OnInit {
   saving = signal(false);
   saved = signal(false);
   error = signal<string | null>(null);
+  avatarPickerOpen = signal(false);
+
+  onAvatarPicked(img: ImageDto): void {
+    const p = this.profile();
+    if (!p) return;
+    p.avatarUrl = img.url;
+  }
 
   editingTitle = signal<ProfessionalTitle | null>(null);
   titleInput = signal('');

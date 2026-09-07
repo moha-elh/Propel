@@ -85,6 +85,9 @@
             <tr class="row-link" (click)="openDetail(c)">
               <td>
                 <div class="co-cell">
+                  @if (c.logoUrl) {
+                    <img class="co-logo" [src]="c.logoUrl" alt="" loading="lazy" (error)="$event.target.hidden = true">
+                  }
                   @if (c.websiteUrl) {
                     <a class="co-name co-link" [href]="c.websiteUrl" target="_blank" rel="noopener" [title]="c.websiteUrl" (click)="$event.stopPropagation()">
                       {{ c.name }}

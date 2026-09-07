@@ -47,6 +47,8 @@ export class HeaderComponent {
     '/job-offers':             'Job Offers',
     '/companies':              'Companies',
     '/companies/:id':          'Company Details',
+    '/company-research':       'Company Research',
+    '/company-research/:id':   'Research Details',
     '/settings':               'Settings',
   };
 

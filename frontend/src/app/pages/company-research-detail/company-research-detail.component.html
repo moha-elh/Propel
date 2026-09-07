@@ -1,0 +1,192 @@
+<div class="page">
+  <div class="page-head">
+    <div class="head-left">
+      <a routerLink="/company-research" class="back-link" title="Back to research">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Company Research
+      </a>
+    </div>
+    @if (company(); as c) {
+      <div class="head-actions">
+        <app-refresh-button [loading]="refreshing()" (refresh)="onRefresh()" />
+        <button class="btn btn-secondary" (click)="openCompanyPage()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Full company page
+        </button>
+        <button class="btn btn-primary" [disabled]="running()" (click)="researchAgain()">
+          @if (running()) {
+            <i class="ti ti-loader ti-spin"></i> Researching…
+          } @else {
+            <i class="ti ti-search"></i> Research again
+          }
+        </button>
+      </div>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="empty-state"><p>Loading…</p></div>
+  } @else if (!company()) {
+    <div class="empty-state"><p>Company not found.</p></div>
+  } @else {
+    @if (company(); as c) {
+    <!-- ── Header card ─────────────────────────────────────────────────── -->
+    <section class="co-header">
+      @if (c.logoUrl) {
+        <div class="avatar logo-avatar">
+          <img [src]="c.logoUrl" [alt]="c.name + ' logo'" loading="lazy" (error)="$event.target.hidden = true">
+        </div>
+      } @else {
+        <div class="avatar" [style.background]="avatarColor(c.name)">{{ initials(c.name) }}</div>
+      }
+      <div class="co-main">
+        <h1>{{ c.name }}</h1>
+        <div class="co-meta">
+          @if (c.websiteUrl) {
+            <a class="meta-chip link" [href]="c.websiteUrl" target="_blank" rel="noopener" [title]="c.websiteUrl">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              {{ hostOf(c.websiteUrl) }}
+            </a>
+          }
+          @if (c.linkedinUrl) {
+            <a class="meta-chip link" [href]="c.linkedinUrl" target="_blank" rel="noopener" [title]="c.linkedinUrl">
+              <i class="ti ti-brand-linkedin"></i>
+              LinkedIn
+            </a>
+          }
+          @if (displayLocation(c); as loc) {
+            <span class="meta-chip">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              {{ loc }}
+            </span>
+          }
+          @if (c.sector) {
+            <span class="meta-chip">{{ c.sector }}</span>
+          }
+        </div>
+      </div>
+      <div class="co-stats">
+        @if ((c.applicationsCount ?? 0) > 0) {
+          <div class="stat" (click)="openCompanyPage()" title="View applications">
+            <b>{{ c.applicationsCount }}</b><span>applications</span>
+          </div>
+        }
+        @if ((c.ContactsCount ?? 0) > 0) {
+          <div class="stat" (click)="openCompanyPage()" title="View contacts">
+            <b>{{ c.ContactsCount }}</b><span>contacts</span>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- ── Research status strip ───────────────────────────────────────── -->
+    <section class="status-strip">
+      @if (hasResearch()) {
+        <span class="ss-pill ok">
+          <i class="ti ti-check"></i> Researched
+        </span>
+        @if (c.researchUpdatedAt) {
+          <span class="ss-date"><i class="ti ti-clock-hour-4"></i> {{ formatDateTime(c.researchUpdatedAt) }}</span>
+        }
+        @if (c.researchLink) {
+          <a class="ss-source" [href]="c.researchLink" target="_blank" rel="noopener" title="Source page">
+            <i class="ti ti-external-link"></i> {{ hostOf(c.researchLink) }}
+          </a>
+        }
+      } @else {
+        <span class="ss-pill idle">
+          <i class="ti ti-alert-circle"></i> Not researched yet
+        </span>
+        <span class="ss-hint">Run research to extract contact details, social links and facts from {{ c.websiteUrl ? 'the company website' : 'the company record (add a website first)' }}.</span>
+      }
+    </section>
+
+    <!-- ── Research data ───────────────────────────────────────────────── -->
+    @if (hasResearch()) {
+      <div class="research-grid">
+        <section class="r-card">
+          <h3><i class="ti ti-address-book"></i> Contact</h3>
+          @if (c.address) {
+            <div class="r-item">
+              <span class="r-label"><i class="ti ti-map-pin"></i> Address</span>
+              <span class="r-value">{{ c.address }}</span>
+            </div>
+          }
+          @if ((c.emails?.length ?? 0) > 0) {
+            <div class="r-item">
+              <span class="r-label"><i class="ti ti-mail"></i> Emails</span>
+              <span class="r-value stack">
+                @for (email of c.emails; track email) {
+                  <a href="mailto:{{ email }}">{{ email }}</a>
+                }
+              </span>
+            </div>
+          }
+          @if ((c.phones?.length ?? 0) > 0) {
+            <div class="r-item">
+              <span class="r-label"><i class="ti ti-phone"></i> Phones</span>
+              <span class="r-value stack">
+                @for (phone of c.phones; track phone) {
+                  <a href="tel:{{ phone }}">{{ phone }}</a>
+                }
+              </span>
+            </div>
+          }
+          @if (!c.address && (c.emails?.length ?? 0) === 0 && (c.phones?.length ?? 0) === 0) {
+            <p class="r-empty">No contact details were found.</p>
+          }
+        </section>
+
+        <section class="r-card">
+          <h3><i class="ti ti-share"></i> On the web</h3>
+          @if ((c.socialLinks?.length ?? 0) > 0) {
+            <div class="r-social">
+              @for (link of c.socialLinks; track link.url) {
+                <a class="social-chip" [href]="link.url" target="_blank" rel="noopener" [title]="link.url">
+                  <i [class]="socialIcon(link)"></i>
+                  {{ socialLabel(link) }}
+                </a>
+              }
+            </div>
+          } @else {
+            <p class="r-empty">No social links were found.</p>
+          }
+        </section>
+
+        @if ((c.companyFacts?.length ?? 0) > 0) {
+          <section class="r-card">
+            <h3><i class="ti ti-list-check"></i> Quick facts</h3>
+            <ul class="r-facts">
+              @for (fact of c.companyFacts; track fact) {
+                <li>{{ fact }}</li>
+              }
+            </ul>
+          </section>
+        }
+
+        @if (c.description) {
+          <section class="r-card">
+            <h3><i class="ti ti-info-circle"></i> About</h3>
+            <p class="r-about">{{ c.description }}</p>
+          </section>
+        }
+      </div>
+    } @else {
+      <div class="empty-state">
+        <i class="ti ti-search"></i>
+        <p>This company has no web-search data yet.</p>
+        <button class="btn btn-primary" [disabled]="running() || !c.websiteUrl" (click)="researchAgain()">
+          @if (running()) {
+            <i class="ti ti-loader ti-spin"></i> Researching…
+          } @else {
+            <i class="ti ti-search"></i> Research now
+          }
+        </button>
+        @if (!c.websiteUrl) {
+          <p class="empty-sub">Add a website to the company first, then run research.</p>
+        }
+      </div>
+    }
+    }
+  }
+</div>

@@ -1,27 +1,95 @@
-<div class="images-tab">
-  <div class="info-card">
-    <div class="info-icon">
-      <i class="ti ti-photo"></i>
-    </div>
+<div class="images-tab" (dragover)="dragged.set(true); $event.preventDefault()" (drop)="onDrop($event)">
+  <div class="toolbar">
     <div>
-      <h2>Images — coming soon</h2>
-      <p>
-        Profile photos and other media for your CV documents. Once enabled you'll be able to upload
-        images here and pick them during CV generation instead of relying on a local file.
-      </p>
+      <h2>Image library</h2>
+      <p class="muted">{{ total() }} {{ total() === 1 ? 'image' : 'images' }} — used across the app: CV header photos, your avatar and company logos.</p>
     </div>
+    <div class="search-box">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search images…" [ngModel]="search()" (ngModelChange)="onSearchInput($event)">
+    </div>
+    <button class="btn-primary" (click)="toggleUpload()">
+      <i class="ti ti-cloud-upload"></i> {{ uploadOpen() ? 'Cancel' : 'Add image' }}
+    </button>
   </div>
 
-  <div class="service-row">
-    <div class="service-block">
-      <h3><i class="ti ti-cloud-upload"></i> Upload images</h3>
-      <p class="muted">JPEG / PNG photos stored in your private file storage.</p>
+  @if (dragged()) {
+    <div class="drop-overlay">
+      <i class="ti ti-photo-plus"></i>
+      <p>Drop to upload</p>
     </div>
-    <div class="service-block">
-      <h3><i class="ti ti-user-check"></i> Set a profile photo</h3>
-      <p class="muted">Chosen at CV generation time and injected into the header.</p>
-    </div>
-  </div>
+  }
 
-  <span class="soon-badge"><i class="ti ti-tools"></i> This tab is stubbed — image service is deferred</span>
+  @if (uploadOpen()) {
+    <div class="upload-card" (dragover)="dragged.set(true); $event.preventDefault()" (dragleave)="dragged.set(false)" (drop)="onDrop($event)">
+      <label class="file-drop" for="image-file-input">
+        <i class="ti ti-file-upload"></i>
+        @if (uploadFile()) {
+          <span class="file-name">{{ uploadFile()!.name }}</span>
+        } @else {
+          <span>Drag an image here, or choose a file — JPG / PNG / WebP / GIF (max 10MB)</span>
+        }
+      </label>
+      <input id="image-file-input" type="file" hidden accept="image/jpeg,image/png,image/webp,image/gif" (change)="onFileSelected($event)">
+      <div class="upload-actions">
+        <button class="btn-primary" [disabled]="!uploadFile() || uploading()" (click)="doUpload()">
+          {{ uploading() ? 'Uploading…' : 'Upload & add' }}
+        </button>
+        <button class="btn-ghost" (click)="toggleUpload()">Cancel</button>
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="state-row">Loading…</div>
+  } @else if (images().length === 0) {
+    <div class="empty-state">
+      <i class="ti ti-photo-off"></i>
+      <p>No images yet</p>
+      <span>Upload photos and logos here, or paste a URL — then reuse them as CV header photos, your avatar or company logos.</span>
+      <div class="empty-actions">
+        <button class="btn-primary" (click)="uploadOpen.set(true)"><i class="ti ti-cloud-upload"></i> Add image</button>
+        <button class="btn-ghost" (click)="pickerOpen.set(true)"><i class="ti ti-link"></i> From URL</button>
+      </div>
+    </div>
+  } @else {
+    <div class="img-grid">
+      @for (img of images(); track img.id) {
+        <div class="img-card">
+          <div class="img-preview">
+            <img [src]="imageUrl(img)" [alt]="img.name" loading="lazy" (error)="$event.target.hidden = true">
+          </div>
+          <div class="img-main">
+            <div class="img-title-row">
+              <h3 [title]="img.name">{{ img.name }}</h3>
+              <span class="src-badge" [class]="srcClass(img.source)">{{ srcLabel(img.source) }}</span>
+            </div>
+            <div class="img-meta">
+              <span><i class="ti ti-photo"></i> {{ img.contentType ?? 'image' }}</span>
+              <span><i class="ti ti-calendar"></i> {{ img.createdAt | date: 'mediumDate' }}</span>
+            </div>
+            <div class="img-actions">
+              <button class="btn-ghost-sm" (click)="setCvPhoto(img)" title="Use as the photo injected in generated CV headers">
+                <i class="ti ti-user-circle"></i> CV photo
+              </button>
+              <button class="btn-ghost-sm" (click)="setAvatar(img)" title="Set as your profile avatar">
+                <i class="ti ti-user"></i> Avatar
+              </button>
+              <a class="btn-ghost-sm" [href]="img.url" target="_blank" rel="noopener" title="Open image"><i class="ti ti-external-link"></i></a>
+              <button class="btn-ghost-sm" (click)="copyUrl(img)" title="Copy URL"><i class="ti ti-copy"></i></button>
+              <button class="btn-danger-sm" (click)="deleteImage(img)" title="Delete"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
 </div>
+
+<app-image-picker
+  [(open)]="pickerOpen"
+  title="Add image from URL"
+  [allowUpload]="false"
+  initialMode="url"
+  (selected)="onPicked($event)"
+/>
