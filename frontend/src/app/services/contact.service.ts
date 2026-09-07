@@ -3,7 +3,7 @@ import { HttpService } from './http.service';
 import { ApiResponse } from '../models/application.model';
 import {
   ContactDto, CreateContactDto, UpdateContactDto, ContactListResponse,
-  ContactHistoryResponse,
+  ContactHistoryResponse, ContactExtractResult,
 } from '../models/mailbox.model';
 
 @Injectable({ providedIn: 'root' })
@@ -50,6 +50,10 @@ export class ContactService {
 
   importFromOffers(): Promise<ApiResponse<{ imported: number; skipped: number }>> {
     return this.http.post<ApiResponse<{ imported: number; skipped: number }>>('/api/contacts/import-from-offers', {});
+  }
+
+  extractContacts(rows: CreateContactDto[]): Promise<ApiResponse<ContactExtractResult>> {
+    return this.http.post<ApiResponse<ContactExtractResult>>('/api/contacts/extract', rows);
   }
 
   getContactHistory(contactId: string): Promise<ApiResponse<ContactHistoryResponse>> {
