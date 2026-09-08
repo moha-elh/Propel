@@ -44,10 +44,6 @@ dependencies = [
 
 [project.optional-dependencies]
 kafka = ["confluent-kafka>=2.8.0"]
-# Local embeddings pull in torch (~5 GB with CUDA). Kept optional so the default
-# image stays light; without it, embeddings fall back to the API providers
-# (see shared/tools/embeddings.py). Built into the agents-embeddings image only.
-local-embeddings = ["sentence-transformers>=4.0"]
 
 [build-system]
 requires = ["hatchling"]

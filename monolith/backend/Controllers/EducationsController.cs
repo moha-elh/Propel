@@ -101,7 +101,6 @@ public class EducationsController : ApiControllerBase
 
         _db.Educations.Add(edu);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, edu.UserId, _logger, "Education.Create", edu.Id);
 
         _logger.LogInformation("Created education {Id}", edu.Id);
 
@@ -148,7 +147,6 @@ public class EducationsController : ApiControllerBase
         edu.SortOrder = dto.SortOrder;
 
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, edu.UserId, _logger, "Education.Update", edu.Id);
 
         var response = new EducationResponseDto
         {
@@ -180,7 +178,6 @@ public class EducationsController : ApiControllerBase
 
         _db.Educations.Remove(edu);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, edu.UserId, _logger, "Education.Delete", edu.Id);
 
         _logger.LogInformation("Deleted education {Id}", id);
         return NoContent();

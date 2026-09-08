@@ -73,7 +73,6 @@ public class UsersController : ControllerBase
 
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, user.Id, _logger, "User.Create");
 
         _logger.LogInformation("Created user {Id}", user.Id);
 
@@ -112,7 +111,6 @@ public class UsersController : ControllerBase
         if (dto.ProfilePhotoKey != null) user.ProfilePhotoKey = string.IsNullOrWhiteSpace(dto.ProfilePhotoKey) ? null : dto.ProfilePhotoKey.Trim();
 
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, user.Id, _logger, "User.Update");
         return Ok(ApiResponse<UserResponseDto>.Ok(ToDto(user)));
     }
 
@@ -124,7 +122,6 @@ public class UsersController : ControllerBase
 
         _db.Users.Remove(user);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, user.Id, _logger, "User.Delete");
         return NoContent();
     }
 

@@ -86,7 +86,6 @@ public class AcademicActivitiesController : ApiControllerBase
 
         _db.AcademicActivities.Add(a);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, a.UserId, _logger, "AcademicActivity.Create", a.Id);
 
         var response = new AcademicActivityResponseDto
         {
@@ -118,7 +117,6 @@ public class AcademicActivitiesController : ApiControllerBase
         a.SortOrder = dto.SortOrder;
 
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, a.UserId, _logger, "AcademicActivity.Update", a.Id);
 
         var response = new AcademicActivityResponseDto
         {
@@ -143,7 +141,6 @@ public class AcademicActivitiesController : ApiControllerBase
 
         _db.AcademicActivities.Remove(a);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, a.UserId, _logger, "AcademicActivity.Delete", a.Id);
 
         return NoContent();
     }

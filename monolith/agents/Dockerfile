@@ -1,5 +1,4 @@
-# Light image (~2 GB): all agents, no torch. Local embeddings fall back to the
-# API providers. For local sentence-transformers embeddings use Dockerfile.embeddings.
+# Agents sidecar (~2 GB): all agents, no torch.
 FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1 \

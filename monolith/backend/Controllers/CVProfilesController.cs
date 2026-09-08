@@ -80,7 +80,6 @@ public class CVProfilesController : ApiControllerBase
 
         _db.CVProfiles.Add(profile);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, profile.UserId, _logger, "CVProfile.Create");
 
         var response = new CVProfileResponseDto { Id = profile.Id, Title = profile.Title, Summary = profile.Summary, Email = profile.Email, Phone = profile.Phone, Location = profile.Location, Website = profile.Website, LinkedInUrl = profile.LinkedInUrl, GithubUrl = profile.GithubUrl, OpenToRelocate = profile.OpenToRelocate, UserId = profile.UserId };
         return CreatedAtAction(nameof(GetById), new { id = profile.Id }, ApiResponse<CVProfileResponseDto>.Created(response));
@@ -103,7 +102,6 @@ public class CVProfilesController : ApiControllerBase
         profile.OpenToRelocate = dto.OpenToRelocate;
 
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, profile.UserId, _logger, "CVProfile.Update");
 
         var response = new CVProfileResponseDto { Id = profile.Id, Title = profile.Title, Summary = profile.Summary, Email = profile.Email, Phone = profile.Phone, Location = profile.Location, Website = profile.Website, LinkedInUrl = profile.LinkedInUrl, GithubUrl = profile.GithubUrl, OpenToRelocate = profile.OpenToRelocate, UserId = profile.UserId };
         return Ok(ApiResponse<CVProfileResponseDto>.Ok(response));
@@ -117,7 +115,6 @@ public class CVProfilesController : ApiControllerBase
 
         _db.CVProfiles.Remove(profile);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, profile.UserId, _logger, "CVProfile.Delete");
 
         return NoContent();
     }

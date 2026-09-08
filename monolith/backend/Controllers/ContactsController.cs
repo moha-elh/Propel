@@ -65,7 +65,6 @@ public class ContactsController : BaseApiController
         try
         {
             var result = await _contactSvc.CreateContactAsync(userId, dto);
-            SearchSyncHelper.TriggerSync(_scopeFactory, userId, _logger, "Contact.Create");
             return CreatedAtAction(nameof(Get), new { id = result.Id }, ApiResponse<ContactDto>.Created(result));
         }
         catch (ArgumentException ex)
@@ -82,7 +81,6 @@ public class ContactsController : BaseApiController
         {
             var result = await _contactSvc.UpdateContactAsync(id, userId, dto);
             if (result is null) return NotFound(ApiResponse<ContactDto>.Error("Contact not found"));
-            SearchSyncHelper.TriggerSync(_scopeFactory, userId, _logger, "Contact.Update");
             return Ok(ApiResponse<ContactDto>.Ok(result));
         }
         catch (ArgumentException ex)
@@ -97,7 +95,6 @@ public class ContactsController : BaseApiController
         var userId = GetUserId();
         var deleted = await _contactSvc.DeleteContactAsync(id, userId);
         if (!deleted) return NotFound(ApiResponse<object>.Error("Contact not found"));
-        SearchSyncHelper.TriggerSync(_scopeFactory, userId, _logger, "Contact.Delete");
         return NoContent();
     }
 

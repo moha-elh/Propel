@@ -138,10 +138,9 @@ propel/
 │   ├── gateway/               # YARP reverse proxy → monolith
 │   └── agents/                # unified Python AI sidecar (all agents, one FastAPI app on :8000)
 │       ├── main.py            # mounts every agent router
-│       ├── agents/            # one package per agent (job_extractor, search, template, …)
+│       ├── agents/            # one package per agent (job_extractor, template, …)
 │       ├── shared/            # shared LLM/config/tools
-│       ├── Dockerfile         # light image (~2 GB, service: agents) — API embeddings
-│       └── Dockerfile.embeddings  # heavy image (CPU torch) — local embeddings, opt-in
+│       └── Dockerfile         # agents image (~2 GB, service: agents)
 │
 └── frontend/                  # Angular SPA (pages, services, guards, interceptors, nginx.conf)
 ```
@@ -149,12 +148,6 @@ propel/
 > All AI agents live in the single `monolith/agents` sidecar (built by
 > `monolith/docker-compose.yml` as the `agents` service, reached by the monolith
 > via `AGENTS_URL`). The old per-service `ai_agents/` tree has been removed.
->
-> **Embeddings:** the default `agents` image is light (~2 GB) and uses API
-> embeddings (Mistral/OmniRoute). For local sentence-transformers embeddings, run
-> the heavier `agents-embeddings` sidecar and route to it:
-> `docker compose --profile local-embeddings up -d` and set
-> `EMBEDDINGS_URL=http://agents-embeddings:8000`.
 >
 > **Note:** CV-PDF generation compiles LaTeX by shelling out to a dockerized
 > `texlive` image (`shared/tools/latex_compile.py`); that path works in native

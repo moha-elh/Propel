@@ -67,7 +67,6 @@ public class LanguagesController : ApiControllerBase
         var language = new Language { Name = dto.Name, Level = dto.Level, UserId = RequiredUserId, SortOrder = dto.SortOrder };
         _db.Languages.Add(language);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, language.UserId, _logger, "Language.Create", language.Id);
 
         var response = new LanguageResponseDto { Id = language.Id, Name = language.Name, Level = language.Level, UserId = language.UserId, SortOrder = language.SortOrder };
         return CreatedAtAction(nameof(GetById), new { id = language.Id }, ApiResponse<LanguageResponseDto>.Created(response));
@@ -83,7 +82,6 @@ public class LanguagesController : ApiControllerBase
         language.Level = dto.Level;
         language.SortOrder = dto.SortOrder;
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, language.UserId, _logger, "Language.Update", language.Id);
 
         var response = new LanguageResponseDto { Id = language.Id, Name = language.Name, Level = language.Level, UserId = language.UserId, SortOrder = language.SortOrder };
         return Ok(ApiResponse<LanguageResponseDto>.Ok(response));
@@ -97,7 +95,6 @@ public class LanguagesController : ApiControllerBase
 
         _db.Languages.Remove(language);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, language.UserId, _logger, "Language.Delete", language.Id);
 
         return NoContent();
     }

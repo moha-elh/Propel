@@ -264,7 +264,6 @@ public class CompaniesController : BaseApiController
         };
         _db.Companies.Add(company);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, company.UserId, _logger, "Company.Create");
 
         return Created($"/api/companies/{company.Id}", ApiResponse<CompanyDto>.Created(Map(company)));
     }
@@ -314,7 +313,6 @@ public class CompaniesController : BaseApiController
         company.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, company.UserId, _logger, "Company.Update");
         return Ok(ApiResponse<CompanyDto>.Ok(Map(company)));
     }
 
@@ -327,7 +325,6 @@ public class CompaniesController : BaseApiController
 
         _db.Companies.Remove(company);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, company.UserId, _logger, "Company.Delete");
         return Ok(ApiResponse<object>.Ok(null, "Company deleted"));
     }
 

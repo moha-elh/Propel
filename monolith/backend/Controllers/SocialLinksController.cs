@@ -67,7 +67,6 @@ public class SocialLinksController : ApiControllerBase
         var link = new SocialLink { Platform = dto.Platform, Url = dto.Url, UserId = RequiredUserId, SortOrder = dto.SortOrder };
         _db.SocialLinks.Add(link);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, link.UserId, _logger, "SocialLink.Create");
 
         var response = new SocialLinkResponseDto { Id = link.Id, Platform = link.Platform, Url = link.Url, UserId = link.UserId, SortOrder = link.SortOrder };
         return CreatedAtAction(nameof(GetById), new { id = link.Id }, ApiResponse<SocialLinkResponseDto>.Created(response));
@@ -83,7 +82,6 @@ public class SocialLinksController : ApiControllerBase
         link.Url = dto.Url;
         link.SortOrder = dto.SortOrder;
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, link.UserId, _logger, "SocialLink.Update");
 
         var response = new SocialLinkResponseDto { Id = link.Id, Platform = link.Platform, Url = link.Url, UserId = link.UserId, SortOrder = link.SortOrder };
         return Ok(ApiResponse<SocialLinkResponseDto>.Ok(response));
@@ -97,7 +95,6 @@ public class SocialLinksController : ApiControllerBase
 
         _db.SocialLinks.Remove(link);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, link.UserId, _logger, "SocialLink.Delete");
 
         return NoContent();
     }

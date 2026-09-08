@@ -59,7 +59,6 @@ public class InterestsController : ApiControllerBase
         var interest = new Interest { Name = dto.Name, UserId = RequiredUserId, SortOrder = dto.SortOrder };
         _db.Interests.Add(interest);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, interest.UserId, _logger, "Interest.Create", interest.Id);
 
         var response = new InterestResponseDto { Id = interest.Id, Name = interest.Name, UserId = interest.UserId, SortOrder = interest.SortOrder };
         return CreatedAtAction(nameof(GetById), new { id = interest.Id }, ApiResponse<InterestResponseDto>.Created(response));
@@ -74,7 +73,6 @@ public class InterestsController : ApiControllerBase
         interest.Name = dto.Name;
         interest.SortOrder = dto.SortOrder;
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, interest.UserId, _logger, "Interest.Update", interest.Id);
 
         var response = new InterestResponseDto { Id = interest.Id, Name = interest.Name, UserId = interest.UserId, SortOrder = interest.SortOrder };
         return Ok(ApiResponse<InterestResponseDto>.Ok(response));
@@ -88,7 +86,6 @@ public class InterestsController : ApiControllerBase
 
         _db.Interests.Remove(interest);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, interest.UserId, _logger, "Interest.Delete", interest.Id);
 
         return NoContent();
     }
