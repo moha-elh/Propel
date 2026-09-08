@@ -262,10 +262,10 @@ public class SearchSyncService : ISearchSyncService
 
     private async Task<List<float[]>> EmbedTextsAsync(List<string> texts, CancellationToken ct)
     {
-        var client = _httpClientFactory.CreateClient("agents");
+        var client = _httpClientFactory.CreateClient("embeddings");
         var payload = new { texts };
 
-        var response = await client.PostAsJsonAsync("http://localhost:8000/api/embeddings/embed", payload, ct);
+        var response = await client.PostAsJsonAsync("/api/embeddings/embed", payload, ct);
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content.ReadFromJsonAsync<EmbedResponse>(ct);

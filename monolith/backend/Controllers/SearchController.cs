@@ -48,9 +48,9 @@ public class SearchController : ControllerBase
         if (invalid.Count > 0)
             return BadRequest(ApiResponse<object>.Error($"Invalid sourceTypes: {string.Join(", ", invalid)}"));
 
-        var client = _httpClientFactory.CreateClient("agents");
+        var client = _httpClientFactory.CreateClient("embeddings");
         var embedReq = new { text = req.Query };
-        var embedResp = await client.PostAsJsonAsync("http://localhost:8000/api/embeddings/embed-query", embedReq);
+        var embedResp = await client.PostAsJsonAsync("/api/embeddings/embed-query", embedReq);
         if (!embedResp.IsSuccessStatusCode)
             return StatusCode(502, ApiResponse<object>.Error("Embedding service unavailable"));
 

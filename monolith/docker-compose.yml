@@ -35,6 +35,14 @@ services:
       - OWNER_EMAIL=${OWNER_EMAIL:-me@localhost}
       # All AI agents live in the unified sidecar (see agents service below).
       - AGENTS_URL=http://agents:8000
+      # Embeddings/search target. Defaults to the light `agents` (API embeddings).
+      # For local sentence-transformers, run `--profile local-embeddings` and set
+      # EMBEDDINGS_URL=http://agents-embeddings:8000 (see agents-embeddings below).
+      - EMBEDDINGS_URL=${EMBEDDINGS_URL:-http://agents:8000}
+      # AES key for encrypting stored Gmail OAuth tokens. Required at startup by
+      # AesEncryptionService; a stable default keeps mailbox/email features from
+      # 500ing. Override in .env to rotate. Must be base64 for 16/24/32 bytes.
+      - GMAIL_TOKEN_ENCRYPTION_KEY=${GMAIL_TOKEN_ENCRYPTION_KEY:-nk7wPmLesdpUk1HFZ4bLllnzBqVYE0G2oOcVD/Y11Ug=}
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,8 +71,9 @@ services:
     networks:
       - cv-network
 
-  # Unified AI agent sidecar — all 14 agents in one FastAPI process on :8000.
-  # The monolith reaches it via AGENTS_URL. LLM keys come from agents/.env.
+  # AI agent sidecar (light, ~2 GB) — all 14 agents in one FastAPI process on
+  # :8000. Embeddings fall back to API providers (no torch). Default target for
+  # AGENTS_URL and EMBEDDINGS_URL. LLM keys come from agents/.env.
   agents:
     build:
       context: ./agents
@@ -77,6 +86,30 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/cv_monolith
     ports: ["${AGENTS_PORT:-8000}:8000"]
     # Live source (editable install) — pick up code edits without a rebuild.
+    volumes:
+      - ./agents/agents:/app/agents
+      - ./agents/shared:/app/shared
+      - ./agents/main.py:/app/main.py
+    depends_on:
+      - monolith
+    networks: [cv-network]
+
+  # Heavy variant (~2 GB, CPU torch) with LOCAL sentence-transformers embeddings.
+  # Opt-in: `docker compose --profile local-embeddings up -d`, then set
+  # EMBEDDINGS_URL=http://agents-embeddings:8000 in .env so the monolith routes
+  # search/embeddings here. Not built or started otherwise.
+  agents-embeddings:
+    profiles: ["local-embeddings"]
+    build:
+      context: ./agents
+      dockerfile: Dockerfile.embeddings
+    container_name: cv-agents-embeddings
+    env_file: ./agents/.env
+    environment:
+      - BACKEND_BASE_URL=http://monolith:5000
+      - MINIO_ENDPOINT=minio:9000
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/cv_monolith
+    ports: ["${AGENTS_EMBEDDINGS_PORT:-8007}:8000"]
     volumes:
       - ./agents/agents:/app/agents
       - ./agents/shared:/app/shared

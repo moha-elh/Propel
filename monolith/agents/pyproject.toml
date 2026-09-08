@@ -33,8 +33,6 @@ dependencies = [
     # Optimizer
     "psycopg[binary]>=3.0",
     "langchain-text-splitters>=0.3.0",
-    # Local embeddings
-    "sentence-transformers>=4.0",
     # Crawler
     "jobspy>=0.25",
     "pandas>=2.0",
@@ -46,6 +44,10 @@ dependencies = [
 
 [project.optional-dependencies]
 kafka = ["confluent-kafka>=2.8.0"]
+# Local embeddings pull in torch (~5 GB with CUDA). Kept optional so the default
+# image stays light; without it, embeddings fall back to the API providers
+# (see shared/tools/embeddings.py). Built into the agents-embeddings image only.
+local-embeddings = ["sentence-transformers>=4.0"]
 
 [build-system]
 requires = ["hatchling"]

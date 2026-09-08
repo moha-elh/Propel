@@ -21,7 +21,10 @@ public class AgentDocumentChunk
     [Required]
     public string Content { get; set; } = string.Empty;
 
-    [Column(TypeName = "vector(384)")]
+    // Dimensionless so the column accepts whatever the active embedding provider
+    // returns (local MiniLM=384, mistral-embed=1024, OpenAI=1536). No ANN index
+    // on this column, so an unbounded vector is fine (cosine seq-scan search).
+    [Column(TypeName = "vector")]
     public Vector? Embedding { get; set; }
 
     public NpgsqlTsVector? SearchVector { get; set; }

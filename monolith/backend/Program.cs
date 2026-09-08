@@ -43,11 +43,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Event bus (in-process Kafka replacement)
 builder.Services.AddSingleton<IEventBus, SynchronousEventBus>();
 
-// HTTP clients for AI agents — all live in unified sidecar at :8000
+// HTTP clients for AI agents — all live in the unified sidecar at :8000.
 var agentBase = Environment.GetEnvironmentVariable("AGENTS_URL") ?? "http://localhost:8000";
+// Embeddings/search may live in a separate heavier sidecar (local embeddings);
+// defaults to the same agents sidecar (API embeddings).
+var embedBase = Environment.GetEnvironmentVariable("EMBEDDINGS_URL") ?? agentBase;
 
 builder.Services.AddHttpClient<IJobExtractorClient, JobExtractorClient>(c => c.BaseAddress = new Uri($"{agentBase}/api/agents/extract/"));
-builder.Services.AddHttpClient<ISearchAgentClient, SearchAgentClient>(c => c.BaseAddress = new Uri($"{agentBase}/api/agents/search/"));
+builder.Services.AddHttpClient<ISearchAgentClient, SearchAgentClient>(c => c.BaseAddress = new Uri($"{embedBase}/api/agents/search/"));
 builder.Services.AddHttpClient<ITemplateAgentClient, TemplateAgentClient>(c =>
 {
     c.BaseAddress = new Uri($"{agentBase}/api/agents/template/");
@@ -92,6 +95,12 @@ builder.Services.AddHttpClient("agents", c =>
 {
     c.BaseAddress = new Uri(agentBase);
     c.Timeout = TimeSpan.FromMinutes(4);
+});
+// Embeddings endpoints — may point to the heavier local-embeddings sidecar.
+builder.Services.AddHttpClient("embeddings", c =>
+{
+    c.BaseAddress = new Uri(embedBase);
+    c.Timeout = TimeSpan.FromMinutes(2);
 });
 builder.Services.AddHttpClient("image-fetch", c =>
 {
