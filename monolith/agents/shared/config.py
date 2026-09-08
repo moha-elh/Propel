@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     GOOGLE_MODEL: str = "gemini-2.0-flash"
     MISTRAL_MODEL: str = "mistral-large-latest"
 
+    # Cap on completion tokens. Without it, ChatOpenAI omits max_tokens and
+    # OpenRouter reserves the model's full output ceiling (16384) for its credit
+    # check — which free/low-balance accounts can't cover (HTTP 402). Lower via
+    # env if your remaining balance is tighter.
+    LLM_MAX_TOKENS: int = 2048
+
     SMTP_SERVER: str | None = None
     SMTP_PORT: int = 587
     SMTP_USERNAME: str | None = None
