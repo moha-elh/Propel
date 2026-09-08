@@ -9,6 +9,7 @@ export interface ContactDto {
   address?: string;
   company?: string;
   position?: string;
+  linkedinUrl?: string;
   source?: string;
   notes?: string;
   avatarBase64?: string;
@@ -26,6 +27,7 @@ export interface CreateContactDto {
   address?: string;
   company?: string;
   position?: string;
+  linkedinUrl?: string;
   notes?: string;
   isFavorite?: boolean;
   avatarBase64?: string;
@@ -40,9 +42,16 @@ export interface UpdateContactDto {
   address?: string;
   company?: string;
   position?: string;
+  linkedinUrl?: string;
   notes?: string;
   isFavorite?: boolean;
   avatarBase64?: string;
+}
+
+export interface ContactExtractResult {
+  imported: number;
+  skipped: number;
+  errors: string[];
 }
 
 export interface ImportCsvDto {

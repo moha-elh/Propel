@@ -229,7 +229,14 @@
             </div>
           }
 
-          <h2>Contacts</h2>
+          <h2>Contacts
+            <span class="btn-group-head">
+              <button type="button" class="btn btn-secondary btn-sm" (click)="extractOpen.set(true)">Extract contacts</button>
+              @if (contacts().length > 0) {
+                <button type="button" class="btn btn-secondary btn-sm" (click)="copyContactsToEmployees()">Save as employees</button>
+              }
+            </span>
+          </h2>
           @if (contacts().length === 0) {
             <div class="panel empty-panel">
               <p>No contacts linked to this company.</p>
@@ -268,8 +275,45 @@
                           {{ ct.phone }}
                         </a>
                       }
+                      @if (ct.linkedinUrl) {
+                        <a class="contact-link" [href]="ct.linkedinUrl" target="_blank" rel="noopener" [title]="ct.name + ' on LinkedIn'">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.36-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z"/></svg>
+                          LinkedIn
+                        </a>
+                      }
                     </div>
                   </div>
+                </div>
+              }
+            </div>
+          }
+
+          <h2>Employees
+            <span class="sec-note">team members from AI extracts</span>
+          </h2>
+          @if (employees().length === 0) {
+            <div class="panel empty-panel">
+              <p>No employees linked to this company yet.</p>
+              <button type="button" class="btn btn-secondary btn-sm" (click)="extractOpen.set(true)">Extract contacts</button>
+            </div>
+          } @else {
+            <div class="panel employee-list">
+              @for (emp of employees(); track emp.id) {
+                <div class="employee-row">
+                  <span class="contact-avatar fallback" [style.background]="avatarColor(emp.name)">{{ initials(emp.name) }}</span>
+                  <div class="contact-main">
+                    <div class="contact-name-row">
+                      <span class="contact-name">{{ emp.name }}</span>
+                    </div>
+                    @if (emp.position || emp.company) {
+                      <span class="contact-role">{{ emp.position }}{{ emp.position && emp.company ? ' · ' : '' }}{{ emp.company }}</span>
+                    }
+                    <app-contact-quick-actions [linkedinUrl]="emp.linkedinUrl" [email]="emp.email" [phone]="emp.phone" />
+                    @if (emp.notes) {
+                      <span class="contact-role dim">{{ emp.notes }}</span>
+                    }
+                  </div>
+                  <button type="button" class="row-del" (click)="deleteEmployee(emp)" title="Remove employee">×</button>
                 </div>
               }
             </div>
@@ -279,5 +323,6 @@
     }
   }
 
+  <app-contacts-extract-dialog [(open)]="extractOpen" [company]="company()?.name ?? ''" (saved)="loadAll()" />
   <app-company-form-dialog [(open)]="dialogOpen" [editing]="editingCompany()" (saved)="onSaved($event)" />
 </div>

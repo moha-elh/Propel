@@ -35,6 +35,7 @@ public class ContactImportRow
     public string? Mobile { get; set; }
     public string? Fax { get; set; }
     public string? Address { get; set; }
+    public string? LinkedInUrl { get; set; }
 }
 
 public class ApplicationImportRow
@@ -160,6 +161,8 @@ public class ImportsController : BaseApiController
                 seenKeys.Add("email:" + Normalize(c.Email));
             else if (!string.IsNullOrWhiteSpace(c.Company) || !string.IsNullOrWhiteSpace(c.Name))
                 seenKeys.Add("by:" + Normalize(c.Company ?? "") + "|" + Normalize(c.Name) + "|" + (c.Phone ?? ""));
+            if (!string.IsNullOrWhiteSpace(c.LinkedInUrl))
+                seenKeys.Add("li:" + Normalize(c.LinkedInUrl));
         }
 
         foreach (var (row, idx) in rows.Select((r, i) => (r, i)))
@@ -169,8 +172,9 @@ public class ImportsController : BaseApiController
                 var name = row.Name?.Trim() ?? "";
                 var email = row.Email?.Trim().ToLower() ?? "";
                 var phone = row.Phone?.Trim() ?? "";
+                var linkedin = row.LinkedInUrl?.Trim() ?? "";
                 if (name.Length == 0) { result.Skipped++; continue; }
-                if (email.Length == 0 && phone.Length == 0) { result.Skipped++; continue; }
+                if (email.Length == 0 && phone.Length == 0 && linkedin.Length == 0) { result.Skipped++; continue; }
                 if (email.Length > 0 && !IsValidEmail(email))
                 {
                     result.Errors.Add($"Row {idx + 1}: invalid email '{email}' for '{name}'");
@@ -180,7 +184,9 @@ public class ImportsController : BaseApiController
 
                 var key = email.Length > 0
                     ? "email:" + email
-                    : "by:" + Normalize(row.Company ?? "") + "|" + Normalize(name) + "|" + phone;
+                    : linkedin.Length > 0
+                        ? "li:" + Normalize(linkedin)
+                        : "by:" + Normalize(row.Company ?? "") + "|" + Normalize(name) + "|" + phone;
                 if (!seenKeys.Add(key)) { result.Skipped++; continue; }
 
                 _db.Contacts.Add(new Contact
@@ -195,6 +201,7 @@ public class ImportsController : BaseApiController
                     Address = row.Address?.Trim(),
                     Company = row.Company?.Trim(),
                     Position = row.Role?.Trim(),
+                    LinkedInUrl = linkedin.Length > 0 ? linkedin : null,
                     Source = "import"
                 });
                 result.Imported++;

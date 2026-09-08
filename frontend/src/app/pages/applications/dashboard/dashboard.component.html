@@ -71,7 +71,11 @@
         </div>
       </div>
       <p class="card-sub">Applications by status, last 6 months</p>
-      <div [innerHTML]="pipelineSvg()"></div>
+      @if (hasPipelineData()) {
+        <div [innerHTML]="pipelineSvg()"></div>
+      } @else {
+        <div class="followup-empty">No applications yet.</div>
+      }
     </div>
 
     <!-- Follow-ups -->

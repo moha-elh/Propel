@@ -33,8 +33,6 @@ dependencies = [
     # Optimizer
     "psycopg[binary]>=3.0",
     "langchain-text-splitters>=0.3.0",
-    # Local embeddings
-    "sentence-transformers>=4.0",
     # Crawler
     "jobspy>=0.25",
     "pandas>=2.0",

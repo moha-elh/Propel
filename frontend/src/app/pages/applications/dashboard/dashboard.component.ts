@@ -180,17 +180,19 @@ export class DashboardComponent implements OnInit {
     return `${days}d ago`;
   }
 
+  hasPipelineData = computed(() => this.s().total > 0);
+
   pipelineSvg = computed<SafeHtml>(() => {
     const s = this.s();
-    const total = s.total || 24;
-    const interview = s.interview || 6;
-    const offered = s.offer + s.accepted || 3;
-    const rejected = s.rejected || 4;
-    const applied = Math.max(1, total - s.saved - s.withdrawn - interview - (s.offer + s.accepted) - rejected);
+    const total = s.total;
+    const interview = s.interview;
+    const offered = s.offer + s.accepted;
+    const rejected = s.rejected;
+    const applied = Math.max(0, total - s.saved - s.withdrawn - interview - offered - rejected);
 
     const W = 480, H = 120;
     const statuses = [
-      { label: 'Applied', count: Math.max(1, applied), color: 'oklch(0.68 0.015 250)' },
+      { label: 'Applied', count: applied, color: 'oklch(0.68 0.015 250)' },
       { label: 'Interview', count: Math.max(0, interview), color: 'oklch(0.6 0.16 250)' },
       { label: 'Offer', count: Math.max(0, offered), color: 'oklch(0.62 0.15 155)' },
       { label: 'Rejected', count: Math.max(0, rejected), color: 'oklch(0.62 0.18 25)' },

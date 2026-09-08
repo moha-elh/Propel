@@ -1,3 +1,4 @@
+# Agents sidecar (~2 GB): all agents, no torch.
 FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1 \

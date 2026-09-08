@@ -65,7 +65,6 @@ public class ContactsController : BaseApiController
         try
         {
             var result = await _contactSvc.CreateContactAsync(userId, dto);
-            SearchSyncHelper.TriggerSync(_scopeFactory, userId, _logger, "Contact.Create");
             return CreatedAtAction(nameof(Get), new { id = result.Id }, ApiResponse<ContactDto>.Created(result));
         }
         catch (ArgumentException ex)
@@ -82,7 +81,6 @@ public class ContactsController : BaseApiController
         {
             var result = await _contactSvc.UpdateContactAsync(id, userId, dto);
             if (result is null) return NotFound(ApiResponse<ContactDto>.Error("Contact not found"));
-            SearchSyncHelper.TriggerSync(_scopeFactory, userId, _logger, "Contact.Update");
             return Ok(ApiResponse<ContactDto>.Ok(result));
         }
         catch (ArgumentException ex)
@@ -97,8 +95,17 @@ public class ContactsController : BaseApiController
         var userId = GetUserId();
         var deleted = await _contactSvc.DeleteContactAsync(id, userId);
         if (!deleted) return NotFound(ApiResponse<object>.Error("Contact not found"));
-        SearchSyncHelper.TriggerSync(_scopeFactory, userId, _logger, "Contact.Delete");
         return NoContent();
+    }
+
+    [HttpPost("extract")]
+    public async Task<IActionResult> Extract([FromBody] List<CreateContactDto> rows)
+    {
+        var userId = GetUserId();
+        if (rows is null || rows.Count == 0)
+            return BadRequest(ApiResponse<ContactExtractResultDto>.Error("No contacts provided"));
+        var result = await _contactSvc.ExtractContactsAsync(userId, rows);
+        return Ok(ApiResponse<ContactExtractResultDto>.Ok(result, $"{result.Imported} imported, {result.Skipped} skipped"));
     }
 
     [HttpPost("import-csv")]

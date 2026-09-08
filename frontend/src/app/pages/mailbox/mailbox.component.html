@@ -320,6 +320,7 @@
                 <input class="cd-input" placeholder="Company" [ngModel]="cdEditCompany()" (ngModelChange)="cdEditCompany.set($event)" />
                 <input class="cd-input" placeholder="Position" [ngModel]="cdEditPosition()" (ngModelChange)="cdEditPosition.set($event)" />
                 <input class="cd-input" placeholder="Phone" [ngModel]="cdEditPhone()" (ngModelChange)="cdEditPhone.set($event)" />
+                <input class="cd-input" placeholder="LinkedIn URL" [ngModel]="cdEditLinkedin()" (ngModelChange)="cdEditLinkedin.set($event)" />
                 <textarea class="cd-input" rows="2" placeholder="Notes (your own language hints / context)" [ngModel]="cdEditNotes()" (ngModelChange)="cdEditNotes.set($event)"></textarea>
                 <div class="cd-edit-actions">
                   <button class="mb-btn-primary" (click)="saveContactDetail()">Save</button>
@@ -332,6 +333,7 @@
               @if (detail.company) { <div class="cd-meta">{{ detail.company }}</div> }
               @if (detail.position) { <div class="cd-meta">{{ detail.position }}</div> }
               @if (detail.phone) { <div class="cd-meta">{{ detail.phone }}</div> }
+              <app-contact-quick-actions [linkedinUrl]="detail.linkedinUrl" [email]="detail.email" [phone]="detail.phone" />
               @if (detail.notes) { <div class="cd-notes">{{ detail.notes }}</div> }
               <div class="cd-actions">
                 <button class="mb-btn-sm" (click)="startContactEdit(detail)">Edit</button>
@@ -374,12 +376,14 @@
                 Favorites
               </button>
               <button class="mb-btn-secondary" (click)="startNewContact()">Add Contact</button>
+              <button class="mb-btn-secondary" (click)="extractContactsOpen.set(true)">Extract Contacts</button>
               <button class="mb-btn-secondary" (click)="importFromOffers()">Import From Offers</button>
               <button class="mb-btn-secondary" (click)="sheetImportOpen.set(true)">Import Sheet</button>
             </div>
           </div>
 
           <app-sheet-import-dialog [type]="'contacts'" [(open)]="sheetImportOpen" (imported)="loadContacts()" />
+          <app-contacts-extract-dialog [(open)]="extractContactsOpen" (saved)="loadContacts()" />
           <app-auto-fill-dialog
             [(open)]="contactAutofillOpen"
             entityLabel="contact"
@@ -402,6 +406,7 @@
                 <input placeholder="Address" [ngModel]="contactFormAddress()" (ngModelChange)="contactFormAddress.set($event)" />
                 <input placeholder="Company" [ngModel]="contactFormCompany()" (ngModelChange)="contactFormCompany.set($event)" />
                 <input placeholder="Position" [ngModel]="contactFormPosition()" (ngModelChange)="contactFormPosition.set($event)" />
+                <input placeholder="LinkedIn URL" [ngModel]="contactFormLinkedin()" (ngModelChange)="contactFormLinkedin.set($event)" />
               </div>
               <textarea class="cd-input" rows="2" placeholder="Notes (language hints / context)" [ngModel]="contactFormNotes()" (ngModelChange)="contactFormNotes.set($event)"></textarea>
               <div class="form-actions">
@@ -431,7 +436,19 @@
                   <div class="contact-name">{{ c.name }}</div>
                   <div class="contact-position">{{ c.position || '—' }}</div>
                   <div class="contact-company">{{ c.company || '—' }}</div>
-                  <div class="contact-email">{{ c.email }}</div>
+                  <div class="contact-email">
+                  @if (c.email) {
+                    <span>{{ c.email }}</span>
+                  } @else if (c.phone) {
+                    <span>{{ c.phone }}</span>
+                  } @else {
+                    <span>—</span>
+                  }
+                  @if (c.linkedinUrl) {
+                    <a class="contact-chip-link" [href]="c.linkedinUrl" target="_blank" rel="noopener" (click)="$event.stopPropagation()">LinkedIn ↗</a>
+                  }
+                </div>
+                  <app-contact-quick-actions [dense]="true" [linkedinUrl]="c.linkedinUrl" [email]="c.email" [phone]="c.phone" />
                   <div class="contact-actions">
                     <button class="mb-btn-sm" (click)="$event.stopPropagation(); editContact(c)">Edit</button>
                     <button class="mb-btn-sm danger" (click)="$event.stopPropagation(); deleteContact(c.id)">Delete</button>

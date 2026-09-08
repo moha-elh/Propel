@@ -260,7 +260,15 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
+
+.btn-group-head { display: inline-flex; }
+
+.col h2 .btn-sm { font-size: 11px; padding: 3px 9px; text-transform: none; letter-spacing: normal; }
 .col-apps h2:not(:first-child) { margin-top: 20px; }
 
 .panel {
@@ -539,6 +547,40 @@
   svg { flex-shrink: 0; color: var(--text-3); }
   &:hover { color: var(--primary, oklch(0.55 0.2 260)); }
 }
+
+// Employees list
+.sec-note {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.employee-list { display: grid; }
+.employee-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+
+  &:last-child { border-bottom: none; }
+}
+.row-del {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-3);
+  font-size: 17px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 6px;
+
+  &:hover { background: var(--hover-bg, oklch(0.95 0.01 250)); color: oklch(0.55 0.2 25); }
+}
+.contact-role.dim { color: var(--text-3); }
 
 // Shared empty state
 .empty-state {

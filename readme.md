@@ -138,14 +138,14 @@ propel/
 │   ├── gateway/               # YARP reverse proxy → monolith
 │   └── agents/                # unified Python AI sidecar (all agents, one FastAPI app on :8000)
 │       ├── main.py            # mounts every agent router
-│       ├── agents/            # one package per agent (job_extractor, search, template, …)
+│       ├── agents/            # one package per agent (job_extractor, template, …)
 │       ├── shared/            # shared LLM/config/tools
-│       └── Dockerfile         # built by the monolith compose (service: agents)
+│       └── Dockerfile         # agents image (~2 GB, service: agents)
 │
 └── frontend/                  # Angular SPA (pages, services, guards, interceptors, nginx.conf)
 ```
 
-> All AI agents now live in the single `monolith/agents` sidecar (built by
+> All AI agents live in the single `monolith/agents` sidecar (built by
 > `monolith/docker-compose.yml` as the `agents` service, reached by the monolith
 > via `AGENTS_URL`). The old per-service `ai_agents/` tree has been removed.
 >

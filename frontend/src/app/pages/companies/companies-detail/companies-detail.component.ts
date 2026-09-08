@@ -5,6 +5,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CompanyService, CompanyDto } from '@app/services/company.service';
 import { ToastService } from '@app/services/toast.service';
 import { CompanyFormDialogComponent } from '@app/shared/components/company-form-dialog/company-form-dialog.component';
+import { ContactsExtractDialogComponent } from '@app/shared/components/contacts-extract-dialog/contacts-extract-dialog.component';
+import { ContactQuickActionsComponent } from '@app/shared/components/contact-quick-actions/contact-quick-actions.component';
 import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
 import {
   ApplicationResponseDto,
@@ -16,6 +18,8 @@ import {
 } from '@app/models/application.model';
 import { ContactDto } from '@app/models/mailbox.model';
 import { ContactService } from '@app/services/contact.service';
+import { EmployeeService } from '@app/services/employee.service';
+import { EmployeeDto } from '@app/models/employee.model';
 
 interface StatusCount { status: string; label: string; color: string; count: number; }
 interface ActivityEntry { appId: string; position: string; entry: StatusHistoryDto; }
@@ -23,7 +27,7 @@ interface ActivityEntry { appId: string; position: string; entry: StatusHistoryD
 @Component({
   selector: 'app-companies-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, CompanyFormDialogComponent, RefreshButtonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, CompanyFormDialogComponent, ContactsExtractDialogComponent, ContactQuickActionsComponent, RefreshButtonComponent],
   templateUrl: './companies-detail.component.html',
   styleUrl: './companies-detail.component.scss',
 })
@@ -32,17 +36,20 @@ export class CompaniesDetailComponent {
   private readonly router = inject(Router);
   private readonly companyService = inject(CompanyService);
   private readonly contactService = inject(ContactService);
+  private readonly employeeService = inject(EmployeeService);
   private readonly toast = inject(ToastService);
 
   companyId = '';
   company = signal<CompanyDto | null>(null);
   applications = signal<ApplicationResponseDto[]>([]);
   contacts = signal<ContactDto[]>([]);
+  employees = signal<EmployeeDto[]>([]);
   loading = signal(true);
   refreshing = signal(false);
 
   dialogOpen = signal(false);
   editingCompany = signal<CompanyDto | null>(null);
+  extractOpen = signal(false);
 
   statusCounts = computed<StatusCount[]>(() => {
     const counts = new Map<string, number>();
@@ -72,7 +79,7 @@ export class CompaniesDetailComponent {
     void this.loadAll();
   }
 
-  private async loadAll() {
+  async loadAll() {
     this.loading.set(true);
     try {
       const [companyRes, appsRes, contactsRes] = await Promise.all([
@@ -83,12 +90,18 @@ export class CompaniesDetailComponent {
       this.company.set(companyRes.data ?? null);
       this.applications.set(appsRes.data ?? []);
       this.contacts.set(contactsRes.data ?? []);
+      await this.loadEmployees(companyRes.data?.name);
     } catch {
       this.toast.error('Failed to load company');
     } finally {
       this.loading.set(false);
       this.refreshing.set(false);
     }
+  }
+
+  private async loadEmployees(companyName?: string): Promise<void> {
+    const name = companyName ?? this.company()?.name;
+    this.employees.set(name ? (await this.employeeService.list({ company: name })).data ?? [] : []);
   }
 
   onRefresh() {
@@ -127,6 +140,59 @@ export class CompaniesDetailComponent {
     } catch {
       this.toast.error('Failed to update favorite');
     }
+  }
+
+  async deleteEmployee(e: EmployeeDto) {
+    if (!confirm(`Remove "${e.name}" from this company's employees?`)) return;
+    try {
+      await this.employeeService.deleteById(e.id);
+      this.employees.update(list => list.filter(x => x.id !== e.id));
+      this.toast.success('Employee removed');
+    } catch {
+      this.toast.error('Failed to remove employee');
+    }
+  }
+
+  /** One-click: copies this company's existing contacts into employee records (no re-paste). */
+  async copyContactsToEmployees(): Promise<void> {
+    const company = this.company()?.name ?? '';
+    const contacts = this.contacts();
+    if (contacts.length === 0) {
+      this.toast.error('No contacts linked to this company');
+      return;
+    }
+    const existing = new Set(this.employees().map(e => e.name.trim().toLowerCase()));
+    const todo = contacts.filter(ct => !existing.has(ct.name.trim().toLowerCase()));
+    if (todo.length === 0) {
+      this.toast.info('All contacts are already saved as employees');
+      return;
+    }
+
+    let ok = 0;
+    let failed = 0;
+    await Promise.all(
+      todo.map(async (ct) => {
+        try {
+          await this.employeeService.create({
+            name: ct.name.trim(),
+            position: ct.position || undefined,
+            company: ct.company?.trim() || company || undefined,
+            email: ct.email || undefined,
+            phone: ct.phone || undefined,
+            linkedinUrl: ct.linkedinUrl || undefined,
+            notes: ct.notes || undefined,
+          });
+          ok++;
+        } catch {
+          failed++;
+        }
+      }),
+    );
+    if (ok > 0) {
+      await this.loadEmployees();
+      this.toast.success(`${ok} contact(s) saved as employees`);
+    }
+    if (failed > 0) this.toast.error(`${failed} contact(s) failed to save`);
   }
 
   // ── Description editor ─────────────────────────────────────────────────────

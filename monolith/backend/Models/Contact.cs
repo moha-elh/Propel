@@ -14,6 +14,7 @@ public class Contact
     public string? Address { get; set; }
     public string? Company { get; set; }
     public string? Position { get; set; }
+    public string? LinkedInUrl { get; set; }
     public string? Notes { get; set; }
     public string? AvatarBase64 { get; set; }
     public string Source { get; set; } = "manual";

@@ -275,6 +275,7 @@ def get_llm(
             model=resolved_model,
             temperature=0.7,
             timeout=60,
+            max_tokens=settings.LLM_MAX_TOKENS,
         )
     elif provider == "openrouter":
         return ChatOpenAI(
@@ -283,12 +284,13 @@ def get_llm(
             model=resolved_model,
             temperature=0.7,
             timeout=120,
+            max_tokens=settings.LLM_MAX_TOKENS,
             default_headers={"HTTP-Referer": settings.SERVICE_NAME, "X-Title": "Propel"},
         )
     elif provider == "groq":
-        return ChatGroq(model=resolved_model, temperature=0.7)
+        return ChatGroq(model=resolved_model, temperature=0.7, max_tokens=settings.LLM_MAX_TOKENS)
     elif provider == "openai":
-        return ChatOpenAI(model=resolved_model, temperature=0.7)
+        return ChatOpenAI(model=resolved_model, temperature=0.7, max_tokens=settings.LLM_MAX_TOKENS)
     elif provider == "google":
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI

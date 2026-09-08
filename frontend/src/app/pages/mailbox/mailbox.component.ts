@@ -3,6 +3,8 @@ import { SheetImportDialogComponent } from '@app/shared/components/sheet-import-
 import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
 import { CronBuilderComponent } from '@app/shared/components/cron-builder/cron-builder.component';
 import { AutoFillDialogComponent } from '@app/shared/components/auto-fill-dialog/auto-fill-dialog.component';
+import { ContactsExtractDialogComponent } from '@app/shared/components/contacts-extract-dialog/contacts-extract-dialog.component';
+import { ContactQuickActionsComponent } from '@app/shared/components/contact-quick-actions/contact-quick-actions.component';
 import { AutofillField } from '@app/services/autofill.service';
 import { DirectAiService } from '@app/services/direct-ai.service';
 import { CommonModule } from '@angular/common';
@@ -56,7 +58,7 @@ const EMAIL_TEMPLATES: EmailTemplate[] = [
 @Component({
   selector: 'app-mailbox',
   standalone: true,
-  imports: [CommonModule, FormsModule, SheetImportDialogComponent, RefreshButtonComponent, CronBuilderComponent, AutoFillDialogComponent],
+  imports: [CommonModule, FormsModule, SheetImportDialogComponent, RefreshButtonComponent, CronBuilderComponent, AutoFillDialogComponent, ContactsExtractDialogComponent, ContactQuickActionsComponent],
   templateUrl: './mailbox.component.html',
   styleUrl: './mailbox.component.scss',
 })
@@ -98,6 +100,7 @@ export class MailboxComponent implements OnInit {
   cdEditCompany = signal('');
   cdEditPosition = signal('');
   cdEditPhone = signal('');
+  cdEditLinkedin = signal('');
   cdEditNotes = signal('');
 
   history = signal<EmailMessageDto[]>([]);
@@ -129,6 +132,7 @@ export class MailboxComponent implements OnInit {
   selectedContact = signal<ContactDto | null>(null);
   showContactForm = signal(false);
   sheetImportOpen = signal(false);
+  extractContactsOpen = signal(false);
   contactFormName = signal('');
   contactFormEmail = signal('');
   contactFormPhone = signal('');
@@ -137,6 +141,7 @@ export class MailboxComponent implements OnInit {
   contactFormAddress = signal('');
   contactFormCompany = signal('');
   contactFormPosition = signal('');
+  contactFormLinkedin = signal('');
   contactFormNotes = signal('');
   editingContactId = signal<string | null>(null);
   contactAutofillOpen = signal(false);
@@ -150,6 +155,7 @@ export class MailboxComponent implements OnInit {
     { name: 'contactFormAddress', label: 'Address', type: 'text' },
     { name: 'contactFormCompany', label: 'Company', type: 'text' },
     { name: 'contactFormPosition', label: 'Position', type: 'text' },
+    { name: 'contactFormLinkedin', label: 'LinkedIn URL', type: 'text' },
     { name: 'contactFormNotes', label: 'Notes', type: 'textarea' },
   ];
 
@@ -166,6 +172,7 @@ export class MailboxComponent implements OnInit {
     if (values['contactFormAddress'] !== undefined) this.contactFormAddress.set(String(values['contactFormAddress']));
     if (values['contactFormCompany'] !== undefined) this.contactFormCompany.set(String(values['contactFormCompany']));
     if (values['contactFormPosition'] !== undefined) this.contactFormPosition.set(String(values['contactFormPosition']));
+    if (values['contactFormLinkedin'] !== undefined) this.contactFormLinkedin.set(String(values['contactFormLinkedin']));
     if (values['contactFormNotes'] !== undefined) this.contactFormNotes.set(String(values['contactFormNotes']));
   }
 
@@ -613,6 +620,7 @@ export class MailboxComponent implements OnInit {
     this.cdEditCompany.set(contact.company || '');
     this.cdEditPosition.set(contact.position || '');
     this.cdEditPhone.set(contact.phone || '');
+    this.cdEditLinkedin.set(contact.linkedinUrl || '');
     this.cdEditNotes.set(contact.notes || '');
     this.cdEditing.set(true);
   }
@@ -630,6 +638,7 @@ export class MailboxComponent implements OnInit {
       company: this.cdEditCompany() || undefined,
       position: this.cdEditPosition() || undefined,
       phone: this.cdEditPhone() || undefined,
+      linkedinUrl: this.cdEditLinkedin() || undefined,
       notes: this.cdEditNotes() || undefined,
     };
     const res = await this.contactApi.updateContact(contact.id, dto);
@@ -811,6 +820,7 @@ export class MailboxComponent implements OnInit {
     this.contactFormAddress.set('');
     this.contactFormCompany.set('');
     this.contactFormPosition.set('');
+    this.contactFormLinkedin.set('');
     this.contactFormNotes.set('');
   }
 
@@ -825,6 +835,7 @@ export class MailboxComponent implements OnInit {
     this.contactFormAddress.set(c.address || '');
     this.contactFormCompany.set(c.company || '');
     this.contactFormPosition.set(c.position || '');
+    this.contactFormLinkedin.set(c.linkedinUrl || '');
     this.contactFormNotes.set(c.notes || '');
   }
 
@@ -838,6 +849,7 @@ export class MailboxComponent implements OnInit {
       address: this.contactFormAddress() || undefined,
       company: this.contactFormCompany() || undefined,
       position: this.contactFormPosition() || undefined,
+      linkedinUrl: this.contactFormLinkedin() || undefined,
       notes: this.contactFormNotes() || undefined,
     };
     if (this.editingContactId()) {

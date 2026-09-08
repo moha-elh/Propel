@@ -22,8 +22,8 @@ public class GmailAuthService : IGmailAuthService
     private readonly IAesEncryptionService _aes;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<GmailAuthService> _logger;
-    private readonly string _clientId;
-    private readonly string _clientSecret;
+    private readonly string? _clientId;
+    private readonly string? _clientSecret;
     private readonly string _callbackBaseUrl;
 
     public GmailAuthService(
@@ -37,20 +37,29 @@ public class GmailAuthService : IGmailAuthService
         _aes = aes;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
-        _clientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")
-            ?? throw new InvalidOperationException("GOOGLE_CLIENT_ID is not set");
-        _clientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET")
-            ?? throw new InvalidOperationException("GOOGLE_CLIENT_SECRET is not set");
+        // Gmail is optional. Read creds lazily — a missing key must not 500 the
+        // status/disconnect endpoints; only the connect/send paths require them.
+        _clientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID");
+        _clientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET");
         _callbackBaseUrl = config.GetValue<string>("Gmail:CallbackBaseUrl")
             ?? "http://localhost:8080";
     }
 
+    private (string clientId, string clientSecret) RequireCredentials()
+    {
+        if (string.IsNullOrEmpty(_clientId) || string.IsNullOrEmpty(_clientSecret))
+            throw new InvalidOperationException(
+                "Gmail is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.");
+        return (_clientId, _clientSecret);
+    }
+
     public string GetOAuthUrl(Guid userId)
     {
+        var (clientId, _) = RequireCredentials();
         var redirectUri = $"{_callbackBaseUrl}/api/gmail/callback";
         var scope = Uri.EscapeDataString(string.Join(" ", Scopes));
         return $"https://accounts.google.com/o/oauth2/v2/auth" +
-               $"?client_id={Uri.EscapeDataString(_clientId)}" +
+               $"?client_id={Uri.EscapeDataString(clientId)}" +
                $"&redirect_uri={Uri.EscapeDataString(redirectUri)}" +
                $"&response_type=code" +
                $"&scope={scope}" +
@@ -145,12 +154,13 @@ public class GmailAuthService : IGmailAuthService
 
     private async Task<GoogleTokenResponse> ExchangeCodeAsync(string code, string redirectUri)
     {
+        var (clientId, clientSecret) = RequireCredentials();
         using var client = _httpClientFactory.CreateClient();
         var content = new FormUrlEncodedContent(new[]
         {
             new KeyValuePair<string, string>("code", code),
-            new KeyValuePair<string, string>("client_id", _clientId),
-            new KeyValuePair<string, string>("client_secret", _clientSecret),
+            new KeyValuePair<string, string>("client_id", clientId),
+            new KeyValuePair<string, string>("client_secret", clientSecret),
             new KeyValuePair<string, string>("redirect_uri", redirectUri),
             new KeyValuePair<string, string>("grant_type", "authorization_code")
         });

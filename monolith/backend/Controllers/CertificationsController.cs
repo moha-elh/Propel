@@ -86,7 +86,6 @@ public class CertificationsController : ApiControllerBase
 
         _db.Certifications.Add(cert);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, cert.UserId, _logger, "Certification.Create", cert.Id);
 
         var response = new CertificationResponseDto
         {
@@ -118,7 +117,6 @@ public class CertificationsController : ApiControllerBase
         cert.SortOrder = dto.SortOrder;
 
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, cert.UserId, _logger, "Certification.Update", cert.Id);
 
         var response = new CertificationResponseDto
         {
@@ -143,7 +141,6 @@ public class CertificationsController : ApiControllerBase
 
         _db.Certifications.Remove(cert);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, cert.UserId, _logger, "Certification.Delete", cert.Id);
 
         return NoContent();
     }

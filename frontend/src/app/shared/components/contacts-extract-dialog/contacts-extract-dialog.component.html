@@ -1,0 +1,131 @@
+<div class="modal-backdrop" *ngIf="open()" (click)="close()">
+  <div class="ce-modal" (click)="$event.stopPropagation()">
+    <div class="ce-modal-head">
+      <div>
+        <h3>Extract contacts from AI response</h3>
+        <p class="ce-sub">Paste an AI-generated contacts/profile answer — person blocks or company blocks with
+          <strong>Emails</strong>/<strong>Phones</strong> — review, then save.</p>
+      </div>
+      <button type="button" class="ce-close" (click)="close()" aria-label="Close">×</button>
+    </div>
+
+    <div class="ce-modal-body">
+      <!-- step 1: paste -->
+      @if (phase() === 'input') {
+        <textarea
+          class="ce-textarea"
+          rows="9"
+          [placeholder]="company() ? ('Company: ' + company() + ' — paste the AI response here…') : 'Paste the AI response here…'"
+          [(ngModel)]="sourceText"
+        ></textarea>
+        <p class="ce-hint">Supports both prompt formats: person blocks
+          (<code>**Name**:</code> …) and company-info blocks (<code>**Company Name**:</code> + <code>**Emails**:</code> /
+          <code>**Phones**:</code> — one contact per e-mail, name taken from the company).</p>
+        <div class="ce-actions">
+          <button type="button" class="btn btn-primary" (click)="parse()">Parse contacts</button>
+        </div>
+      }
+
+      <!-- step 2: review -->
+      @if (phase() === 'review') {
+        <div class="ce-summary" *ngIf="rows().length > 0">
+          <strong>{{ rows().length }}</strong> contact(s) found —
+          <strong>{{ selectedCount() }}</strong> selected
+        </div>
+
+        <div class="ce-table-wrap">
+          <table class="ce-table">
+            <thead>
+              <tr>
+                <th class="ce-col-check">
+                  <input type="checkbox" [checked]="selectedCount() === rows().length && rows().length > 0" (change)="toggleAll($any($event.target).checked)" aria-label="Toggle all" />
+                </th>
+                <th>Name</th>
+                <th>Position</th>
+                <th>Company</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>LinkedIn</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of rows(); track $index) {
+                <tr [class.ce-row-off]="!row.selected">
+                  <td class="ce-col-check">
+                    <input type="checkbox" [(ngModel)]="row.selected" aria-label="Select" />
+                  </td>
+                  <td>
+                    <div class="ce-name-cell">
+                      <input class="ce-in" [(ngModel)]="row.name" />
+                      @if (kind(row); as k) {
+                        <span class="ce-badge" [class]="k.cls" [title]="k.label">{{ k.label }}</span>
+                      }
+                    </div>
+                  </td>
+                  <td><input class="ce-in" [(ngModel)]="row.position" /></td>
+                  <td><input class="ce-in" [(ngModel)]="row.company" /></td>
+                  <td><input class="ce-in ce-in-req" [(ngModel)]="row.email" /></td>
+                  <td><input class="ce-in" [(ngModel)]="row.phone" /></td>
+                  <td><input class="ce-in" [(ngModel)]="row.linkedinUrl" /></td>
+                  <td><input class="ce-in" [(ngModel)]="row.notes" /></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="ce-hint">
+          Uncheck any you don't want. Rows are saved per what they contain: <strong>contacts</strong> = rows with an
+          email, phone or LinkedIn URL; <strong>employees</strong> = rows with a real person name. A person without any
+          contact info is saved as an employee only.
+        </p>
+
+        <div class="ce-mode">
+          <span class="ce-mode-label">Save selected as</span>
+          <div class="ce-mode-btns">
+            <button type="button" [class.ce-mode-active]="saveMode() === 'contacts'" (click)="saveMode.set('contacts')">
+              Contacts<span *ngIf="contactCount() > 0"> ({{ contactCount() }})</span>
+            </button>
+            <button type="button" [class.ce-mode-active]="saveMode() === 'both'" (click)="saveMode.set('both')">
+              Contacts + Employees
+            </button>
+            <button type="button" [class.ce-mode-active]="saveMode() === 'employees'" (click)="saveMode.set('employees')">
+              Employees<span *ngIf="personCount() > 0"> ({{ personCount() }})</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="ce-actions">
+          <button type="button" class="btn btn-ghost" (click)="backToInput()">Back</button>
+          <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="saveSelected()">
+            {{ saving() ? 'Saving…' : 'Save selected (' + selectedCount() + ')' }}
+          </button>
+        </div>
+      }
+
+      <!-- step 3: result -->
+      @if (phase() === 'result') {
+        @for (section of resultSections(); track section.label) {
+          <div class="ce-result" [class.ce-result-ok]="section.imported > 0" [class.ce-result-warn]="section.imported === 0">
+            <p class="ce-result-title">{{ section.label }}</p>
+            <p class="ce-result-line">
+              <strong>{{ section.imported }}</strong> imported ·
+              <strong>{{ section.skipped }}</strong> skipped
+            </p>
+            @if (section.errors.length) {
+              <ul class="ce-errors">
+                @for (e of section.errors; track $index) {
+                  <li>{{ e }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+        <div class="ce-actions">
+          <button type="button" class="btn btn-ghost" (click)="restart()">Parse another</button>
+          <button type="button" class="btn btn-primary" (click)="close()">Done</button>
+        </div>
+      }
+    </div>
+  </div>
+</div>

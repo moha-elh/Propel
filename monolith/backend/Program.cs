@@ -43,7 +43,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Event bus (in-process Kafka replacement)
 builder.Services.AddSingleton<IEventBus, SynchronousEventBus>();
 
-// HTTP clients for AI agents — all live in unified sidecar at :8000
+// HTTP clients for AI agents — all live in the unified sidecar at :8000.
 var agentBase = Environment.GetEnvironmentVariable("AGENTS_URL") ?? "http://localhost:8000";
 
 builder.Services.AddHttpClient<IJobExtractorClient, JobExtractorClient>(c => c.BaseAddress = new Uri($"{agentBase}/api/agents/extract/"));
@@ -77,6 +77,7 @@ builder.Services.AddScoped<ITemplateRenderer, TemplateRenderer>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IReminderService, ReminderService>();
 builder.Services.AddScoped<IContactService, ContactService>();
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IApplicationService, ApplicationService>();
 builder.Services.AddScoped<EmailScheduleService>();
 builder.Services.AddScoped<ScheduleTemplateService>();
@@ -85,7 +86,6 @@ builder.Services.AddScoped<IApplyPrepService, ApplyPrepService>();
 builder.Services.AddScoped<WorkflowExecutionService>();
 builder.Services.AddScoped<TemplateRenderService>();
 builder.Services.AddScoped<IBimeService, BimeService>();
-builder.Services.AddScoped<ISearchSyncService, SearchSyncService>();
 builder.Services.AddScoped<ILlmSettingsService, LlmSettingsService>();
 builder.Services.AddScoped<IAgentLlmSettingsService, AgentLlmSettingsService>();
 builder.Services.AddHttpClient("agents", c =>

@@ -65,13 +65,14 @@ const CATALOGS: Record<string, FieldDef[]> = {
   ],
   contacts: [
     { field: 'name', label: 'Contact name', required: true, hint: 'A row needs a name and (an email or a phone) to be imported.', aliases: ['name', 'personne', 'nom', 'contact', 'fullname'] },
-    { field: 'email', label: 'Email', hint: 'Required unless the row has a phone. Deduplicated by email.', aliases: ['email', 'mail', 'emailaddress', 'contactinfo', 'courriel'] },
+    { field: 'email', label: 'Email', hint: 'A row needs an email OR phone OR LinkedIn to be imported. Deduplicated by email.', aliases: ['email', 'mail', 'emailaddress', 'contactinfo', 'courriel'] },
     { field: 'phone', label: 'Phone (fixed)', hint: 'Landline — an email OR phone is required per row.', aliases: ['phone', 'tel', 'téléphone', 'telephone', 'fixe', 'landline'] },
     { field: 'mobile', label: 'Mobile / GSM', hint: 'Cell number.', aliases: ['mobile', 'gsm', 'portable', 'cellphone', 'cell'] },
     { field: 'fax', label: 'Fax', hint: 'Fax number.', aliases: ['fax', 'télécopie'] },
     { field: 'address', label: 'Address', hint: 'Street, building or city — anything location-like.', aliases: ['address', 'adresse', 'street', 'rue', 'ville'] },
     { field: 'company', label: 'Company', hint: 'Company/corporation the contact belongs to.', aliases: ['company', 'societe', 'société', 'entreprise', 'corporation'] },
     { field: 'role', label: 'Position / Role', hint: 'Job title in the company.', aliases: ['role', 'position', 'fonction', 'poste', 'title', 'titre'] },
+    { field: 'linkedin', label: 'LinkedIn URL', hint: 'Profile URL — a row can be LinkedIn-only.', aliases: ['linkedin', 'linkedinurl', 'linkedink', 'profile', 'li'] },
   ],
   applications: [
     { field: 'company', label: 'Company', required: true, hint: 'Company this application targets.', aliases: ['company', 'societe', 'entreprise'] },

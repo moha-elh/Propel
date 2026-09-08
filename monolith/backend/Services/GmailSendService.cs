@@ -20,8 +20,8 @@ public class GmailSendService : IGmailSendService
     private readonly IAesEncryptionService _aes;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<GmailSendService> _logger;
-    private readonly string _clientId;
-    private readonly string _clientSecret;
+    private readonly string? _clientId;
+    private readonly string? _clientSecret;
 
     public GmailSendService(
         AppDbContext db,
@@ -34,10 +34,10 @@ public class GmailSendService : IGmailSendService
         _httpClientFactory = httpClientFactory;
         _logger = logger;
 
-        _clientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")
-            ?? throw new InvalidOperationException("GOOGLE_CLIENT_ID is not set");
-        _clientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET")
-            ?? throw new InvalidOperationException("GOOGLE_CLIENT_SECRET is not set");
+        // Gmail is optional. Read creds lazily so DI doesn't 500 endpoints that
+        // merely inject this service; the send path requires them.
+        _clientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID");
+        _clientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET");
     }
 
     public async Task<(string? MessageId, string? ThreadId)> SendWithAttachmentAsync(
@@ -124,6 +124,10 @@ public class GmailSendService : IGmailSendService
     private async Task<UserCredential> BuildCredentialAsync(
         GmailConnection connection)
     {
+        if (string.IsNullOrEmpty(_clientId) || string.IsNullOrEmpty(_clientSecret))
+            throw new InvalidOperationException(
+                "Gmail is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.");
+
         var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
         {
             ClientSecrets = new ClientSecrets

@@ -58,7 +58,6 @@ public class SkillsController : ApiControllerBase
 
         _db.Skills.Add(skill);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, skill.UserId, _logger, "Skill.Create", skill.Id);
 
         _logger.LogInformation("Created skill {Id}", skill.Id);
         return Created($"/api/skills/{skill.Id}", ApiResponse<Skill>.Created(skill));
@@ -80,7 +79,6 @@ public class SkillsController : ApiControllerBase
         skill.SortOrder = dto.SortOrder;
 
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, skill.UserId, _logger, "Skill.Update", skill.Id);
         return Ok(ApiResponse<Skill>.Ok(skill));
     }
 
@@ -92,7 +90,6 @@ public class SkillsController : ApiControllerBase
 
         _db.Skills.Remove(skill);
         await _db.SaveChangesAsync();
-        SearchSyncHelper.TriggerSync(_scopeFactory, skill.UserId, _logger, "Skill.Delete", skill.Id);
         return NoContent();
     }
 
