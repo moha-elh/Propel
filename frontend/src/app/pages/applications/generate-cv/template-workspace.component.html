@@ -20,65 +20,41 @@
     @if (state() === 'form') {
       <div class="form-layout">
         <div class="config-panel">
-          <div class="field">
-            <label class="field-label">Template</label>
-            <select
-              class="field-select"
-              [value]="selectedTemplate()"
-              (change)="selectedTemplate.set($any($event.target).value); onTemplateChange()"
-              [disabled]="templatesLoading()"
-            >
-              <option value="">Default (built-in)</option>
-              @for (t of templates(); track t.id) {
-                <option [value]="t.id">{{ t.name }}{{ t.isSystem ? '  ·  system' : '' }}</option>
-              }
-            </select>
-
-            @let meta = selectedTemplateMeta();
-
-            @if (templatesLoading()) {
-              <p class="field-hint">Loading template catalog…</p>
-            } @else if (meta) {
-              @if (meta.description) {
-                <p class="field-hint">{{ meta.description }}</p>
-              }
-              <p class="field-hint">
-                <i class="ti ti-section"></i>
-                {{ placeholderCount(meta.content) }} section placeholder{{ placeholderCount(meta.content) === 1 ? '' : 's' }}
-                · {{ meta.updatedAt | date: 'medium' }}
-              </p>
-            } @else {
-              <p class="field-hint">Unstyled rendering from the agent's bundled skeleton. Create templates in Documents → Templates.</p>
-            }
-          </div>
-
-          <div class="field">
-            <label class="field-label">Job description</label>
-            <div class="tabs">
-              <button class="tab" [class.active]="inputTab() === 'paste'" (click)="inputTab.set('paste')">Paste</button>
-              <button class="tab" [class.active]="inputTab() === 'url'" (click)="inputTab.set('url')">URL</button>
+          <div class="fields-row">
+            <div class="field">
+              <label class="field-label">Template</label>
+              <select
+                class="field-select"
+                [value]="selectedTemplate()"
+                (change)="selectedTemplate.set($any($event.target).value); onTemplateChange()"
+                [disabled]="templatesLoading()"
+              >
+                <option value="">Default (built-in)</option>
+                @for (t of templates(); track t.id) {
+                  <option [value]="t.id">{{ t.name }}{{ t.isSystem ? '  ·  system' : '' }}</option>
+                }
+              </select>
             </div>
-            @if (inputTab() === 'paste') {
-              <textarea
-                class="input-textarea"
-                placeholder="Paste the job posting here…"
-                [ngModel]="jobDescription()"
-                (ngModelChange)="jobDescription.set($event)"
-                rows="10"
-              ></textarea>
-            } @else {
-              <input
-                type="text"
-                class="input"
-                placeholder="https://example.com/jobs/123"
-                [ngModel]="jobUrl()"
-                (ngModelChange)="jobUrl.set($event)"
-              />
-            }
-            <div class="sample-row">
-              <button class="text-btn" (click)="useSample()">Use sample job</button>
+            <div class="field">
+              <label class="field-label">CV profile</label>
+              <select class="field-select" [value]="selectedProfileId() ?? ''" (change)="selectedProfileId.set($any($event.target).value || null)">
+                <option value="">Default profile</option>
+                @for (p of profiles(); track p.id) {
+                  <option [value]="p.id">{{ p.title }}</option>
+                }
+              </select>
             </div>
           </div>
+
+          @let meta = selectedTemplateMeta();
+          @if (templatesLoading()) {
+            <p class="field-hint">Loading template catalog…</p>
+          } @else if (meta) {
+            <p class="field-hint">
+              @if (meta.description) { {{ meta.description }} · }
+              {{ placeholderCount(meta.content) }} section placeholder{{ placeholderCount(meta.content) === 1 ? '' : 's' }}
+            </p>
+          }
 
           <div class="fields-row">
             <div class="field">
@@ -99,19 +75,7 @@
             </div>
           </div>
 
-          <div class="field">
-            <label class="field-label">CV profile</label>
-            <select class="field-select" [value]="selectedProfileId() ?? ''" (change)="selectedProfileId.set($any($event.target).value || null)">
-              <option value="">Default profile</option>
-              @for (p of profiles(); track p.id) {
-                <option [value]="p.id">{{ p.title }}</option>
-              }
-            </select>
-            @if (profilesLoading()) { <p class="field-hint">Loading profiles…</p> }
-          </div>
-
           <div class="candidate-card">
-            <h4 class="candidate-title">Candidate &amp; email</h4>
             <div class="field">
               <label class="field-label">Candidate name</label>
               <input
@@ -165,12 +129,36 @@
           </button>
         </div>
 
-        <div class="results-idle">
-          <div class="idle-icon">
-            <svg viewBox="0 0 24 24" fill="none" width="40" height="40"><rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <div class="input-panel">
+          <div class="field job-field">
+            <div class="job-head">
+              <label class="field-label">Job description</label>
+              <div class="tabs">
+                <button class="tab" [class.active]="inputTab() === 'paste'" (click)="inputTab.set('paste')">Paste</button>
+                <button class="tab" [class.active]="inputTab() === 'url'" (click)="inputTab.set('url')">URL</button>
+              </div>
+            </div>
+            @if (inputTab() === 'paste') {
+              <textarea
+                class="input-textarea"
+                placeholder="Paste the job posting here…"
+                [ngModel]="jobDescription()"
+                (ngModelChange)="jobDescription.set($event)"
+              ></textarea>
+            } @else {
+              <input
+                type="text"
+                class="input"
+                placeholder="https://example.com/jobs/123"
+                [ngModel]="jobUrl()"
+                (ngModelChange)="jobUrl.set($event)"
+              />
+            }
+            <div class="sample-row">
+              <button class="text-btn" (click)="useSample()">Use sample job</button>
+            </div>
           </div>
-          <h3>Pick a template, paste a job</h3>
-          <p>The pipeline extracts the job requirements, matches your profile, then renders the CV with your selected template and its section placeholders — free-form blocks are written by the agent to match your examples. Optionally delivered by email when you tick the box.</p>
+          <p class="input-note">The pipeline extracts the job requirements, matches your profile, then renders the CV with your selected template — free-form blocks are written by the agent to match your examples.</p>
         </div>
       </div>
     }

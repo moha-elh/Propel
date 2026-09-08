@@ -112,7 +112,7 @@ export class DocumentsTemplatesComponent implements OnInit {
   }
 
   generateCvWithTemplate(t: CvTemplateDto): void {
-    this.router.navigate(['/agents-hub/template-agent'], { queryParams: { template: t.id } });
+    this.router.navigate(['/applications/generate'], { queryParams: { template: t.id } });
   }
 
   placeholderCount(content: string): number {

@@ -1,86 +1,68 @@
 <div class="my-cv-shell">
-
-  <!-- Left sub-sidebar -->
-  <aside class="cv-sidebar">
-    <div class="user-block">
-      <div class="user-avatar">
-        @if (avatarUrl()) {
-          <img [src]="avatarUrl()" alt="Avatar" />
-        } @else {
-          {{ initials() }}
-        }
-      </div>
-      <div class="user-info">
-        <div class="user-name">{{ fullName() }}</div>
-      </div>
-    </div>
-
-    <div class="sidebar-label">MyCareer</div>
-
-    <nav class="cv-nav">
-      <a class="cv-nav-item" [routerLink]="['/my-career', 'projects']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
-        <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-          <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
-        </svg>
-        Projects
-      </a>
-      <a class="cv-nav-item" [routerLink]="['/my-career', 'skills']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
-        <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>
-        </svg>
-        Skills
-      </a>
-      <a class="cv-nav-item" [routerLink]="['/my-career', 'experiences']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
-        <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
-        </svg>
-        Experience
-      </a>
-      <a class="cv-nav-item" [routerLink]="['/my-career', 'educations']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
-        <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-          <path d="M22 10l-10-7L2 10l10 7z"/><path d="M6 12v5c0 2 3 4 6 4s6-2 6-4v-5"/>
-        </svg>
-        Education
-      </a>
-      <a class="cv-nav-item" [routerLink]="['/my-career', 'certifications']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
-        <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-          <circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
-        </svg>
-        Certifications
-      </a>
-      <a class="cv-nav-item" [routerLink]="['/my-career', 'languages']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
-        <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-          <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"/>
-        </svg>
-        Languages
-      </a>
-      <a class="cv-nav-item" [routerLink]="['/my-career', 'sociallinks']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
-        <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-          <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
-        </svg>
-        Social Links
-      </a>
-      <a class="cv-nav-item" [routerLink]="['/my-career', 'interests']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
-        <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-          <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-        </svg>
-        Interests
-      </a>
-    </nav>
-  </aside>
-
-  <!-- Main content -->
   <div class="cv-content">
     <div class="cv-content-header">
-      <div>
-        <h2 class="cv-title">My Career</h2>
-        <p class="cv-sub">Your canonical portfolio. Edit once, every tailored CV picks it up.</p>
+      <div class="cv-head-top">
+        <div>
+          <h2 class="cv-title">My Career</h2>
+          <p class="cv-sub">Your canonical portfolio. Edit once, every tailored CV picks it up.</p>
+        </div>
+        <span class="portfolio-badge">Portfolio</span>
       </div>
-      <span class="portfolio-badge">Portfolio</span>
+
+      <nav class="cv-tabs">
+        <a class="cv-tab" [routerLink]="['/my-career', 'projects']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
+          <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+          </svg>
+          Projects
+        </a>
+        <a class="cv-tab" [routerLink]="['/my-career', 'skills']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
+          <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>
+          </svg>
+          Skills
+        </a>
+        <a class="cv-tab" [routerLink]="['/my-career', 'experiences']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
+          <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+          </svg>
+          Experience
+        </a>
+        <a class="cv-tab" [routerLink]="['/my-career', 'educations']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
+          <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <path d="M22 10l-10-7L2 10l10 7z"/><path d="M6 12v5c0 2 3 4 6 4s6-2 6-4v-5"/>
+          </svg>
+          Education
+        </a>
+        <a class="cv-tab" [routerLink]="['/my-career', 'certifications']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
+          <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+          </svg>
+          Certifications
+        </a>
+        <a class="cv-tab" [routerLink]="['/my-career', 'languages']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
+          <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"/>
+          </svg>
+          Languages
+        </a>
+        <a class="cv-tab" [routerLink]="['/my-career', 'sociallinks']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
+          <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+          </svg>
+          Social Links
+        </a>
+        <a class="cv-tab" [routerLink]="['/my-career', 'interests']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}">
+          <svg viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+          </svg>
+          Interests
+        </a>
+      </nav>
     </div>
+
     <div class="cv-outlet">
       <router-outlet></router-outlet>
     </div>
   </div>
-
 </div>

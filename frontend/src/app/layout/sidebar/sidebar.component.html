@@ -96,28 +96,6 @@
     }
   </nav>
 
-  <!-- Agents section -->
-  <div class="section-eyebrow">AI Agents</div>
-  <nav class="nav-section">
-    @for (item of navAgents; track item.route) {
-      <a class="nav-item"
-         [routerLink]="item.route"
-         routerLinkActive="active"
-         [routerLinkActiveOptions]="{ exact: false }"
-         [attr.title]="item.label">
-        <span class="nav-icon">
-          <svg viewBox="0 0 24 24" fill="none" width="14" height="14">
-            <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/>
-            <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/>
-            <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/>
-            <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/>
-          </svg>
-        </span>
-        <span class="nav-label">{{ item.label }}</span>
-      </a>
-    }
-  </nav>
-
   <!-- Library section -->
   <div class="section-eyebrow">Library</div>
   <nav class="nav-section">

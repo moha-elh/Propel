@@ -103,7 +103,7 @@
 
 .form-layout {
   display: grid;
-  grid-template-columns: minmax(320px, 460px) 1fr;
+  grid-template-columns: minmax(320px, 440px) 1fr;
   gap: 20px;
   align-items: stretch;
 }
@@ -115,8 +115,44 @@
   padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   align-self: start;
+}
+
+/* Right column: job description input fills available height. */
+.input-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.job-field {
+  flex: 1;
+  min-height: 0;
+
+  .input-textarea {
+    flex: 1;
+    min-height: 200px;
+  }
+}
+
+.job-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.input-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-4);
 }
 
 .field {

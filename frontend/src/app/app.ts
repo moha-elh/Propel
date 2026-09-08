@@ -26,11 +26,11 @@ export class App {
     this.title.setTitle(APP_NAME);
     this.router.events.subscribe(() => {
       const url = this.router.url.split('#')[0].split('?')[0];
-      this.isAuthPage = url === '/' || url === '/login' || url === '/register' || url.startsWith('/about') || url.startsWith('/contact');
+      this.isAuthPage = url === '/' || url.startsWith('/about') || url.startsWith('/contact');
       this.showHeader = !this.isAuthPage;
     });
     const initialUrl = this.router.url.split('#')[0].split('?')[0];
-    this.isAuthPage = initialUrl === '/' || initialUrl === '/login' || initialUrl === '/register' || initialUrl.startsWith('/about') || initialUrl.startsWith('/contact');
+    this.isAuthPage = initialUrl === '/' || initialUrl.startsWith('/about') || initialUrl.startsWith('/contact');
     this.showHeader = !this.isAuthPage;
   }
 }

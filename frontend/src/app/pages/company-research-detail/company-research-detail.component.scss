@@ -21,7 +21,7 @@
     color: var(--text-3);
     text-decoration: none;
 
-    &:hover { color: var(--primary, oklch(0.55 0.2 260)); }
+    &:hover { color: var(--accent); }
   }
 }
 
@@ -56,7 +56,7 @@
 
   &.btn-primary {
     border: none;
-    background: var(--primary, oklch(0.55 0.2 260));
+    background: var(--dark);
     color: #fff;
 
     &:disabled { opacity: .6; cursor: default; }
@@ -138,9 +138,9 @@
   svg, i { font-size: 12.5px; color: var(--text-3); }
 
   &.link {
-    color: var(--primary, oklch(0.55 0.2 260));
+    color: var(--accent);
 
-    &:hover { border-color: var(--primary, oklch(0.55 0.2 260)); }
+    &:hover { border-color: var(--accent); }
   }
 }
 
@@ -161,7 +161,7 @@
   b { font-size: 18px; color: var(--text); }
   span { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; }
 
-  &:hover b { color: var(--primary, oklch(0.55 0.2 260)); }
+  &:hover b { color: var(--accent); }
 }
 
 /* ── Status strip ───────────────────────────────────────────────────── */
@@ -208,7 +208,7 @@
   gap: 6px;
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--primary, oklch(0.55 0.2 260));
+  color: var(--accent);
   text-decoration: none;
 
   i { font-size: 13px; }
@@ -245,7 +245,7 @@
     align-items: center;
     gap: 7px;
 
-    i { font-size: 15px; color: var(--primary, oklch(0.55 0.2 260)); }
+    i { font-size: 15px; color: var(--accent); }
   }
 }
 
@@ -279,7 +279,7 @@
   word-break: break-word;
 
   a {
-    color: var(--primary, oklch(0.55 0.2 260));
+    color: var(--accent);
     text-decoration: none;
 
     &:hover { text-decoration: underline; }
@@ -317,8 +317,8 @@
   i { font-size: 14px; }
 
   &:hover {
-    border-color: var(--primary, oklch(0.55 0.2 260));
-    color: var(--primary, oklch(0.55 0.2 260));
+    border-color: var(--accent);
+    color: var(--accent);
   }
 }
 

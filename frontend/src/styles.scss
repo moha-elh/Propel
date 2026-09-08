@@ -30,6 +30,9 @@
   --accent-2:    oklch(0.55 0.17 250);
   --accent-soft: oklch(0.94 0.04 250);
   --accent-text: oklch(0.42 0.16 250);
+  /* Legacy alias: many library pages reference var(--primary); keep them on the
+     real accent instead of their undefined-var purple fallback. */
+  --primary:     var(--accent);
 
   /* Dark CTA */
   --dark:        oklch(0.18 0.01 80);

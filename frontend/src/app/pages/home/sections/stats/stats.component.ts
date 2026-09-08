@@ -17,7 +17,7 @@ export class StatsSectionComponent {
       period: '/mo',
       desc: 'Perfect for getting started.',
       cta: 'Get started free',
-      ctaLink: '/register',
+      ctaLink: '/applications',
       featured: false,
       features: [
         '5 AI-tailored CVs/mo',
@@ -32,7 +32,7 @@ export class StatsSectionComponent {
       period: '/mo',
       desc: 'For serious job seekers.',
       cta: 'Start Pro',
-      ctaLink: '/register',
+      ctaLink: '/applications',
       featured: true,
       features: [
         'Unlimited CVs & applications',
@@ -48,7 +48,7 @@ export class StatsSectionComponent {
       period: '/mo',
       desc: 'For those who want every edge.',
       cta: 'Start Career',
-      ctaLink: '/register',
+      ctaLink: '/applications',
       featured: false,
       features: [
         'Everything in Pro',

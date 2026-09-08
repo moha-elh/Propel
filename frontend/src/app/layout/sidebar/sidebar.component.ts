@@ -57,15 +57,10 @@ export class SidebarComponent {
     { label: 'Calendar',     route: '/applications/calendar',  icon: 'calendar',  exact: false, group: 'main' },
   ];
 
-  navAgents: NavItem[] = [
-    { label: 'Agents Hub', route: '/agents-hub', icon: 'grid', exact: false, group: 'agents' },
-  ];
-
   navLibrary: NavItem[] = [
     { label: 'Mailbox', route: '/mailbox', icon: 'mailbox', exact: false, group: 'library' },
     { label: 'Documents', route: '/documents', icon: 'documents', exact: false, group: 'library' },
     { label: 'My Career', route: '/my-career', icon: 'user', exact: false, group: 'library' },
-    { label: 'Job Offers', route: '/job-offers', icon: 'briefcase', exact: false, group: 'library' },
     { label: 'Companies', route: '/companies', icon: 'building', exact: false, group: 'library' },
     { label: 'Research', route: '/company-research', icon: 'research', exact: false, group: 'library' },
   ];
