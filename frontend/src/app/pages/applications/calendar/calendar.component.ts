@@ -1,6 +1,7 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 import { ReminderService } from '@app/services/reminder.service';
 import { AuthService } from '@app/services/auth.service';
 import { ApplicationService } from '@app/services/application.service';
@@ -42,7 +43,7 @@ const DEFAULT_APP_STATUSES = ['SAVED', 'APPLIED', 'SCREENING', 'INTERVIEW', 'OFF
 @Component({
   selector: 'app-calendar',
   standalone: true,
-  imports: [CommonModule, FormsModule, RefreshButtonComponent],
+  imports: [CommonModule, FormsModule, AppSelectComponent, RefreshButtonComponent],
   templateUrl: './calendar.component.html',
   styleUrl: './calendar.component.scss',
 })

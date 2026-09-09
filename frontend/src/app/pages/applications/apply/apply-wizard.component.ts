@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { ExtractionService } from '@app/services/extraction.service';
 import { ApplyService } from '@app/services/apply.service';
@@ -39,7 +40,7 @@ const CRON_PRESETS: { label: string; cron: string }[] = [
 @Component({
   selector: 'app-apply-wizard',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, CronBuilderComponent],
+  imports: [CommonModule, FormsModule, AppSelectComponent, RouterLink, CronBuilderComponent],
   templateUrl: './apply-wizard.component.html',
   styleUrl: './apply-wizard.component.scss',
 })

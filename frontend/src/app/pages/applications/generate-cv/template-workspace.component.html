@@ -23,26 +23,26 @@
           <div class="fields-row">
             <div class="field">
               <label class="field-label">Template</label>
-              <select
+              <app-select
                 class="field-select"
                 [value]="selectedTemplate()"
-                (change)="selectedTemplate.set($any($event.target).value); onTemplateChange()"
+                (valueChange)="selectedTemplate.set($event); onTemplateChange()"
                 [disabled]="templatesLoading()"
               >
                 <option value="">Default (built-in)</option>
                 @for (t of templates(); track t.id) {
                   <option [value]="t.id">{{ t.name }}{{ t.isSystem ? '  ·  system' : '' }}</option>
                 }
-              </select>
+              </app-select>
             </div>
             <div class="field">
               <label class="field-label">CV profile</label>
-              <select class="field-select" [value]="selectedProfileId() ?? ''" (change)="selectedProfileId.set($any($event.target).value || null)">
+              <app-select class="field-select" [value]="selectedProfileId() ?? ''" (valueChange)="selectedProfileId.set($event || null)">
                 <option value="">Default profile</option>
                 @for (p of profiles(); track p.id) {
                   <option [value]="p.id">{{ p.title }}</option>
                 }
-              </select>
+              </app-select>
             </div>
           </div>
 
@@ -59,19 +59,19 @@
           <div class="fields-row">
             <div class="field">
               <label class="field-label">Tone</label>
-              <select class="field-select" [value]="selectedTone()" (change)="selectedTone.set($any($event.target).value)">
+              <app-select class="field-select" [value]="selectedTone()" (valueChange)="selectedTone.set($event)">
                 @for (t of tones; track t) {
                   <option [value]="t">{{ t }}</option>
                 }
-              </select>
+              </app-select>
             </div>
             <div class="field">
               <label class="field-label">Language</label>
-              <select class="field-select" [value]="selectedLanguage()" (change)="selectedLanguage.set($any($event.target).value)">
+              <app-select class="field-select" [value]="selectedLanguage()" (valueChange)="selectedLanguage.set($event)">
                 @for (l of languages; track l.code) {
                   <option [value]="l.code">{{ l.label }}</option>
                 }
-              </select>
+              </app-select>
             </div>
           </div>
 

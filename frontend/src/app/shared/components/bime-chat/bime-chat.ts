@@ -1,5 +1,6 @@
 import { Component, inject, signal, computed, ElementRef, ViewChild, AfterViewChecked, SecurityContext } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { marked } from 'marked';
@@ -11,7 +12,7 @@ import type { LlmProviderInfo } from '../../../models/llm-settings.model';
 @Component({
   selector: 'app-bime-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AppSelectComponent],
   templateUrl: './bime-chat.html',
   styleUrl: './bime-chat.scss',
 })

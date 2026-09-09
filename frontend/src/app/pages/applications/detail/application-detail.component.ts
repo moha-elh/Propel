@@ -1,6 +1,7 @@
 import { Component, signal, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApplicationService } from '@app/services/application.service';
 import { ContactService } from '@app/services/contact.service';
@@ -37,7 +38,7 @@ type AttemptForm = {
 @Component({
   selector: 'app-application-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, RefreshButtonComponent],
+  imports: [CommonModule, FormsModule, AppSelectComponent, RouterLink, RefreshButtonComponent],
   templateUrl: './application-detail.component.html',
   styleUrl: './application-detail.component.scss',
 })

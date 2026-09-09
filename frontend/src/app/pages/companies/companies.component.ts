@@ -1,6 +1,7 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 import { Router, RouterLink } from '@angular/router';
 import { CompanyService, CompanyDto } from '@app/services/company.service';
 import { ToastService } from '@app/services/toast.service';
@@ -12,7 +13,7 @@ import { COUNTRIES } from '@app/shared/data/geo-data';
 @Component({
   selector: 'app-companies',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, SheetImportDialogComponent, CompanyFormDialogComponent, RefreshButtonComponent],
+  imports: [CommonModule, FormsModule, AppSelectComponent, RouterLink, SheetImportDialogComponent, CompanyFormDialogComponent, RefreshButtonComponent],
   templateUrl: './companies.component.html',
   styleUrl: './companies.component.scss',
 })

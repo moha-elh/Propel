@@ -224,12 +224,12 @@
           <div class="form-row">
             <div class="form-group">
               <label for="noticePeriod">Notice period</label>
-              <select id="noticePeriod" [(ngModel)]="p.noticePeriod" name="noticePeriod" class="select">
+              <app-select id="noticePeriod" [(ngModel)]="p.noticePeriod" name="noticePeriod" class="select">
                 <option value="" disabled>Select notice period</option>
                 @for (opt of noticeOptions; track opt) {
                   <option [value]="opt">{{ opt }}</option>
                 }
-              </select>
+              </app-select>
             </div>
           </div>
         </section>

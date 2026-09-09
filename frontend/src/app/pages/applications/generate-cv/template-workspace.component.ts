@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { CvGenerationService } from '@app/services/cv-generation.service';
 import { DocumentsService } from '@app/services/documents.service';
@@ -22,7 +23,7 @@ type InputTab = 'paste' | 'url';
 @Component({
   selector: 'app-template-workspace',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, AppSelectComponent, RouterLink],
   templateUrl: './template-workspace.component.html',
   styleUrl: './template-workspace.component.scss',
 })

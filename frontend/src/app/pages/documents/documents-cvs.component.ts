@@ -2,6 +2,7 @@ import { Component, signal, computed, inject, OnInit, OnDestroy } from '@angular
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 import { DocumentsService } from '@app/services/documents.service';
 import { ToastService } from '@app/services/toast.service';
 import { extractError } from '@app/shared/error-utils';
@@ -10,7 +11,7 @@ import { CvDocumentDto, CvTemplateDto, CvVersionDto } from '@app/models/document
 @Component({
   selector: 'app-documents-cvs',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AppSelectComponent],
   templateUrl: './documents-cvs.component.html',
   styleUrl: './documents-cvs.component.scss',
 })

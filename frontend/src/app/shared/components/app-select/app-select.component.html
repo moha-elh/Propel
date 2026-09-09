@@ -1,0 +1,27 @@
+<button type="button" class="as-trigger" [class.open]="open()" [class.disabled]="disabled"
+        [disabled]="disabled" (click)="toggle()">
+  <span class="as-label" [class.placeholder]="!selectedLabel()">{{ selectedLabel() || placeholder }}</span>
+  <svg class="as-arrow" viewBox="0 0 24 24" fill="none" width="14" height="14">
+    <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</button>
+
+<!-- Projected <option> markup, read into `options`; kept out of view. -->
+<span #optHost class="as-opt-host" aria-hidden="true"><ng-content></ng-content></span>
+
+@if (open()) {
+  <div class="as-backdrop" (click)="close()"></div>
+  <div class="as-panel" [ngStyle]="panelStyle()">
+    @for (o of options(); track o.value) {
+      <button type="button" class="as-option"
+              [class.selected]="o.value === value"
+              [class.disabled]="o.disabled"
+              [disabled]="o.disabled"
+              (click)="pick(o)">
+        {{ o.label }}
+      </button>
+    } @empty {
+      <div class="as-empty">No options</div>
+    }
+  </div>
+}

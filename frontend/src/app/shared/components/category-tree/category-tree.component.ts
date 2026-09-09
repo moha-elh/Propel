@@ -74,16 +74,8 @@ export class CategoryTreeComponent implements OnChanges, OnDestroy {
           }
         };
         index(this.tree);
+        // Start collapsed; user expands branches (or a search reveals matches).
         this.expanded = new Set<string>();
-        const markExpanded = (list: TaxonomyNode[]) => {
-          for (const n of list) {
-            if (n.children && n.children.length > 0) {
-              this.expanded.add(n.id);
-              markExpanded(n.children);
-            }
-          }
-        };
-        markExpanded(this.tree);
         this.recomputeDisplay();
         this.loading = false;
         this.cdr.detectChanges();
@@ -180,6 +172,11 @@ export class CategoryTreeComponent implements OnChanges, OnDestroy {
     this.selected = next;
     this.recomputeDisplay();
     this.selectedIdsChange.emit([...next]);
+  }
+
+  /** While filtering, force every branch open so matched descendants are visible. */
+  displayExpanded(): Set<string> {
+    return this.searchText.trim() ? new Set(this.allBranchIds()) : this.expanded;
   }
 
   onExpandChange(id: string): void {

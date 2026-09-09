@@ -1,13 +1,14 @@
 import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 
 type CronUnit = 'minute' | 'hour' | 'day' | 'week' | 'month';
 
 @Component({
   selector: 'app-cron-builder',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AppSelectComponent],
   templateUrl: './cron-builder.component.html',
   styleUrl: './cron-builder.component.scss',
 })

@@ -105,11 +105,11 @@
                 </div>
               </td>
               <td>
-                <select class="status-sel" [attr.data-status]="app.status" (change)="onInlineStatusChange(app, $event)" (click)="$event.stopPropagation()" [value]="app.status">
+                <app-select class="status-sel" [attr.data-status]="app.status" (valueChange)="onInlineStatusChange(app, $event)" (click)="$event.stopPropagation()" [value]="app.status">
                   @for (s of ALL_STATUSES; track s) {
                     <option [value]="s">{{ STATUS_LABELS[s] }}</option>
                   }
-                </select>
+                </app-select>
               </td>
               <td class="td-meta">{{ formatDate(app.appliedAt) }}</td>
               <td class="td-meta">{{ formatDate(app.updatedAt) }}</td>
@@ -133,11 +133,11 @@
       <div class="pag-left">
         <span class="pag-info">{{ itemRange() }}</span>
         <span class="pag-sep">·</span>
-        <select class="pag-size-sel" (change)="changePageSize($event)">
+        <app-select class="pag-size-sel" (valueChange)="changePageSize($event)">
           <option value="15" [selected]="pageSize() === 15">15 / page</option>
           <option value="50" [selected]="pageSize() === 50">50 / page</option>
           <option value="100" [selected]="pageSize() === 100">100 / page</option>
-        </select>
+        </app-select>
       </div>
       <div class="pag-btns">
         <button class="pag-btn" [disabled]="page() <= 1" (click)="changePage(1)" title="First">«</button>

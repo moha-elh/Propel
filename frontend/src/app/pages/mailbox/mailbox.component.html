@@ -99,11 +99,11 @@
                   Log as application attempt
                 </label>
                 @if (logAttempt()) {
-                  <select class="attempt-select" [ngModel]="attemptAppId()" (ngModelChange)="attemptAppId.set($event)">
+                  <app-select class="attempt-select" [ngModel]="attemptAppId()" (ngModelChange)="attemptAppId.set($event)">
                     @for (app of attemptCandidates(); track app.id) {
                       <option [value]="app.id">{{ app.positionTitle }} · {{ app.companyName }} ({{ statusLabel(app.status) }})</option>
                     }
-                  </select>
+                  </app-select>
                 }
               </div>
             }
@@ -660,9 +660,9 @@
               </div>
               <div class="fld"><label>Company description</label><textarea [(ngModel)]="applyCompanyDescription" rows="2"></textarea></div>
               <div class="fld"><label>Repeat (cron)</label>
-                <select [(ngModel)]="tplCron">
+                <app-select [(ngModel)]="tplCron">
                   @for (p of TEMPLATE_CRON_PRESETS; track p.value) { <option [value]="p.value">{{ p.label }}</option> }
-                </select>
+                </app-select>
               </div>
               <div class="row">
                 <div class="fld"><label>Recipient name</label><input type="text" [(ngModel)]="applyRecipientName" /></div>
@@ -682,10 +682,10 @@
               <div class="row">
                 <div class="fld"><label>Subject template *</label><input type="text" [(ngModel)]="tplSubject" /></div>
                 <div class="fld"><label>CV version</label>
-                  <select [(ngModel)]="tplCvVersionId">
+                  <app-select [(ngModel)]="tplCvVersionId">
                     <option value="">— none —</option>
                     @for (o of cvVersionOptions(); track o.id) { <option [value]="o.id">{{ o.label }}</option> }
-                  </select>
+                  </app-select>
                 </div>
               </div>
               <div class="fld"><label>Body template *</label><textarea [(ngModel)]="tplBody" rows="8"></textarea></div>
@@ -821,12 +821,12 @@
 
           <div class="sched-field">
             <label>Cadence</label>
-            <select [ngModel]="schedCustom() ? 'custom' : schedCron()" (ngModelChange)="onCadenceChange($event)">
+            <app-select [ngModel]="schedCustom() ? 'custom' : schedCron()" (ngModelChange)="onCadenceChange($event)">
               @for (p of CRON_PRESETS; track p.value) {
                 <option [value]="p.value">{{ p.label }}</option>
               }
               <option value="custom">Custom…</option>
-            </select>
+            </app-select>
             @if (schedCustom()) {
               <app-cron-builder [value]="schedCron()" (valueChange)="schedCron.set($event)"></app-cron-builder>
             }

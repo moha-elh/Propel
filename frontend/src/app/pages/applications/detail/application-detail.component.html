@@ -140,11 +140,11 @@
         <button class="modal-close" (click)="closeStatusModal()">&times;</button>
       </div>
       <div class="modal-body">
-        <select class="form-select" [(ngModel)]="newStatus">
+        <app-select class="form-select" [(ngModel)]="newStatus">
           @for (s of availableStatuses(); track s) {
             <option [value]="s">{{ getStatusLabel(s) }}</option>
           }
-        </select>
+        </app-select>
         <textarea class="form-textarea" style="margin-top:10px" [(ngModel)]="statusComment" placeholder="Comment (optional)" rows="3"></textarea>
       </div>
       <div class="modal-footer">
@@ -170,19 +170,19 @@
         <div class="attempt-grid">
           <div class="form-group">
             <label>Channel</label>
-            <select class="form-select" [(ngModel)]="attemptForm().channel" name="channel">
+            <app-select class="form-select" [(ngModel)]="attemptForm().channel" name="channel">
               @for (c of ALL_CHANNELS; track c) {
                 <option [value]="c">{{ CHANNEL_LABELS[c] }}</option>
               }
-            </select>
+            </app-select>
           </div>
           <div class="form-group">
             <label>Initiated by</label>
-            <select class="form-select" [(ngModel)]="attemptForm().initiatedBy" name="initiatedBy">
+            <app-select class="form-select" [(ngModel)]="attemptForm().initiatedBy" name="initiatedBy">
               @for (i of INITIATORS; track i) {
                 <option [value]="i">{{ i === 'USER' ? 'Me' : i === 'AI_AGENT' ? 'AI agent' : 'Schedule' }}</option>
               }
-            </select>
+            </app-select>
           </div>
         </div>
         <div class="attempt-grid">
@@ -275,11 +275,11 @@
         <div class="attempt-grid">
           <div class="form-group"><label>Internship type</label><input class="form-input" [(ngModel)]="editInternshipType" placeholder="e.g. PFA, PFE"></div>
           <div class="form-group"><label>Priority</label>
-            <select class="form-select" [(ngModel)]="editPriority" name="editPriority">
+            <app-select class="form-select" [(ngModel)]="editPriority" name="editPriority">
               @for (p of PRIORITY_ORDER; track p) {
                 <option [value]="p">{{ PRIORITY_LABELS[p] }}</option>
               }
-            </select>
+            </app-select>
           </div>
         </div>
         <div class="form-group"><label>Notes</label><textarea class="form-textarea" [(ngModel)]="editNotes" rows="3"></textarea></div>

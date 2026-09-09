@@ -118,23 +118,23 @@
 
       <div class="fld">
         <label>CV version (used as context)</label>
-        <select [(ngModel)]="selectedCvVersionId">
+        <app-select [(ngModel)]="selectedCvVersionId">
           <option value="">— none —</option>
           @for (o of cvOptions(); track o.id) {
             <option [value]="o.id">{{ o.label }}</option>
           }
-        </select>
+        </app-select>
       </div>
 
       @if (prepMode() === 'email') {
         <div class="fld">
           <label>Prefill from template</label>
-          <select [(ngModel)]="selectedTemplateId" (change)="useTemplate()">
+          <app-select [(ngModel)]="selectedTemplateId" (valueChange)="useTemplate()">
             <option value="">— write manually —</option>
             @for (t of templates(); track t.id) {
               <option [value]="t.id">{{ t.name }}</option>
             }
-          </select>
+          </app-select>
         </div>
 
         <div class="fld">
@@ -235,11 +235,11 @@
       @if (prepMode() === 'message') {
         <div class="fld">
           <label>Channel</label>
-          <select [(ngModel)]="messageChannel">
+          <app-select [(ngModel)]="messageChannel">
             <option>LinkedIn</option>
             <option>WhatsApp</option>
             <option>Generic DM</option>
-          </select>
+          </app-select>
         </div>
 
         <div class="fld">
@@ -289,11 +289,11 @@
       @if (deliverMode() === 'schedule') {
         <div class="fld">
           <label>Repeat</label>
-          <select [(ngModel)]="cronExpression">
+          <app-select [(ngModel)]="cronExpression">
             @for (p of cronPresets; track p.cron) {
               <option [value]="p.cron">{{ p.label }}</option>
             }
-          </select>
+          </app-select>
         </div>
         @if (isCustomCron()) {
           <div class="fld">

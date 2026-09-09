@@ -21,7 +21,7 @@
     <div class="form-card">
       <div class="field">
         <label class="label">Provider</label>
-        <select
+        <app-select
           class="select"
           [ngModel]="selectedProvider()"
           (ngModelChange)="onProviderChange($event)"
@@ -31,7 +31,7 @@
               {{ p.label }} {{ p.available ? '' : '(no API key)' }}
             </option>
           }
-        </select>
+        </app-select>
       </div>
 
       <div class="field">
@@ -39,14 +39,14 @@
         @if (modelsLoading()) {
           <div class="models-loading">Loading available models...</div>
         } @else {
-          <select class="select" [(ngModel)]="selectedModel">
+          <app-select class="select" [(ngModel)]="selectedModel">
             @if (models().length === 0) {
               <option value="">No models available</option>
             }
             @for (m of models(); track m) {
               <option [value]="m">{{ m }}</option>
             }
-          </select>
+          </app-select>
         }
       </div>
 

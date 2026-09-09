@@ -20,15 +20,36 @@
     </button>
   </div>
 
-  <!-- Search bar -->
-  <button class="search-bar" [title]="collapsed() ? 'Search' : null">
-    <svg viewBox="0 0 24 24" fill="none" width="13" height="13">
-      <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/>
-      <path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-    </svg>
-    <span class="search-text">Search…</span>
-    <kbd class="keycap">⌘K</kbd>
-  </button>
+  <!-- Search -->
+  <div class="search-wrap">
+    <div class="search-bar" (click)="focusSearch()" [title]="collapsed() ? 'Search' : null">
+      <svg viewBox="0 0 24 24" fill="none" width="13" height="13">
+        <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/>
+        <path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <input #searchInput class="search-input" type="text" placeholder="Search…"
+             [ngModel]="query()" (ngModelChange)="query.set($event)"
+             (keydown.enter)="goFirst()" />
+      @if (query()) {
+        <button class="search-clear" (click)="query.set('')" aria-label="Clear">×</button>
+      } @else {
+        <kbd class="keycap">⌘K</kbd>
+      }
+    </div>
+
+    @if (query().trim()) {
+      <div class="search-results">
+        @for (item of results(); track item.route) {
+          <button class="search-res" (click)="go(item.route)">
+            <span class="search-res-label">{{ item.label }}</span>
+            <span class="search-res-group">{{ item.group }}</span>
+          </button>
+        } @empty {
+          <div class="search-res-empty">No matches</div>
+        }
+      </div>
+    }
+  </div>
 
   <!-- Main nav -->
   <nav class="nav-section">

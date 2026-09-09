@@ -43,7 +43,7 @@
         *ngFor="let node of visibleTree()"
         [node]="node"
         [selectedIds]="displaySelected"
-        [expandedIds]="expanded"
+        [expandedIds]="displayExpanded()"
         [mode]="mode"
         [showCounts]="showCounts"
         (selectionChange)="onSelectionChange($event)"

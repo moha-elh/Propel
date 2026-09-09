@@ -1,6 +1,7 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 import { APP_NAME } from '@app/app-name';
 import { UserProfileService } from '@app/services/user-profile.service';
 import { AuthService } from '@app/services/auth.service';
@@ -11,7 +12,7 @@ import { ImageDto } from '@app/services/image.service';
 @Component({
   selector: 'app-personal-info',
   standalone: true,
-  imports: [CommonModule, FormsModule, ImagePickerComponent],
+  imports: [CommonModule, FormsModule, AppSelectComponent, ImagePickerComponent],
   templateUrl: './personal-info.component.html',
   styleUrl: './personal-info.component.scss',
 })

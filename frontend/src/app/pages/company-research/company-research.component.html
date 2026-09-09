@@ -14,32 +14,32 @@
   </header>
 
   <div class="filter-bar">
-    <select class="filter-select" [ngModel]="sectorFilter()" (ngModelChange)="sectorFilter.set($event); onFilterChange()">
+    <app-select class="filter-select" [ngModel]="sectorFilter()" (ngModelChange)="sectorFilter.set($event); onFilterChange()">
       <option value="">All sectors</option>
       @for (s of sectors(); track s) {
         <option [value]="s">{{ s }}</option>
       }
-    </select>
+    </app-select>
 
-    <select class="filter-select" [ngModel]="websiteFilter()" (ngModelChange)="websiteFilter.set($event); onFilterChange()">
+    <app-select class="filter-select" [ngModel]="websiteFilter()" (ngModelChange)="websiteFilter.set($event); onFilterChange()">
       <option value="all">Any website</option>
       <option value="yes">Has website</option>
       <option value="no">No website</option>
-    </select>
+    </app-select>
 
-    <select class="filter-select" [ngModel]="researchedFilter()" (ngModelChange)="researchedFilter.set($event); onFilterChange()">
+    <app-select class="filter-select" [ngModel]="researchedFilter()" (ngModelChange)="researchedFilter.set($event); onFilterChange()">
       <option value="all">Any research status</option>
       <option value="yes">Researched</option>
       <option value="no">Not researched</option>
-    </select>
+    </app-select>
 
     <label class="minapps-label">
       <span>Sort by</span>
-      <select class="filter-select" [ngModel]="sortBy()" (ngModelChange)="onSortByChange($event)">
+      <app-select class="filter-select" [ngModel]="sortBy()" (ngModelChange)="onSortByChange($event)">
         <option value="name">Name</option>
         <option value="researched">Last researched</option>
         <option value="applied">Last applied</option>
-      </select>
+      </app-select>
     </label>
 
     @if (hasActiveFilters() || sortBy() !== 'name') {

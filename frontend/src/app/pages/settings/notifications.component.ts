@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 import { NotificationService } from '@app/services/notification.service';
 import {
   NotificationPreference,
@@ -10,7 +11,7 @@ import {
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AppSelectComponent],
   templateUrl: './notifications.component.html',
   styleUrl: './notifications.component.scss',
 })

@@ -93,11 +93,11 @@
         <div class="form-grid">
           <div class="form-group">
             <label>Country</label>
-            <select [(ngModel)]="formCountry" name="coCountry">
+            <app-select [(ngModel)]="formCountry" name="coCountry">
               @for (country of COUNTRIES; track country) {
                 <option [value]="country">{{ country }}</option>
               }
-            </select>
+            </app-select>
           </div>
           <div class="form-group">
             <label>City</label>

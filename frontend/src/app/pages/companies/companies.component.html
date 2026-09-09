@@ -22,12 +22,12 @@
   <app-company-form-dialog [(open)]="dialogOpen" [editing]="editingCompany()" (saved)="loadCompanies()" />
 
   <div class="filter-bar">
-    <select class="filter-select" [ngModel]="countryFilter()" (ngModelChange)="onCountryFilterChange($event)">
+    <app-select class="filter-select" [ngModel]="countryFilter()" (ngModelChange)="onCountryFilterChange($event)">
       <option value="">All countries</option>
       @for (country of COUNTRIES; track country) {
         <option [value]="country">{{ country }}</option>
       }
-    </select>
+    </app-select>
 
     <input class="filter-input" type="text" placeholder="City…" [ngModel]="cityFilter()" (ngModelChange)="onCityInput($event)">
 
@@ -41,11 +41,11 @@
 
     <label class="minapps-label">
       <span>Sort by</span>
-      <select class="filter-select" [ngModel]="sortBy()" (ngModelChange)="onSortByChange($event)">
+      <app-select class="filter-select" [ngModel]="sortBy()" (ngModelChange)="onSortByChange($event)">
         <option value="name">Name</option>
         <option value="apps">Applications</option>
         <option value="applied">Last applied</option>
-      </select>
+      </app-select>
       <button class="dir-btn" [title]="sortDir() === 'asc' ? 'Ascending' : 'Descending'" (click)="toggleSortDir()">
         @if (sortDir() === 'asc') {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>

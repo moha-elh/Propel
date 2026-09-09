@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, model, OnChanges, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 import { CompanyService, CompanyDto, CreateCompanyDto } from '@app/services/company.service';
 import { ToastService } from '@app/services/toast.service';
 import { COUNTRIES, MOROCCO_CITIES } from '@app/shared/data/geo-data';
@@ -12,7 +13,7 @@ import { ImageDto, ImageService } from '@app/services/image.service';
 @Component({
   selector: 'app-company-form-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, AutoFillDialogComponent, ImagePickerComponent],
+  imports: [CommonModule, FormsModule, AppSelectComponent, AutoFillDialogComponent, ImagePickerComponent],
   templateUrl: './company-form-dialog.component.html',
   styleUrl: './company-form-dialog.component.scss',
 })

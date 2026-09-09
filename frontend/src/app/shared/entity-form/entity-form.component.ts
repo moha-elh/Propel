@@ -3,6 +3,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 import { environment } from '@env/environment';
 import { ENTITY_FIELDS, EntityType, FieldConfig } from '@app/models/user-content.models';
 import { CategoryService } from '@app/services/category.service';
@@ -14,7 +15,7 @@ import { AutofillField } from '@app/services/autofill.service';
 @Component({
   selector: 'app-entity-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, CategoryTreeComponent, AutoFillDialogComponent],
+  imports: [CommonModule, FormsModule, AppSelectComponent, RouterModule, CategoryTreeComponent, AutoFillDialogComponent],
   templateUrl: './entity-form.component.html',
   styleUrl: './entity-form.component.css',
 })

@@ -1,6 +1,7 @@
 import { Component, signal, inject, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ApplicationService } from '@app/services/application.service';
@@ -31,7 +32,7 @@ interface ChannelTile {
 @Component({
   selector: 'app-application-create',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, AppSelectComponent, RouterLink],
   templateUrl: './application-create.component.html',
   styleUrl: './application-create.component.scss',
 })

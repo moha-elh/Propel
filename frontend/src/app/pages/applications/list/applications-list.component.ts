@@ -1,6 +1,7 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 import { RouterLink, Router } from '@angular/router';
 import { ApplicationService } from '@app/services/application.service';
 import {
@@ -18,7 +19,7 @@ import { RefreshButtonComponent } from '@app/shared/components/refresh-button/re
 @Component({
   selector: 'app-applications-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, RefreshButtonComponent],
+  imports: [CommonModule, FormsModule, AppSelectComponent, RouterLink, RefreshButtonComponent],
   templateUrl: './applications-list.component.html',
   styleUrl: './applications-list.component.scss',
 })
@@ -125,8 +126,8 @@ export class ApplicationsListComponent implements OnInit {
   }
 
   changePage(p: number) { if (p >= 1 && p <= this.totalPages()) { this.page.set(p); this.loadData(); } }
-  changePageSize(event: Event) {
-    const ps = parseInt((event.target as HTMLSelectElement).value, 10);
+  changePageSize(value: string) {
+    const ps = parseInt(value, 10);
     this.pageSize.set(ps);
     this.page.set(1);
     this.loadData();
@@ -137,8 +138,8 @@ export class ApplicationsListComponent implements OnInit {
     try { await this.appService.delete(id); this.loadData(); } catch { }
   }
 
-  async onInlineStatusChange(app: ApplicationResponseDto, event: Event) {
-    const newStatus = (event.target as HTMLSelectElement).value as ApplicationStatus;
+  async onInlineStatusChange(app: ApplicationResponseDto, value: string) {
+    const newStatus = value as ApplicationStatus;
     try {
       const res = await this.appService.updateStatus(app.id, { status: newStatus });
       if (res.success) this.loadData();

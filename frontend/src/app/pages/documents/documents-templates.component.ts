@@ -1,6 +1,7 @@
 import { Component, signal, computed, inject, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 import { Router } from '@angular/router';
 import { DocumentsService } from '@app/services/documents.service';
 import { ToastService } from '@app/services/toast.service';
@@ -10,7 +11,7 @@ import { CvTemplateDto } from '@app/models/document.model';
 @Component({
   selector: 'app-documents-templates',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AppSelectComponent],
   templateUrl: './documents-templates.component.html',
   styleUrl: './documents-templates.component.scss',
 })

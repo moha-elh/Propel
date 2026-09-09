@@ -1,13 +1,14 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 import { LlmSettingsService } from '@app/services/llm-settings.service';
 import type { LlmProviderInfo } from '@app/models/llm-settings.model';
 
 @Component({
   selector: 'app-llm-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AppSelectComponent],
   templateUrl: './llm-settings.component.html',
   styleUrl: './llm-settings.component.scss',
 })

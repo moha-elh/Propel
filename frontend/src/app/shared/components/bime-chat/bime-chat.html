@@ -44,25 +44,25 @@
       <div class="bime-model-picker">
         <div class="bime-picker-field">
           <label>Provider</label>
-          <select class="bime-picker-select" [ngModel]="selectedProvider()" (ngModelChange)="onProviderChange($event)">
+          <app-select class="bime-picker-select" [ngModel]="selectedProvider()" (ngModelChange)="onProviderChange($event)">
             @for (p of providers(); track p.name) {
               <option [value]="p.name">{{ p.label }}</option>
             }
-          </select>
+          </app-select>
         </div>
         <div class="bime-picker-field">
           <label>Model</label>
           @if (modelsLoading()) {
             <div class="bime-picker-loading">Loading...</div>
           } @else {
-            <select class="bime-picker-select" [(ngModel)]="selectedModel">
+            <app-select class="bime-picker-select" [(ngModel)]="selectedModel">
               @if (models().length === 0) {
                 <option value="">None available</option>
               }
               @for (m of models(); track m) {
                 <option [value]="m">{{ m }}</option>
               }
-            </select>
+            </app-select>
           }
         </div>
       </div>

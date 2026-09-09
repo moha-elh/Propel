@@ -9,6 +9,7 @@ import { AutofillField } from '@app/services/autofill.service';
 import { DirectAiService } from '@app/services/direct-ai.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 import { ActivatedRoute } from '@angular/router';
 import { MailboxService } from '@app/services/mailbox.service';
 import { ContactService } from '@app/services/contact.service';
@@ -58,7 +59,7 @@ const EMAIL_TEMPLATES: EmailTemplate[] = [
 @Component({
   selector: 'app-mailbox',
   standalone: true,
-  imports: [CommonModule, FormsModule, SheetImportDialogComponent, RefreshButtonComponent, CronBuilderComponent, AutoFillDialogComponent, ContactsExtractDialogComponent, ContactQuickActionsComponent],
+  imports: [CommonModule, FormsModule, AppSelectComponent, SheetImportDialogComponent, RefreshButtonComponent, CronBuilderComponent, AutoFillDialogComponent, ContactsExtractDialogComponent, ContactQuickActionsComponent],
   templateUrl: './mailbox.component.html',
   styleUrl: './mailbox.component.scss',
 })

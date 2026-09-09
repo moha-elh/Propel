@@ -298,6 +298,9 @@ input, textarea, select { font-family: inherit; color: inherit; }
 
 .textarea { resize: vertical; min-height: 84px; line-height: 1.5; }
 
+/* Native <select>s are replaced by <app-select> (custom, fully app-themed).
+   Any remaining bare <select> just uses the .select box styling above. */
+
 /* ── Typography helpers ── */
 .mono { font-family: var(--font-mono); }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

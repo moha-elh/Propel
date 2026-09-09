@@ -7,9 +7,9 @@
   } @else {
     <div class="cb-row">
       <label class="cb-label">Repeat</label>
-      <select class="cb-select" [ngModel]="unit()" (ngModelChange)="onUnitChange($event)">
+      <app-select class="cb-select" [ngModel]="unit()" (ngModelChange)="onUnitChange($event)">
         @for (u of unitOptions; track u.value) { <option [value]="u.value">{{ u.label }}</option> }
-      </select>
+      </app-select>
     </div>
 
     <div class="cb-config">

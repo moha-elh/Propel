@@ -187,11 +187,11 @@
             </div>
             <div class="form-group">
               <label>Remind Me</label>
-              <select [(ngModel)]="form.reminderOffset">
+              <app-select [(ngModel)]="form.reminderOffset">
                 @for (opt of offsetOptions; track opt.value) {
                   <option [value]="opt.value">{{ opt.label }}</option>
                 }
-              </select>
+              </app-select>
             </div>
             <div class="form-group full-width">
               <label>Note (optional)</label>

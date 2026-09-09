@@ -171,7 +171,7 @@
         </div>
       </div>
       <div class="reminder-picker">
-        <select
+        <app-select
           class="reminder-select"
           [ngModel]="prefs.defaultReminderDaysBefore"
           (ngModelChange)="onReminderChange($event)"
@@ -179,7 +179,7 @@
           @for (option of reminderOptions; track option) {
             <option [value]="option">{{ option }} day{{ option > 1 ? 's' : '' }} before</option>
           }
-        </select>
+        </app-select>
         <span class="reminder-hint">
           @if (prefs.reminders) {
             Reminders are active

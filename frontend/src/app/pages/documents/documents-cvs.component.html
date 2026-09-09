@@ -130,12 +130,12 @@
         </div>
         <div class="form-group">
           <label>Template</label>
-          <select [(ngModel)]="editTemplateId" name="cvEditTemplate">
+          <app-select [(ngModel)]="editTemplateId" name="cvEditTemplate">
             <option [ngValue]="''">None — plain document</option>
             @for (t of templates(); track t.id) {
               <option [ngValue]="t.id">{{ t.name }}{{ t.isSystem ? ' (system)' : '' }}</option>
             }
-          </select>
+          </app-select>
         </div>
         <label class="check-row">
           <input type="checkbox" [(ngModel)]="editIsActive" name="cvEditActive">

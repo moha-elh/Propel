@@ -1,0 +1,7 @@
+# Root entrypoint so you can `docker compose up` from the repo root.
+# The real stack lives in monolith/docker-compose.yml; include resolves its
+# relative build contexts and .env against monolith/, so nothing there moves.
+include:
+  - path: monolith/docker-compose.yml
+    project_directory: monolith
+    env_file: monolith/.env

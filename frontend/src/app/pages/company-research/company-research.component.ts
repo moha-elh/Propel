@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 import { Router, RouterLink } from '@angular/router';
 import { CompanyService, CompanyDto } from '@app/services/company.service';
 import {
@@ -21,7 +22,7 @@ interface ResearchStatus {
 @Component({
   selector: 'app-company-research',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, RefreshButtonComponent],
+  imports: [CommonModule, FormsModule, AppSelectComponent, RouterLink, RefreshButtonComponent],
   templateUrl: './company-research.component.html',
   styleUrl: './company-research.component.scss',
 })

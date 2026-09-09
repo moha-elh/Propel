@@ -1,5 +1,6 @@
-import { Component, inject, computed, signal } from '@angular/core';
+import { Component, inject, computed, signal, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '@app/services/auth.service';
 import { APP_NAME } from '@app/app-name';
@@ -16,7 +17,7 @@ interface NavItem {
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive],
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.scss'
 })
@@ -34,6 +35,67 @@ export class SidebarComponent {
       }
     } catch {
       /* ignore */
+    }
+  }
+
+  // ── Inline sidebar search ──
+  @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
+  query = signal('');
+
+  // Deep-link targets beyond the top-level nav (My Career tabs, settings, docs).
+  private extraTargets: { label: string; route: string; group: string }[] = [
+    { label: 'Projects',       route: '/my-career/projects',       group: 'My Career' },
+    { label: 'Skills',         route: '/my-career/skills',         group: 'My Career' },
+    { label: 'Experience',     route: '/my-career/experiences',    group: 'My Career' },
+    { label: 'Education',      route: '/my-career/educations',     group: 'My Career' },
+    { label: 'Certifications', route: '/my-career/certifications', group: 'My Career' },
+    { label: 'Languages',      route: '/my-career/languages',      group: 'My Career' },
+    { label: 'Social Links',   route: '/my-career/sociallinks',    group: 'My Career' },
+    { label: 'Interests',      route: '/my-career/interests',      group: 'My Career' },
+    { label: 'CVs',            route: '/documents/cvs',            group: 'Documents' },
+    { label: 'Templates',      route: '/documents/templates',      group: 'Documents' },
+    { label: 'Images',         route: '/documents/images',         group: 'Documents' },
+    { label: 'LLM Settings',   route: '/settings/llm',             group: 'Settings' },
+    { label: 'Notifications',  route: '/settings/notifications',   group: 'Settings' },
+  ];
+
+  private searchTargets = computed(() => [
+    ...this.navMain.map(i => ({ label: i.label, route: i.route, group: 'Main' })),
+    ...this.navLibrary.map(i => ({ label: i.label, route: i.route, group: 'Library' })),
+    ...this.extraTargets,
+  ]);
+
+  results = computed(() => {
+    const q = this.query().trim().toLowerCase();
+    const all = this.searchTargets();
+    if (!q) return all;
+    return all.filter(i => i.label.toLowerCase().includes(q) || i.group.toLowerCase().includes(q));
+  });
+
+  focusSearch(): void {
+    if (this.collapsed()) this.toggleSidebar();
+    // Wait for the input to be visible after any expand.
+    setTimeout(() => this.searchInput?.nativeElement.focus(), 0);
+  }
+
+  go(route: string): void {
+    this.query.set('');
+    this.searchInput?.nativeElement.blur();
+    this.router.navigate([route]);
+  }
+
+  goFirst(): void {
+    const first = this.results()[0];
+    if (first) this.go(first.route);
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(e: KeyboardEvent): void {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      this.focusSearch();
+    } else if (e.key === 'Escape' && this.query()) {
+      this.query.set('');
     }
   }
 
