@@ -101,6 +101,21 @@ export class ApplicationDetailComponent implements OnInit {
     [...this.attempts()].sort((a, b) => b.attemptNumber - a.attemptNumber)
   );
 
+  // Happy-path pipeline for the status stepper; REJECTED / WITHDRAWN are off-track.
+  protected readonly PIPELINE: ApplicationStatus[] =
+    ['SAVED', 'APPLIED', 'SCREENING', 'INTERVIEW', 'OFFER', 'ACCEPTED'];
+  currentStepIndex = computed(() =>
+    this.PIPELINE.indexOf((this.application()?.status as ApplicationStatus) ?? 'SAVED'));
+  isOffTrack = computed(() => {
+    const s = this.application()?.status;
+    return s === 'REJECTED' || s === 'WITHDRAWN';
+  });
+  daysInPipeline = computed(() => {
+    const start = this.application()?.appliedAt;
+    if (!start) return null;
+    return Math.max(0, Math.floor((Date.now() - new Date(start).getTime()) / 86400000));
+  });
+
   protected readonly STATUS_LABELS = STATUS_LABELS;
   protected readonly PRIORITY_LABELS = PRIORITY_LABELS;
   protected readonly PRIORITY_ORDER = PRIORITY_ORDER;
@@ -378,5 +393,16 @@ export class ApplicationDetailComponent implements OnInit {
 
   priorityColor(p?: string): string {
     return PRIORITY_COLORS[p as ApplicationPriority] ?? PRIORITY_COLORS.MEDIUM;
+  }
+
+  initials(name: string): string {
+    return (name || '').split(/\s+/).filter(Boolean).slice(0, 2)
+      .map(w => w[0]!.toUpperCase()).join('') || '?';
+  }
+
+  avatarHue(name: string): number {
+    let hash = 0;
+    for (let i = 0; i < (name || '').length; i++) hash = (hash * 31 + name.charCodeAt(i)) % 360;
+    return hash;
   }
 }

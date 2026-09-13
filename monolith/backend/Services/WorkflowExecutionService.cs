@@ -12,9 +12,9 @@ public class WorkflowExecutionService
     private readonly AppDbContext _db;
     private readonly IJobExtractorClient _jobExtractor;
     private readonly ISearchAgentClient _searchAgent;
-    private readonly ICvOptimizerClient _cvOptimizer;
     private readonly ITemplateAgentClient _templateAgent;
     private readonly IContactAgentClient _contactAgent;
+    private readonly IGmailSendService _gmailSend;
     private readonly IAgentLlmSettingsService _agentLlm;
     private readonly ILogger<WorkflowExecutionService> _logger;
 
@@ -23,26 +23,25 @@ public class WorkflowExecutionService
         new(0, "Job Extraction"),
         new(1, "Profile Matching"),
         new(2, "Template Rendering"),
-        new(3, "CV Optimization"),
-        new(4, "Email Delivery"),
+        new(3, "Email Delivery"),
     };
 
     public WorkflowExecutionService(
         AppDbContext db,
         IJobExtractorClient jobExtractor,
         ISearchAgentClient searchAgent,
-        ICvOptimizerClient cvOptimizer,
         ITemplateAgentClient templateAgent,
         IContactAgentClient contactAgent,
+        IGmailSendService gmailSend,
         IAgentLlmSettingsService agentLlm,
         ILogger<WorkflowExecutionService> logger)
     {
         _db = db;
         _jobExtractor = jobExtractor;
         _searchAgent = searchAgent;
-        _cvOptimizer = cvOptimizer;
         _templateAgent = templateAgent;
         _contactAgent = contactAgent;
+        _gmailSend = gmailSend;
         _agentLlm = agentLlm;
         _logger = logger;
     }
@@ -58,7 +57,6 @@ public class WorkflowExecutionService
 
         var extractorLlm = await _agentLlm.GetProviderModelAsync(run.UserId, "job-extractor", ct);
         var templateLlm = await _agentLlm.GetProviderModelAsync(run.UserId, "template-agent", ct);
-        var optimizerLlm = await _agentLlm.GetProviderModelAsync(run.UserId, "cv-optimizer", ct);
         var contactLlm = await _agentLlm.GetProviderModelAsync(run.UserId, "contact-agent", ct);
 
         run.Status = "running";
@@ -156,55 +154,86 @@ public class WorkflowExecutionService
                     Model = templateLlm.Model,
                 }, ct);
                 run.RenderResult = JsonSerializer.Serialize(result);
-            });
 
-            ct.ThrowIfCancellationRequested();
-
-            // Step 3: CV Optimization — optimize the rendered CV
-            await ExecuteStepAsync(run, 3, ct, async () =>
-            {
-                var rendered = JsonSerializer.Deserialize<RenderedCV>(run.RenderResult ?? "{}");
-                var jobData = JsonSerializer.Deserialize<ExtractorOutput>(run.ExtractionResult ?? "{}");
-                var jobDataText = JsonSerializer.Serialize(jobData);
-                var result = await _cvOptimizer.OptimizeAsync(new OptimizerInput
+                // Best-effort PDF: LaTeX compilation shells out to a dockerized
+                // texlive and only works in native dev — it's absent in the
+                // containerized agents image (see agents/Dockerfile). Don't fail
+                // the whole run when it's unavailable; leave file_path empty.
+                var filePath = "";
+                try
                 {
-                    JobData = jobDataText,
-                    CandidateName = run.CandidateName ?? "Candidate",
-                    SessionId = Guid.NewGuid().ToString(),
-                    CvContent = rendered?.CvCode,
-                    Provider = optimizerLlm.Provider,
-                    Model = optimizerLlm.Model,
-                }, ct);
-                run.OptimizationResult = JsonSerializer.Serialize(result);
+                    var pdf = await _templateAgent.CompilePdfAsync(new PdfInput
+                    {
+                        UserId = run.UserId.ToString(),
+                        WorkflowId = run.Id.ToString(),
+                        CvData = result?.CvCode ?? "",
+                        CvDataFormat = "tex",
+                        TemplateId = templateId,
+                        TemplateName = templateId,
+                        TemplateContent = templateContent,
+                        FileName = $"{(run.CandidateName ?? "cv").Replace(' ', '_')}.pdf",
+                        Language = run.Language ?? "English",
+                        Tone = run.Tone ?? "professional",
+                        Provider = templateLlm.Provider,
+                        Model = templateLlm.Model,
+                    }, ct);
+                    filePath = pdf?.FilePath ?? "";
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Run {RunId}: PDF compilation unavailable; continuing with .tex only", run.Id);
+                }
+
+                // ATS score = the profile/job match computed in step 1 (0..1 → %).
+                // ponytail: match-score proxy, swap for a dedicated ATS pass if the product needs one.
+                var atsScore = (int)Math.Round(Math.Clamp(searchData?.MatchScore ?? 0, 0, 1) * 100);
+                run.OptimizationResult = JsonSerializer.Serialize(new OptimizerOutput
+                {
+                    AtsScoreBefore = atsScore,
+                    AtsScoreAfter = atsScore,
+                    Improvement = 0,
+                    FilePath = filePath,
+                });
             });
 
             ct.ThrowIfCancellationRequested();
 
-            // Step 4: Email Delivery
-            await ExecuteStepAsync(run, 4, ct, async () =>
+            // Step 3: Email Delivery — generate the email copy, then actually send it.
+            await ExecuteStepAsync(run, 3, ct, async () =>
             {
                 var optimizedCv = JsonSerializer.Deserialize<OptimizerOutput>(run.OptimizationResult ?? "{}");
                 var jobData = JsonSerializer.Deserialize<ExtractorOutput>(run.ExtractionResult ?? "{}");
-                var result = await _contactAgent.DeliverAsync(new ContactInput
+
+                if (string.IsNullOrWhiteSpace(run.RecipientEmail))
+                    throw new InvalidOperationException("No recipient email set for this run; cannot send.");
+
+                // 1. Contact agent generates the subject + body.
+                var email = await _contactAgent.GenerateAsync(new ContactInput
                 {
-                    OptimizedCv = new Dictionary<string, object?>
-                    {
-                        ["job_id"] = runId,
-                        ["final_sections"] = new List<object>(),
-                        ["ats_score_estimate"] = optimizedCv?.AtsScoreAfter ?? 0,
-                        ["optimization_notes"] = new List<string>(),
-                        ["pdf_url"] = optimizedCv?.FilePath ?? "",
-                        ["generated_at"] = DateTime.UtcNow
-                    },
+                    UserId = run.UserId.ToString(),
+                    CompanyName = jobData?.EnterpriseName ?? "the company",
                     JobTitle = jobData?.JobRole ?? "Job Opportunity",
-                    CompanyName = "Target Company",
                     JobDescription = run.JobDescription,
-                    RecipientEmail = run.RecipientEmail ?? "",
-                    CoverLetterHint = run.Tone != null ? $"Tone: {run.Tone}" : null,
+                    Language = run.Language ?? "English",
                     Provider = contactLlm.Provider,
                     Model = contactLlm.Model,
                 }, ct);
-                run.DeliveryResult = JsonSerializer.Serialize(result);
+
+                var subject = run.EmailSubject ?? email?.Subject ?? "Job Application";
+                var body = email?.Body ?? "";
+
+                // 2. Send via the user's Gmail, attaching the CV PDF when one was produced.
+                var pdfUrl = string.IsNullOrWhiteSpace(optimizedCv?.FilePath) ? null : optimizedCv!.FilePath;
+                var (messageId, _) = await _gmailSend.SendWithAttachmentAsync(
+                    run.UserId, run.RecipientEmail!, subject, body, pdfUrl);
+
+                run.DeliveryResult = JsonSerializer.Serialize(new ContactOutput
+                {
+                    Success = true,
+                    DeliveryId = messageId ?? "",
+                    SentAt = DateTime.UtcNow,
+                    SubjectUsed = subject,
+                });
             });
 
             run.Status = "completed";

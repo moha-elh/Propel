@@ -8,40 +8,37 @@
 } @else if (application(); as app) {
 
   <div class="det-header">
+    <a routerLink="/applications/kanban" class="back-link"><i class="ti ti-arrow-left"></i> Applications</a>
     <div class="det-header-row">
-      <div>
-        <a routerLink="/applications/kanban" class="back-link"><i class="ti ti-arrow-left"></i> Applications</a>
-        <div class="det-title-block">
-          <div class="co-init" [style.background]="'#E6F1FB'" [style.color]="'#185FA5'">{{ app.companyName[0] }}</div>
-          <div>
-            <div class="det-co">{{ app.companyName }}</div>
-            <div class="det-pos">{{ app.positionTitle }}</div>
+      <div class="det-title-block">
+        <div class="co-init"
+          [style.background]="'oklch(0.95 0.03 ' + avatarHue(app.companyName) + ')'"
+          [style.color]="'oklch(0.45 0.13 ' + avatarHue(app.companyName) + ')'">{{ initials(app.companyName) }}</div>
+        <div class="det-title-text">
+          <div class="det-co">{{ app.companyName }}</div>
+          <div class="det-pos">{{ app.positionTitle }}</div>
+          <div class="det-sub">
+            <span class="status-pill" [style.color]="statusColor(app.status)"
+              [style.background]="'color-mix(in oklch, ' + statusColor(app.status) + ' 14%, transparent)'">
+              <span class="dot" [style.background]="statusColor(app.status)"></span>{{ getStatusLabel(app.status) }}
+            </span>
+            <span class="prio-tag" [style.color]="priorityColor(app.priority)">
+              <i class="ti ti-flag-filled"></i>{{ PRIORITY_LABELS[app.priority || 'MEDIUM'] }}
+            </span>
+            @if (daysInPipeline() !== null) {
+              <span class="meta-dim"><i class="ti ti-clock"></i>{{ daysInPipeline() }}d in pipeline</span>
+            }
           </div>
-          <span class="badge-lg" [style.background]="statusColor(app.status)" [style.color]="'white'">{{ getStatusLabel(app.status) }}</span>
         </div>
       </div>
       <div class="det-actions">
         <app-refresh-button [loading]="refreshing()" (refresh)="onRefresh()" />
         <button class="det-btn primary" (click)="openAttemptModal()"><i class="ti ti-send"></i> Log attempt</button>
-        <button class="det-btn" (click)="openEditModal()"><i class="ti ti-edit"></i> Edit</button>
         <button class="det-btn" (click)="openStatusModal()" *ngIf="availableStatuses().length > 0"><i class="ti ti-refresh"></i> Update status</button>
-        <button class="det-btn" (click)="onDelete()"><i class="ti ti-trash"></i></button>
+        <button class="det-btn icon" (click)="openEditModal()" title="Edit application"><i class="ti ti-edit"></i></button>
+        <button class="det-btn icon danger" (click)="onDelete()" title="Delete application"><i class="ti ti-trash"></i></button>
       </div>
     </div>
-
-          <div class="info-grid">
-            <div class="info-cell"><div class="info-lbl">Applied</div><div class="info-val">{{ formatDate(app.appliedAt) }}</div></div>
-            <div class="info-cell"><div class="info-lbl">Last updated</div><div class="info-val">{{ formatDate(app.updatedAt) }}</div></div>
-            <div class="info-cell"><div class="info-lbl">Source</div><div class="info-val">{{ app.offerSource || '—' }}</div></div>
-            <div class="info-cell"><div class="info-lbl">Internship</div><div class="info-val">{{ app.internshipType || '—' }}</div></div>
-            <div class="info-cell">
-              <div class="info-lbl">Priority</div>
-              <div class="info-val prio" [style.color]="priorityColor(app.priority)">
-                ● {{ PRIORITY_LABELS[app.priority || 'MEDIUM'] }}
-              </div>
-            </div>
-            <div class="info-cell"><div class="info-lbl">Attempts</div><div class="info-val">{{ attempts().length }}</div></div>
-          </div>
   </div>
 
   <div class="content-grid">
@@ -124,8 +121,40 @@
 
     <div class="right-col">
       <div class="card">
+        <div class="card-title">Pipeline</div>
+        @if (isOffTrack()) {
+          <div class="offtrack" [style.color]="statusColor(app.status)">
+            <span class="dot" [style.background]="statusColor(app.status)"></span>
+            {{ getStatusLabel(app.status) }}
+          </div>
+        }
+        <div class="stepper" [class.dim]="isOffTrack()">
+          @for (s of PIPELINE; track s; let i = $index) {
+            <div class="step"
+              [class.done]="i < currentStepIndex()"
+              [class.active]="i === currentStepIndex()">
+              <span class="step-dot" [style.background]="i <= currentStepIndex() ? statusColor(s) : ''"></span>
+              <span class="step-lbl">{{ getStatusLabel(s) }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Overview</div>
+        <dl class="meta-list">
+          <div><dt>Priority</dt><dd class="prio" [style.color]="priorityColor(app.priority)">● {{ PRIORITY_LABELS[app.priority || 'MEDIUM'] }}</dd></div>
+          <div><dt>Source</dt><dd>{{ app.offerSource || '—' }}</dd></div>
+          <div><dt>Internship</dt><dd>{{ app.internshipType || '—' }}</dd></div>
+          <div><dt>Applied</dt><dd>{{ formatDate(app.appliedAt) }}</dd></div>
+          <div><dt>Last updated</dt><dd>{{ formatDate(app.updatedAt) }}</dd></div>
+          <div><dt>Attempts</dt><dd>{{ attempts().length }}</dd></div>
+        </dl>
+      </div>
+
+      <div class="card">
         <div class="card-title">Attachments</div>
-        <div style="color:var(--color-text-tertiary);font-size:13px">No attachments yet. Coming soon.</div>
+        <div class="empty-inline"><i class="ti ti-paperclip"></i> No attachments yet.</div>
       </div>
     </div>
   </div>

@@ -2,7 +2,7 @@
   <div class="toolbar">
     <div>
       <h2>Image library</h2>
-      <p class="muted">{{ total() }} {{ total() === 1 ? 'image' : 'images' }} — used across the app: CV header photos, your avatar and company logos.</p>
+      <p class="muted">{{ total() }} {{ total() === 1 ? 'image' : 'images' }}, used across the app: CV header photos, your avatar and company logos.</p>
     </div>
     <div class="search-box">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -27,7 +27,7 @@
         @if (uploadFile()) {
           <span class="file-name">{{ uploadFile()!.name }}</span>
         } @else {
-          <span>Drag an image here, or choose a file — JPG / PNG / WebP / GIF (max 10MB)</span>
+          <span>Drag an image here, or choose a file. JPG / PNG / WebP / GIF (max 10MB)</span>
         }
       </label>
       <input id="image-file-input" type="file" hidden accept="image/jpeg,image/png,image/webp,image/gif" (change)="onFileSelected($event)">
@@ -46,7 +46,7 @@
     <div class="empty-state">
       <i class="ti ti-photo-off"></i>
       <p>No images yet</p>
-      <span>Upload photos and logos here, or paste a URL — then reuse them as CV header photos, your avatar or company logos.</span>
+      <span>Upload photos and logos here, or paste a URL, then reuse them as CV header photos, your avatar or company logos.</span>
       <div class="empty-actions">
         <button class="btn-primary" (click)="uploadOpen.set(true)"><i class="ti ti-cloud-upload"></i> Add image</button>
         <button class="btn-ghost" (click)="pickerOpen.set(true)"><i class="ti ti-link"></i> From URL</button>

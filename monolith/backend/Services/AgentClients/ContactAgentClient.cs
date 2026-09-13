@@ -4,7 +4,7 @@ namespace CV_Generator.Services.AgentClients;
 
 public interface IContactAgentClient
 {
-    Task<ContactOutput?> DeliverAsync(ContactInput input, CancellationToken cancellationToken = default);
+    Task<ContactEmailResponse?> GenerateAsync(ContactInput input, CancellationToken cancellationToken = default);
     Task<bool> CheckHealthAsync(CancellationToken cancellationToken = default);
 }
 
@@ -17,11 +17,11 @@ public class ContactAgentClient : IContactAgentClient
         _client = client;
     }
 
-    public async Task<ContactOutput?> DeliverAsync(ContactInput input, CancellationToken cancellationToken = default)
+    public async Task<ContactEmailResponse?> GenerateAsync(ContactInput input, CancellationToken cancellationToken = default)
     {
         var response = await _client.PostAsJsonAsync("generate-email", input, cancellationToken: cancellationToken);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<ContactOutput>(cancellationToken: cancellationToken);
+        return await response.Content.ReadFromJsonAsync<ContactEmailResponse>(cancellationToken: cancellationToken);
     }
 
     public async Task<bool> CheckHealthAsync(CancellationToken cancellationToken = default)

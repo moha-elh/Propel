@@ -19,10 +19,12 @@
     display: flex;
     align-items: center;
     gap: 7px;
+    height: 38px;
+    box-sizing: border-box;
     background: white;
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 7px 11px;
+    padding: 0 11px;
     color: var(--text-3);
 
     input {
@@ -40,12 +42,15 @@
 .btn-primary, .btn-ghost {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
+  height: 38px;
+  box-sizing: border-box;
   font: inherit;
   font-size: 13px;
   font-weight: 600;
   border-radius: 8px;
-  padding: 8px 14px;
+  padding: 0 16px;
   cursor: pointer;
   transition: background-color 0.15s, border-color 0.15s, color 0.15s;
 }

@@ -278,31 +278,48 @@ public class PdfOutput
     public string Message { get; set; } = string.Empty;
 }
 
+// Matches the contact agent's ContactRequest (/generate-email): it only
+// generates email copy; the actual send happens in the backend.
 public class ContactInput
 {
-    [JsonPropertyName("optimized_cv")]
-    public dynamic OptimizedCv { get; set; } = new Dictionary<string, object>();
-
-    [JsonPropertyName("job_title")]
-    public string JobTitle { get; set; } = string.Empty;
+    [JsonPropertyName("user_id")]
+    public string UserId { get; set; } = string.Empty;
 
     [JsonPropertyName("company_name")]
     public string CompanyName { get; set; } = string.Empty;
 
+    [JsonPropertyName("job_title")]
+    public string? JobTitle { get; set; }
+
     [JsonPropertyName("job_description")]
-    public string JobDescription { get; set; } = string.Empty;
+    public string? JobDescription { get; set; }
 
-    [JsonPropertyName("recipient_email")]
-    public string RecipientEmail { get; set; } = string.Empty;
+    [JsonPropertyName("contact_type")]
+    public string ContactType { get; set; } = "recruiter";
 
-    [JsonPropertyName("cover_letter_hint")]
-    public string? CoverLetterHint { get; set; }
+    [JsonPropertyName("language")]
+    public string Language { get; set; } = "English";
 
     [JsonPropertyName("provider")]
     public string? Provider { get; set; }
 
     [JsonPropertyName("model")]
     public string? Model { get; set; }
+}
+
+public class ContactEmailResponse
+{
+    [JsonPropertyName("subject")]
+    public string Subject { get; set; } = string.Empty;
+
+    [JsonPropertyName("body")]
+    public string Body { get; set; } = string.Empty;
+
+    [JsonPropertyName("contact_type")]
+    public string ContactType { get; set; } = string.Empty;
+
+    [JsonPropertyName("language")]
+    public string Language { get; set; } = string.Empty;
 }
 
 public class ContactOutput
