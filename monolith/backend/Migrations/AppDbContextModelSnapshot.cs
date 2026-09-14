@@ -208,6 +208,9 @@ namespace CV_Generator.Migrations
                     b.Property<DateTime?>("AppliedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("AttachmentsJson")
+                        .HasColumnType("jsonb");
+
                     b.Property<Guid>("CandidateId")
                         .HasColumnType("uuid");
 
@@ -226,6 +229,12 @@ namespace CV_Generator.Migrations
                         .IsRequired()
                         .HasMaxLength(280)
                         .HasColumnType("character varying(280)");
+
+                    b.Property<DateTime?>("FollowUpDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("FollowUpStatus")
+                        .HasColumnType("integer");
 
                     b.Property<string>("InternshipType")
                         .HasMaxLength(50)
@@ -316,6 +325,9 @@ namespace CV_Generator.Migrations
                         .HasColumnType("jsonb");
 
                     b.Property<Guid?>("ContactId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CoverLetterVersionId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")

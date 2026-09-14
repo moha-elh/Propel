@@ -14,17 +14,20 @@ public class ApplicationsController : ControllerBase
     private readonly ICurrentUserService _currentUser;
     private readonly ILogger<ApplicationsController> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IMinioStorageService _minio;
 
     public ApplicationsController(
         IApplicationService service,
         ICurrentUserService currentUser,
         ILogger<ApplicationsController> logger,
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        IMinioStorageService minio)
     {
         _service = service;
         _currentUser = currentUser;
         _logger = logger;
         _scopeFactory = scopeFactory;
+        _minio = minio;
     }
 
     private Guid? UserId => _currentUser.UserId;
@@ -144,7 +147,25 @@ public class ApplicationsController : ControllerBase
         }
     }
 
-    /// PUT /applications/{id}
+    /// PATCH /applications/{id}/follow-up
+    /// Decision from a follow-up reminder: REJECTED / ACCEPTED / INTERVIEW (status change)
+    /// or KEEP (dismiss reminder without changing status).
+    [HttpPatch("{id}/follow-up")]
+    public async Task<IActionResult> ActionFollowUp(Guid id, [FromBody] FollowUpActionDto dto)
+    {
+        if (UserId == null) return Unauthorized(ApiResponse<object>.Error("Unable to determine user identity"));
+
+        try
+        {
+            var updated = await _service.ApplyFollowUpActionAsync(id, dto, UserId.Value);
+            if (updated == null) return NotFound(ApiResponse<ApplicationResponseDto>.Error("Application not found"));
+            return Ok(ApiResponse<ApplicationResponseDto>.Ok(updated));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse<ApplicationResponseDto>.Error(ex.Message));
+        }
+    }
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateApplicationDto dto)
     {
@@ -298,6 +319,45 @@ public class ApplicationsController : ControllerBase
         {
             return BadRequest(ApiResponse<AttemptResponseDto>.Error(ex.Message));
         }
+    }
+
+    /// GET /applications/{id}/attachments/{index}/download — streams an attachment's bytes
+    [HttpGet("{id}/attachments/{index}/download")]
+    public async Task<IActionResult> DownloadAttachment(Guid id, int index)
+    {
+        if (UserId == null) return Unauthorized(ApiResponse<object>.Error("Unable to determine user identity"));
+
+        var att = await _service.GetAttachmentAsync(id, index, UserId.Value);
+        if (att == null || !att.ObjectKey.StartsWith($"{UserId.Value}/", StringComparison.Ordinal))
+            return NotFound(ApiResponse<object>.Error("Attachment not found"));
+
+        // Display name: objectKey = "{userId}/{guid}_{originalName}" → strip "{guid}_" prefix.
+        var keyName = att.ObjectKey[(att.ObjectKey.LastIndexOf('/') + 1)..];
+        string displayName;
+        var underscore = keyName.IndexOf('_');
+        displayName = underscore > 0 && underscore < keyName.Length - 1 ? keyName[(underscore + 1)..] : keyName;
+
+        try
+        {
+            var bytes = await _minio.GetObjectAsync("mail-attachments", att.ObjectKey);
+            if (bytes.Length == 0) return NotFound(ApiResponse<object>.Error("Attachment not found"));
+            return File(bytes, "application/octet-stream", displayName);
+        }
+        catch
+        {
+            return NotFound(ApiResponse<object>.Error("Attachment not found"));
+        }
+    }
+
+    /// DELETE /applications/{id}/attachments/{index} — detaches without deleting the MinIO object
+    [HttpDelete("{id}/attachments/{index}")]
+    public async Task<IActionResult> DeleteAttachment(Guid id, int index)
+    {
+        if (UserId == null) return Unauthorized(ApiResponse<object>.Error("Unable to determine user identity"));
+
+        var updated = await _service.RemoveAttachmentAsync(id, index, UserId.Value);
+        if (updated == null) return NotFound(ApiResponse<ApplicationResponseDto>.Error("Application or attachment not found"));
+        return Ok(ApiResponse<ApplicationResponseDto>.Ok(updated));
     }
 
     /// PATCH /applications/{id}/attempts/{attemptId}

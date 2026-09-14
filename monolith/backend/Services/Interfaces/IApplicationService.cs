@@ -12,6 +12,7 @@ public interface IApplicationService
     Task<ApplicationResponseDto?> UpdateStatusAsync(Guid id, UpdateStatusDto dto, Guid userId);
     Task<ApplicationResponseDto?> UpdateDetailsAsync(Guid id, UpdateApplicationDto dto, Guid userId);
     Task<ApplicationResponseDto?> UpdateLinkedEmailAsync(Guid id, Guid? emailMessageId, Guid userId);
+    Task<ApplicationResponseDto?> ApplyFollowUpActionAsync(Guid id, FollowUpActionDto dto, Guid userId);
     Task<bool> DeleteAsync(Guid id, Guid userId);
     Task<ApplicationStatisticsDto> GetStatisticsAsync(Guid userId);
     Task<StatisticsTrendsDto> GetTrendsAsync(Guid userId);
@@ -25,4 +26,6 @@ public interface IApplicationService
     Task<List<ContactSummaryDto>> GetSuggestedContactsAsync(Guid applicationId, Guid userId);
     Task<List<ApplicationResponseDto>?> GetApplicationsForContactAsync(Guid contactId, Guid userId);
     Task<List<ApplicationResponseDto>> GetApplicationsByCompanyAsync(Guid userId, string companyName);
+    Task<ScheduleAttachmentRef?> GetAttachmentAsync(Guid applicationId, int index, Guid userId);
+    Task<ApplicationResponseDto?> RemoveAttachmentAsync(Guid applicationId, int index, Guid userId);
 }

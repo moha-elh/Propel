@@ -6,6 +6,8 @@ public record ApplicationResponseDto(
     Guid? CvVersionId,
     Guid? JobOfferId,
     string CompanyName,
+    Guid? CompanyId,
+    string? CompanyLogoUrl,
     string PositionTitle,
     string? OfferSource,
     string Status,
@@ -22,7 +24,10 @@ public record ApplicationResponseDto(
     string? RecipientName = null,
     string? RecipientContact = null,
     /// <summary>Channel of the first sent attempt (how the user applied); list endpoint only.</summary>
-    string? ApplyChannel = null
+    string? ApplyChannel = null,
+    List<ScheduleAttachmentRef>? Attachments = null,
+    DateTime? FollowUpDate = null,
+    string FollowUpStatus = "NONE"
 );
 
 public record StatusHistoryDto(
@@ -50,7 +55,8 @@ public record CreateApplicationDto(
     DateTime? AppliedAt = null,
     Guid? ContactId = null,
     string? RecipientName = null,
-    string? RecipientContact = null
+    string? RecipientContact = null,
+    List<ScheduleAttachmentRef>? Attachments = null
 );
 
 public record UpdateStatusDto(
@@ -68,7 +74,18 @@ public record UpdateApplicationDto(
     Guid? CvVersionId = null,
     Guid? ContactId = null,
     string? RecipientName = null,
-    string? RecipientContact = null
+    string? RecipientContact = null,
+    List<ScheduleAttachmentRef>? Attachments = null,
+    DateTime? FollowUpDate = null,
+    bool ClearFollowUp = false
+);
+
+/// <summary>
+/// Decision taken on a follow-up reminder: promote the application to REJECTED / ACCEPTED / INTERVIEW
+/// (or KEEP to dismiss the reminder without changing status).
+/// </summary>
+public record FollowUpActionDto(
+    string Action
 );
 
 public record DuplicateCheckRequestDto(
@@ -104,6 +121,7 @@ public record CreateAttemptDto(
     Guid? ContactId = null,
     string? ChannelMetadataJson = null,
     Guid? CvVersionId = null,
+    Guid? CoverLetterVersionId = null,
     DateTime? SentAt = null,
     string? FailureReason = null
 );
@@ -117,6 +135,7 @@ public record UpdateAttemptDto(
     Guid? ContactId = null,
     string? ChannelMetadataJson = null,
     Guid? CvVersionId = null,
+    Guid? CoverLetterVersionId = null,
     DateTime? SentAt = null,
     string? FailureReason = null
 );
@@ -145,6 +164,8 @@ public record AttemptResponseDto(
     ContactSummaryDto? Contact,
     string? ChannelMetadataJson,
     Guid? CvVersionId,
+    Guid? CoverLetterVersionId,
+    string? CoverLetterTitle,
     DateTime? SentAt,
     string? FailureReason,
     DateTime CreatedAt,

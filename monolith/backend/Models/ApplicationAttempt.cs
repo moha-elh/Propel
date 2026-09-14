@@ -64,6 +64,15 @@ public class ApplicationAttempt
     /// </summary>
     public Guid? CvVersionId { get; set; }
 
+    /// <summary>
+    /// Cover letter version attached to this attempt (tells you which applications
+    /// were sent alongside a cover letter).
+    /// </summary>
+    public Guid? CoverLetterVersionId { get; set; }
+
+    [NotMapped]
+    public string? CoverLetterTitle { get; set; }
+
     public DateTime? SentAt { get; set; }
 
     [MaxLength(500)]

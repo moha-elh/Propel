@@ -79,6 +79,23 @@ public class Application
     /// </summary>
     public bool IsDeleted { get; set; } = false;
 
+    /// <summary>
+    /// Files attached to this application (offer PDF, screenshot, contract...).
+    /// JSON array of <c>ScheduleAttachmentRef</c> persisted in MinIO <c>mail-attachments</c>.
+    /// </summary>
+    [Column(TypeName = "jsonb")]
+    public string? AttachmentsJson { get; set; }
+
+    /// <summary>
+    /// Date after which the candidate expects a reply (follow-up/reminder trigger).
+    /// Usually set relative to AppliedAt (e.g. applied date + 2 weeks). Null = no follow-up scheduled.
+    /// </summary>
+    public DateTime? FollowUpDate { get; set; }
+
+    /// <summary>Follow-up reminder lifecycle: none scheduled, awaiting a decision, or actioned.</summary>
+    [Required]
+    public FollowUpStatus FollowUpStatus { get; set; } = FollowUpStatus.NONE;
+
     // Navigation
     public ICollection<ApplicationStatusHistory> StatusHistory { get; set; } = new List<ApplicationStatusHistory>();
 
