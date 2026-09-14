@@ -1,3 +1,5 @@
+import { ScheduleAttachmentRef } from './mailbox.model';
+
 export type ApplicationStatus =
   | 'SAVED'
   | 'APPLIED'
@@ -52,6 +54,8 @@ export interface AttemptResponseDto {
   contact?: ContactSummaryDto;
   channelMetadataJson?: string;
   cvVersionId?: string;
+  coverLetterVersionId?: string | null;
+  coverLetterTitle?: string | null;
   sentAt?: string;
   failureReason?: string;
   createdAt: string;
@@ -93,6 +97,7 @@ export interface UpdateAttemptDto {
   contactId?: string;
   channelMetadataJson?: string;
   cvVersionId?: string;
+  coverLetterVersionId?: string | null;
   sentAt?: string;
   failureReason?: string;
 }
@@ -103,6 +108,8 @@ export interface ApplicationResponseDto {
   cvVersionId?: string;
   jobOfferId?: string;
   companyName: string;
+  companyId?: string;
+  companyLogoUrl?: string;
   positionTitle: string;
   offerSource?: string;
   origin: ApplicationOrigin;
@@ -120,6 +127,9 @@ export interface ApplicationResponseDto {
   recipientContact?: string;
   /** Channel of the first sent attempt; set on list responses only. */
   applyChannel?: AttemptChannel | null;
+  attachments?: ScheduleAttachmentRef[];
+  followUpDate?: string;
+  followUpStatus?: FollowUpStatus;
 }
 
 export interface CreateApplicationDto {
@@ -157,7 +167,14 @@ export interface UpdateApplicationDto {
   contactId?: string | null;
   recipientName?: string;
   recipientContact?: string;
+  attachments?: ScheduleAttachmentRef[];
+  followUpDate?: string;
+  clearFollowUp?: boolean;
 }
+
+export type FollowUpStatus = 'NONE' | 'PENDING' | 'ACTIONED';
+
+export type FollowUpAction = 'REJECTED' | 'ACCEPTED' | 'INTERVIEW' | 'KEEP';
 
 export interface DuplicateCheckRequestDto {
   companyName: string;

@@ -369,6 +369,12 @@
   flex-shrink: 0;
 }
 
+img.followup-logo {
+  object-fit: contain;
+  background: var(--bg-2);
+  padding: 2px;
+}
+
 .followup-body { flex: 1; min-width: 0; }
 
 .followup-company {

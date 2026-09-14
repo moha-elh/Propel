@@ -354,6 +354,12 @@ tr:last-child td { border-bottom: none; }
   flex-shrink: 0;
 }
 
+img.co-logo {
+  object-fit: contain;
+  background: var(--bg-2);
+  padding: 2px;
+}
+
 .co-name { font-weight: 500; color: var(--text); font-size: 13px; }
 .co-role { font-size: 11.5px; color: var(--text-3); margin-top: 1px; }
 

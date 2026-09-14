@@ -16,6 +16,7 @@ import {
   CreateAttemptDto,
   UpdateAttemptDto,
   ContactSummaryDto,
+  FollowUpAction,
   ApiResponse,
   AWAITING_STATUSES,
   daysQuiet,
@@ -98,6 +99,10 @@ export class ApplicationService {
 
   setLinkedEmail(id: string, emailMessageId: string | null): Promise<ApiResponse<ApplicationResponseDto>> {
     return this.http.put<ApiResponse<ApplicationResponseDto>>(`/api/applications/${id}/linked-email`, { emailMessageId });
+  }
+
+  async actionFollowUp(id: string, action: FollowUpAction): Promise<ApiResponse<ApplicationResponseDto>> {
+    return this.http.patch<ApiResponse<ApplicationResponseDto>>(`/api/applications/${id}/follow-up`, { action });
   }
 
   async delete(id: string): Promise<void> {

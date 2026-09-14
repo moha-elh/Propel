@@ -385,6 +385,12 @@
   &.sm { width: 22px; height: 22px; font-size: 9px; border-radius: 5px; }
 }
 
+img.kb-logo {
+  object-fit: contain;
+  background: var(--bg-2);
+  padding: 2px;
+}
+
 .kb-company {
   font-size: 11px;
   font-weight: 600;
@@ -673,6 +679,12 @@
   font-weight: 700;
   color: var(--text);
   flex-shrink: 0;
+}
+
+img.saved-logo {
+  object-fit: contain;
+  background: var(--bg-2);
+  padding: 3px;
 }
 
 .saved-unpin {

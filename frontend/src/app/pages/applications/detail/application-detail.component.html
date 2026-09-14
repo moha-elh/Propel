@@ -55,6 +55,9 @@
                     <span class="attempt-pill" [attr.data-astatus]="att.status">{{ ATTEMPT_STATUS_LABELS[att.status] }}</span>
                   </div>
                   @if (att.subject) { <div class="attempt-subject">{{ att.subject }}</div> }
+                  @if (att.coverLetterTitle && att.coverLetterVersionId) {
+                    <span class="attempt-tag"><i class="ti ti-mail"></i> Cover letter: {{ att.coverLetterTitle }}</span>
+                  }
                   @if (att.contact) {
                     <button type="button" class="contact-chip" (click)="openContactPanel(att)"
                       title="View contact details & email history">
@@ -217,23 +220,80 @@
       </div>
 
       <div class="card">
-        <div class="card-title">Linked CV</div>
-        @if (linkedCv(); as cv) {
-          <div class="linked-email">
-            <div class="le-head">
-              <strong>{{ cv }}</strong>
-              <span class="attempt-pill" [attr.data-astatus]="'SENT'">CV</span>
-            </div>
-            <div class="le-meta"><i class="ti ti-file-text"></i> Attached CV version</div>
-          </div>
-        } @else {
-          <div class="empty-inline">—</div>
+        <div class="card-title">
+          Follow-up reminder
+          @if (app.followUpStatus !== 'NONE') {
+            <span class="fu-status" [class.fu-pending]="app.followUpStatus === 'PENDING'" [class.fu-overdue]="followUpOverdue()" [class.fu-actioned]="app.followUpStatus === 'ACTIONED'">
+              {{ followUpStatusLabel() }}@if (followUpOverdue()) { · Overdue }
+            </span>
+          }
+        </div>
+        @if (followUpError()) {
+          <div class="attempt-error">{{ followUpError() }}</div>
         }
+        <div class="fu-hint">
+          When should you expect a reply? Once the date passes, a decision reminder shows on your Calendar.
+          @if (followUpDeadline(); as d) {
+            <div class="fu-deadline"><strong>Deadline:</strong> {{ formatDate(d) }}</div>
+          }
+        </div>
+        <div class="fu-presets">
+          @for (p of followUpPresets; track p.days) {
+            <button type="button" class="fu-chip" (click)="setFollowUp(presetTarget(p.days))" [disabled]="followUpSaving()">{{ p.label }}</button>
+          }
+        </div>
+        <div class="fu-custom">
+          <input type="date" class="form-input fu-date" [ngModel]="customFollowUpDate()" (ngModelChange)="customFollowUpDate.set($event)" [disabled]="followUpSaving()" />
+          <button class="det-btn primary" (click)="setFollowUp(customFollowUpDate())" [disabled]="followUpSaving() || !customFollowUpDate()">
+            {{ followUpSaving() ? 'Saving…' : 'Set date' }}
+          </button>
+          @if (app.followUpDate) {
+            <button class="det-btn" (click)="setFollowUp('')" [disabled]="followUpSaving()">Clear</button>
+          }
+        </div>
       </div>
-
       <div class="card">
         <div class="card-title">Attachments</div>
-        <div class="empty-inline"><i class="ti ti-paperclip"></i> No attachments yet.</div>
+        @if (attachmentError()) {
+          <div class="attempt-error">{{ attachmentError() }}</div>
+        }
+        <div class="form-group">
+          <label>CV sent in this apply <span class="field-hint">(optional)</span></label>
+          <app-select class="form-select" [ngModel]="selectedCvValue()" (ngModelChange)="setApplicationCv($event)" name="appCvVersionId" [disabled]="docLoading()">
+            <option value="">None — no CV attached to this apply</option>
+            @for (o of cvOptions(); track o.id) {
+              <option [value]="o.id">{{ o.label }}</option>
+            }
+          </app-select>
+          @if (docLoading()) {
+            <div style="color:var(--text-3);font-size:11.5px;margin-top:4px">Loading CVs from Documents…</div>
+          }
+        </div>
+        @if (appAttachments().length > 0) {
+          <div class="att-list">
+            @for (att of appAttachments(); track att.objectKey; let i = $index) {
+              <div class="att-item">
+                <a class="att-link" [href]="attachmentDownloadUrl(i)" title="Download {{ att.fileName }}">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <span class="att-name">{{ att.fileName }}</span>
+                  <em class="att-size">{{ formatBytes(att.sizeBytes) }}</em>
+                </a>
+                <button type="button" class="att-del" title="Remove" (click)="removeAttachment(i)">&times;</button>
+              </div>
+            }
+          </div>
+        } @else {
+          <div style="color:var(--color-text-tertiary);font-size:13px">No attachments yet.</div>
+        }
+        <input #attachInput type="file" multiple hidden (change)="onFilesSelected($event)">
+        <div class="att-actions">
+          <button class="det-btn primary" (click)="attachInput.click()" [disabled]="attachmentsUploading()">
+            <i class="ti ti-paperclip"></i> {{ attachmentsUploading() ? 'Uploading…' : 'Add attachment' }}
+          </button>
+          <button class="det-btn" (click)="openDocsPicker()" [disabled]="attachmentsUploading()">
+            <i class="ti ti-folder"></i> From Documents
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -393,8 +453,24 @@
           }
         </div>
 
-        <div class="form-group"><label>Subject</label><input class="form-input" [(ngModel)]="attemptForm().subject" name="subject"></div>
-        <div class="form-group"><label>Message / notes</label><textarea class="form-textarea" [(ngModel)]="attemptForm().body" rows="4"></textarea></div>
+        @if (channelFields().subject) {
+          <div class="form-group"><label>Subject</label><input class="form-input" [(ngModel)]="attemptForm().subject" name="subject" placeholder="Application – {{ application()?.positionTitle || 'Position title' }}"></div>
+        }
+        @if (channelFields().message) {
+          <div class="form-group"><label>{{ channelFields().messageLabel }}</label><textarea class="form-textarea" [(ngModel)]="attemptForm().body" name="body" rows="4" [placeholder]="channelFields().messagePlaceholder"></textarea></div>
+        }
+        <div class="form-group">
+          <label>Cover letter <span class="field-hint">(optional — mark this apply as sent with a letter)</span></label>
+          <app-select class="form-select" [(ngModel)]="attemptForm().coverLetterVersionId" name="coverLetterVersionId">
+            <option value="">None — no cover letter sent</option>
+            @for (opt of coverLetterOptions(); track opt.versionId) {
+              <option [value]="opt.versionId">{{ opt.label }} — {{ opt.company }}</option>
+            }
+          </app-select>
+        </div>
+        @if (attemptForm().channel === 'WEB_FORM') {
+          <p class="attempt-hint"><i class="ti ti-world"></i> The form URL is saved so you can find it again later.</p>
+        }
       </div>
       <div class="modal-footer">
         <button class="det-btn" (click)="closeAttemptModal()">Cancel</button>
@@ -448,6 +524,72 @@
       <div class="modal-footer">
         <button class="det-btn" (click)="closeEditModal()">Cancel</button>
         <button class="det-btn primary" (click)="saveEdit()" [disabled]="saving()">{{ saving() ? 'Saving...' : 'Save' }}</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- From-Documents picker -->
+@if (docsOpen()) {
+  <div class="modal-backdrop" (click)="closeDocsPicker()">
+    <div class="modal docs-panel" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title">Attach from Documents</span>
+        <button class="modal-close" (click)="closeDocsPicker()">&times;</button>
+      </div>
+      <div class="modal-body">
+        @if (docLoading()) {
+          <div class="empty-attempts">Loading documents…</div>
+        } @else {
+          @if (cvDocuments().length) {
+            <div class="card-title">CVs</div>
+            <div class="docs-scroll">
+              @for (cv of cvDocuments(); track cv.id) {
+                <div class="doc-group">
+                  <div class="doc-title" [title]="cv.title">{{ cv.title }}</div>
+                  @for (v of cv.versions; track v.id) {
+                    @if (v.pdfUrl || v.fileUrl) {
+                      <button class="doc-item" (click)="pickDocVersion(cv, v)" [disabled]="attachmentsUploading()">
+                        <svg viewBox="0 0 14 14" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 2h8a1 1 0 011 1v8a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M5 6h4M5 9h4"/></svg>
+                        <span class="doc-meta">
+                          <span class="doc-name">{{ docVersionLabel(v) }} · PDF</span>
+                          <span class="doc-sub">{{ v.createdAt ? formatDate(v.createdAt) : '' }}</span>
+                        </span>
+                        <span class="doc-add">+</span>
+                      </button>
+                    }
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="empty-attempts" style="margin-bottom:14px">No CVs in Documents yet — add one on the Documents page.</div>
+          }
+          @if (docLetters().length) {
+            <div class="card-title" style="margin-top:14px">Cover letters</div>
+            <div class="docs-scroll">
+              @for (letter of docLetters(); track letter.id) {
+                <div class="doc-group">
+                  <div class="doc-title" [title]="letter.title">{{ letter.title }}@if (letter.companyName) { <em>({{ letter.companyName }})</em> }</div>
+                  @for (v of letter.versions; track v.id) {
+                    @if (v.pdfUrl || v.fileUrl) {
+                      <button class="doc-item" (click)="pickLetterVersion(letter, v)" [disabled]="attachmentsUploading()">
+                        <svg viewBox="0 0 14 14" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 2h8a1 1 0 011 1v8a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M5 6h4M5 9h4"/></svg>
+                        <span class="doc-meta">
+                          <span class="doc-name">v{{ v.versionNumber }} · PDF</span>
+                          <span class="doc-sub">{{ v.createdAt ? formatDate(v.createdAt) : '' }}</span>
+                        </span>
+                        <span class="doc-add">+</span>
+                      </button>
+                    }
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="empty-attempts" style="margin-bottom:14px">No cover letters in Documents yet.</div>
+          }
+        }
       </div>
     </div>
   </div>

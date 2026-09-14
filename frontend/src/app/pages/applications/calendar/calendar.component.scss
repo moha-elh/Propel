@@ -295,6 +295,7 @@
   &.ev-offer      { background: oklch(0.93 0.06 130); color: oklch(0.38 0.12 130); }
   &.ev-withdrawn  { background: oklch(0.94 0.02 20);  color: oklch(0.45 0.05 20); }
   &.ev-reminder   { background: oklch(0.95 0.03 80);  color: oklch(0.45 0.10 80); }
+  &.clickable { cursor: pointer; opacity: .85; &:hover { opacity: 1; } }
 }
 
 .more-link {

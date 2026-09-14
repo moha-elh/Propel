@@ -21,11 +21,13 @@ import {
   PRIORITY_LABELS,
   PRIORITY_ORDER,
   PRIORITY_COLORS,
+  attemptChannelFields,
   ATTEMPT_CHANNEL_LABELS,
   ATTEMPT_STATUS_LABELS,
 } from '@app/models/application.model';
-import { ContactDto, EmailMessageDto } from '@app/models/mailbox.model';
-import { CvDocumentDto, CvVersionDto } from '@app/models/document.model';
+import { ContactDto, EmailMessageDto, ScheduleAttachmentRef } from '@app/models/mailbox.model';
+import { MailboxService } from '@app/services/mailbox.service';
+import { CoverLetterDto, CoverLetterVersionDto, CvDocumentDto, CvVersionDto } from '@app/models/document.model';
 import { DocumentsService } from '@app/services/documents.service';
 import { CompanyService, CompanyDto } from '@app/services/company.service';
 import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
@@ -65,6 +67,8 @@ export class ApplicationDetailComponent implements OnInit {
   private docsApi = inject(DocumentsService);
   private companyApi = inject(CompanyService);
   private toast = inject(ToastService);
+  private documents = inject(DocumentsService);
+  private mailbox = inject(MailboxService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
@@ -105,6 +109,17 @@ export class ApplicationDetailComponent implements OnInit {
   showAttemptAccountPassword = signal(false);
   /** Reveal state for saved passwords, keyed by attempt id. */
   revealedPass = signal<Record<string, boolean>>({});
+  // Cover letter picker (attempt modal)
+  coverLetters = signal<CoverLetterDto[]>([]);
+  coverLetterOptions = computed(() =>
+    this.coverLetters().flatMap(l =>
+      l.versions.map(v => ({
+        versionId: v.id,
+        label: `${l.title} — v${v.versionNumber}`,
+        company: l.companyName || 'General',
+      })),
+    ),
+  );
 
   // Contact picker (attempt modal)
   suggestedContacts = signal<ContactSummaryDto[]>([]);
@@ -173,6 +188,73 @@ export class ApplicationDetailComponent implements OnInit {
   });
 
   availableStatuses = computed(() => NEXT_STATUSES[this.application()?.status || 'SAVED'] || []);
+
+  // Application attachments (right-column card)
+  appAttachments = computed<ScheduleAttachmentRef[]>(() => this.application()?.attachments ?? []);
+  attachmentsUploading = signal(false);
+  attachmentError = signal<string | null>(null);
+
+  // CV sent with this apply (optional, from the user's Documents CVs)
+  cvDocuments = signal<CvDocumentDto[]>([]);
+  docLoading = signal(false);
+  private docLoaded = false;
+  selectedCvValue = computed(() => this.application()?.cvVersionId ?? '');
+
+  // From-Documents picker modal
+  docsOpen = signal(false);
+  docLetters = signal<CoverLetterDto[]>([]);
+
+  // Follow-up reminder (right-column card): presets relative to the applied date,
+  // custom date, or cleared. A set deadline becomes a PENDING reminder on the Calendar.
+  followUpPresets = [
+    { label: '3 days', days: 3 },
+    { label: '1 week', days: 7 },
+    { label: '2 weeks', days: 14 },
+    { label: '1 month', days: 30 },
+  ];
+  followUpSaving = signal(false);
+  followUpError = signal<string | null>(null);
+  customFollowUpDate = signal('');
+
+  followUpDeadline = computed(() => this.application()?.followUpDate ?? null);
+  followUpStatusLabel = computed(() => {
+    const s = this.application()?.followUpStatus;
+    return s === 'PENDING' ? 'Pending reply' : s === 'ACTIONED' ? 'Actioned' : 'Not set';
+  });
+  followUpOverdue = computed(() => {
+    const d = this.followUpDeadline();
+    if (!d) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return new Date(d) < today;
+  });
+
+  /** Target date-input value for a preset: applied date + offset days (falls back to today). */
+  presetTarget(days: number): string {
+    const base = this.application()?.appliedAt ? new Date(this.application()!.appliedAt!) : new Date();
+    const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + days);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  async setFollowUp(dateInput: string) {
+    const app = this.application();
+    if (!app || this.followUpSaving()) return;
+    this.followUpSaving.set(true);
+    this.followUpError.set(null);
+    try {
+      const res = await this.appService.update(app.id, {
+        followUpDate: dateInput ? new Date(dateInput + 'T12:00:00').toISOString() : undefined,
+        clearFollowUp: !dateInput,
+      });
+      if (res.success && res.data) this.application.set(res.data);
+      else this.followUpError.set(res.message || 'Failed to save follow-up');
+    } catch {
+      this.followUpError.set('Failed to save follow-up');
+    } finally {
+      this.followUpSaving.set(false);
+    }
+  }
+
   sortedAttempts = computed(() =>
     [...this.attempts()].sort((a, b) => b.attemptNumber - a.attemptNumber)
   );
@@ -200,11 +282,13 @@ export class ApplicationDetailComponent implements OnInit {
   protected readonly ALL_CHANNELS: AttemptChannel[] =
     Object.keys(ATTEMPT_CHANNEL_LABELS) as AttemptChannel[];
   protected readonly INITIATORS: AttemptInitiatedBy[] = ['USER', 'AI_AGENT', 'SCHEDULE'];
+  protected readonly channelFields = computed(() => attemptChannelFields(this.attemptForm().channel));
 
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) this.loadApplication(id);
     this.loadCvDocs();
+    void this.ensureDocumentsLoaded();
   }
 
   /** Loads the user's CV versions so the edit modal can link which CV was used. */
@@ -308,10 +392,25 @@ export class ApplicationDetailComponent implements OnInit {
         .then(res => { if (res.success && res.data) this.suggestedContacts.set(res.data); })
         .catch(() => { });
     }
+    this.loadCoverLetters();
   }
   closeAttemptModal() {
     this.showAttemptModal.set(false);
     this.resetPicker();
+  }
+
+  onAttemptChannelChange(ch: AttemptChannel) {
+    // Replace the form object so `channelFields` (a computed on attemptForm) re-evaluates.
+    this.attemptForm.update(f => ({ ...f, channel: ch }));
+  }
+
+  async loadCoverLetters(): Promise<void> {
+    try {
+      const res = await this.documents.listCoverLetters();
+      this.coverLetters.set(res.data ?? []);
+    } catch {
+      this.coverLetters.set([]);
+    }
   }
 
   private resetPicker() {
@@ -378,10 +477,13 @@ export class ApplicationDetailComponent implements OnInit {
 
   pickContact(c: ContactSummaryDto) {
     this.selectedContactId.set(c.id);
+    const cfg = this.channelFields();
+    const ch = this.attemptForm().channel;
     this.attemptForm.update(f => ({
       ...f,
-      recipientName: f.recipientName.trim() || c.name,
-      recipientContact: c.email,
+      recipientName: cfg.recipientName ? (f.recipientName.trim() || c.name) : f.recipientName,
+      recipientContact: (cfg.recipientContact && (ch === 'EMAIL_GMAIL' || ch === 'EMAIL_SMTP'))
+        ? c.email : f.recipientContact,
     }));
     this.contactSearch.set('');
     this.searchResults.set([]);
@@ -479,6 +581,7 @@ export class ApplicationDetailComponent implements OnInit {
     const app = this.application();
     if (!app) return;
     const f = this.attemptForm();
+    const cfg = this.channelFields();
     this.saving.set(true);
     this.attemptError.set(null);
     try {
@@ -486,13 +589,13 @@ export class ApplicationDetailComponent implements OnInit {
         channel: f.channel,
         initiatedBy: f.initiatedBy,
         status: markSent ? 'SENT' : 'DRAFT',
-        subject: f.subject.trim() || undefined,
-        body: f.body.trim() || undefined,
-        recipientName: f.recipientName.trim() || undefined,
-        recipientContact: f.recipientContact.trim() || undefined,
+        subject: cfg.subject ? (f.subject.trim() || undefined) : undefined,
+        body: cfg.message ? (f.body.trim() || undefined) : undefined,
+        recipientName: cfg.recipientName ? (f.recipientName.trim() || undefined) : undefined,
+        recipientContact: cfg.recipientContact ? (f.recipientContact.trim() || undefined) : undefined,
         contactId: this.selectedContactId() ?? undefined,
         channelMetadataJson: this.buildAttemptMetadata(),
-        coverLetterVersionId: f.coverLetterVersionId ?? null,
+        coverLetterVersionId: f.coverLetterVersionId || null,
         sentAt: markSent ? new Date().toISOString() : undefined,
       });
       if (res.success && res.data) {
@@ -585,5 +688,137 @@ export class ApplicationDetailComponent implements OnInit {
     let hash = 0;
     for (let i = 0; i < (name || '').length; i++) hash = (hash * 31 + name.charCodeAt(i)) % 360;
     return hash;
+  }
+
+  attachmentDownloadUrl(index: number): string {
+    const app = this.application();
+    return app ? `/api/applications/${app.id}/attachments/${index}/download` : '';
+  }
+
+  async onFilesSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    input.value = '';
+    if (files.length > 0) await this.uploadAttachments(files);
+  }
+
+  async uploadAttachments(files: File[]) {
+    const app = this.application();
+    if (!app || this.attachmentsUploading()) return;
+    this.attachmentsUploading.set(true);
+    this.attachmentError.set(null);
+    try {
+      const refs = await Promise.all(files.map(f => this.mailbox.uploadAttachment(f)));
+      const failed = refs.find(r => !r.success || !r.data);
+      if (failed) { this.attachmentError.set(failed.message || 'Upload failed'); return; }
+      const next = [...(app.attachments ?? []), ...refs.map(r => r.data!)];
+      const res = await this.appService.update(app.id, { attachments: next });
+      if (res.success && res.data) {
+        this.application.set(res.data);
+      } else {
+        this.attachmentError.set(res.message || 'Failed to save attachments');
+      }
+    } catch {
+      this.attachmentError.set('Upload failed');
+    } finally {
+      this.attachmentsUploading.set(false);
+    }
+  }
+
+  async removeAttachment(index: number) {
+    const app = this.application();
+    if (!app || this.attachmentsUploading()) return;
+    this.attachmentError.set(null);
+    try {
+      const next = (app.attachments ?? []).filter((_, i) => i !== index);
+      const res = await this.appService.update(app.id, { attachments: next });
+      if (res.success && res.data) {
+        this.application.set(res.data);
+      } else {
+        this.attachmentError.set(res.message || 'Failed to remove attachment');
+      }
+    } catch {
+      this.attachmentError.set('Failed to remove attachment');
+    }
+  }
+
+  formatBytes(bytes?: number): string {
+    if (!bytes || bytes <= 0) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  // ── CV sent with this apply ─────────────────────────────────────────────
+  async ensureDocumentsLoaded() {
+    if (this.docLoaded || this.docLoading()) return;
+    this.docLoading.set(true);
+    try {
+      const cvs = await this.documents.listCvs();
+      if (cvs.success && cvs.data) this.cvDocuments.set(cvs.data);
+      const letters = await this.documents.listCoverLetters();
+      if (letters.success && letters.data) this.docLetters.set(letters.data);
+      this.docLoaded = true;
+    } catch {
+    } finally {
+      this.docLoading.set(false);
+    }
+  }
+
+  /** Updates the application's CV version. '' clears it (sentinel Guid.Empty). */
+  async setApplicationCv(value: string) {
+    const app = this.application();
+    if (!app) return;
+    this.attachmentError.set(null);
+    try {
+      const res = await this.appService.update(app.id, {
+        cvVersionId: value ? value : '00000000-0000-0000-0000-000000000000',
+      });
+      if (res.success && res.data) {
+        this.application.set(res.data);
+      } else {
+        this.attachmentError.set(res.message || 'Failed to update CV');
+      }
+    } catch {
+      this.attachmentError.set('Failed to update CV');
+    }
+  }
+
+  // ── From-Documents picker ───────────────────────────────────────────────
+  openDocsPicker() {
+    void this.ensureDocumentsLoaded();
+    this.docsOpen.set(true);
+  }
+  closeDocsPicker() { this.docsOpen.set(false); }
+
+  docVersionLabel(v: CvVersionDto): string {
+    const base = `v${v.versionNumber}`;
+    return v.label ? `${base} · ${v.label}` : base;
+  }
+
+  async pickDocVersion(cv: CvDocumentDto, v: CvVersionDto) {
+    const name = `${cv.title} — ${this.docVersionLabel(v)}.pdf`;
+    const ok = await this.attachBlobAsFile(name, () => this.documents.getVersionFileBlob(v.id));
+    if (ok) this.closeDocsPicker();
+  }
+
+  async pickLetterVersion(letter: CoverLetterDto, v: CoverLetterVersionDto) {
+    const name = `${letter.title}${letter.companyName ? ` (${letter.companyName})` : ''} — v${v.versionNumber}.pdf`;
+    const ok = await this.attachBlobAsFile(name, () => this.documents.getCoverLetterVersionFileBlob(v.id));
+    if (ok) this.closeDocsPicker();
+  }
+
+  /** Fetches document bytes through the app's authenticated endpoint, uploads to
+   *  MinIO via the mailbox attachment path, then persists the ref on the application. */
+  private async attachBlobAsFile(fileName: string, fetchBlob: () => Promise<Blob>): Promise<boolean> {
+    try {
+      const blob = await fetchBlob();
+      const file = new File([blob], fileName, { type: blob.type || 'application/pdf' });
+      await this.uploadAttachments([file]);
+      return true;
+    } catch {
+      this.attachmentError.set(`Could not load "${fileName}" from Documents`);
+      return false;
+    }
   }
 }
