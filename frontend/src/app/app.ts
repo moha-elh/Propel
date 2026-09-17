@@ -5,13 +5,14 @@ import { HeaderComponent } from './layout/header/header.component';
 import { SidebarComponent } from './layout/sidebar/sidebar.component';
 import { RevealOverlayComponent } from './pages/reveal-overlay/reveal-overlay.component';
 import { ToastComponent } from './shared/components/toast/toast.component';
+import { ConfirmDialogComponent } from './shared/components/confirm-dialog/confirm-dialog.component';
 import { BimeChatComponent } from './shared/components/bime-chat/bime-chat';
 import { APP_NAME } from './app-name';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, HeaderComponent, SidebarComponent, RevealOverlayComponent, ToastComponent, BimeChatComponent],
+  imports: [RouterOutlet, HeaderComponent, SidebarComponent, RevealOverlayComponent, ToastComponent, ConfirmDialogComponent, BimeChatComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })

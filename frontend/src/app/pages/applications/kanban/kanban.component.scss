@@ -269,6 +269,7 @@
   cursor: grab;
   transition: border-color 0.12s, box-shadow 0.12s, opacity 0.12s;
   user-select: none;
+  overflow: hidden;
 
   &:hover {
     border-color: oklch(0.86 0.006 80);
@@ -283,6 +284,12 @@
   align-items: center;
   gap: 7px;
   margin-bottom: 7px;
+}
+
+.kb-card-meta {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .kb-logo {
@@ -459,6 +466,28 @@
   transition: background 0.1s;
 
   &:hover { background: var(--bg-2); }
+
+  &.act-deleted {
+    cursor: default;
+    opacity: 0.55;
+
+    &:hover { background: transparent; }
+  }
+}
+
+.act-deleted-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text-3);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
 }
 
 .act-icon {

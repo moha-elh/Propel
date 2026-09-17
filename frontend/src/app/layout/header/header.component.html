@@ -13,9 +13,7 @@
 
   @if (isLoggedIn()) {
     <button class="header-btn" (click)="router.navigate(['/settings'])" title="Settings">
-      <svg viewBox="0 0 24 24" fill="none" width="13" height="13">
-        <path d="M3 3v2h2V3H3zm4 4v12h2V7H7zm4 12v-6h2v6h-2zm-4-6v6h2V7H11zm8 2v-6h2v6h-2zm2-4v2h2V9h-2z"/>
-      </svg>
+      <i class="ti ti-settings" aria-hidden="true"></i>
       <span>Settings</span>
     </button>
 

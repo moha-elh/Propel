@@ -54,8 +54,7 @@ export class CalendarComponent implements OnInit {
   private configSvc = inject(CalendarConfigurationService);
 
   currentMonth = signal(new Date());
-  viewMode = signal<'month' | 'week'>('month');
-  
+
   remindersList = signal<ReminderResultDto[]>([]);
   offsetOptions = REMINDER_OFFSET_OPTIONS;
   loading = signal(false);
@@ -105,7 +104,9 @@ export class CalendarComponent implements OnInit {
       }
     }
 
-    const selected = cfg?.selectedStatuses ?? [];
+    // No saved config yet = show every application status.
+    // A saved config filters strictly by its selection (an empty selection shows nothing).
+    const selected = cfg ? cfg.selectedStatuses : DEFAULT_APP_STATUSES;
     for (const e of this.appEvents()) {
       if (selected.length === 0 || this.isStatusInFilter(e.type, selected)) {
         events.push({
@@ -185,12 +186,13 @@ export class CalendarComponent implements OnInit {
       const res = await this.configSvc.getConfiguration();
       if (res.success && res.data) {
         this.config.set(res.data);
-        await this.loadAppEvents();
       }
     } catch (e: any) {
       console.error('Failed to load config', e);
     } finally {
       this.configLoading.set(false);
+      // App events must load even when no config exists yet (defaults apply client-side).
+      await this.loadAppEvents();
     }
   }
 
@@ -223,14 +225,19 @@ export class CalendarComponent implements OnInit {
     return this.eventsForDay(day, month, year).filter(ev => ev.source === 'application').length;
   }
 
+  private defaultConfig(): CalendarConfigurationDto {
+    return { id: '', userId: '', showReminders: true, selectedStatuses: [...DEFAULT_APP_STATUSES] };
+  }
+
   async saveConfig() {
     const cfg = this.config();
     if (!cfg) return;
     try {
-      await this.configSvc.updateConfiguration({
+      const updated = await this.configSvc.updateConfiguration({
         showReminders: cfg.showReminders,
         selectedStatuses: cfg.selectedStatuses,
       });
+      if (updated.success && updated.data) this.config.set(updated.data);
       await this.loadAppEvents();
     } catch (e: any) {
       console.error('Failed to save config', e);
@@ -247,23 +254,23 @@ export class CalendarComponent implements OnInit {
 
   toggleReminderFilter() {
     this.config.update(cfg => {
-      if (!cfg) return cfg;
-      return { ...cfg, showReminders: !cfg.showReminders };
+      const base = cfg ?? this.defaultConfig();
+      return { ...base, showReminders: !base.showReminders };
     });
     this.saveConfig();
   }
 
   toggleStatusFilter(status: string) {
     this.config.update(cfg => {
-      if (!cfg) return cfg;
-      const current = [...cfg.selectedStatuses];
+      const base = cfg ?? this.defaultConfig();
+      const current = [...base.selectedStatuses];
       const idx = current.indexOf(status);
       if (idx >= 0) {
         current.splice(idx, 1);
       } else {
         current.push(status);
       }
-      return { ...cfg, selectedStatuses: current };
+      return { ...base, selectedStatuses: current };
     });
     this.saveConfig();
   }
@@ -383,11 +390,6 @@ export class CalendarComponent implements OnInit {
     return cells;
   });
 
-  goToToday() {
-    this.currentMonth.set(new Date());
-    this.loadAppEvents();
-  }
-
   private getEventTypeFromTitle(title: string): string {
     const t = title.toLowerCase();
     if (t.includes('interview')) return 'interview';
@@ -410,9 +412,5 @@ export class CalendarComponent implements OnInit {
     d.setMonth(d.getMonth() + 1);
     this.currentMonth.set(d);
     this.loadAppEvents();
-  }
-
-  toggleView(view: 'month' | 'week') {
-    this.viewMode.set(view);
   }
 }

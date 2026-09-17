@@ -267,6 +267,11 @@ public class MailboxController : BaseApiController
         var fromEmail = connection?.GmailAddress ?? "noreply@propel.com";
         var provider = connection is not null ? "gmail" : "smtp";
 
+        var userCvs = await _db.Cvs.AsNoTracking()
+            .Where(c => c.UserId == userId)
+            .Include(c => c.Versions)
+            .ToListAsync();
+
         var sent = 0;
         var failed = 0;
         string? firstMessageId = null;
@@ -275,6 +280,7 @@ public class MailboxController : BaseApiController
 
         foreach (var contact in contacts)
         {
+            var sentAt = DateTime.UtcNow;
             try
             {
                 var (messageId, threadId) = await _gmailSendSvc.SendWithAttachmentAsync(
@@ -296,7 +302,7 @@ public class MailboxController : BaseApiController
                     Body = dto.Body,
                     Status = "sent",
                     Provider = provider,
-                    SentAt = DateTime.UtcNow,
+                    SentAt = sentAt,
                     AttachmentMetadataJson = dto.Attachments is { Count: > 0 }
                         ? JsonSerializer.Serialize(dto.Attachments.Select(a => new EmailAttachmentInfoDto
                           {
@@ -306,6 +312,8 @@ public class MailboxController : BaseApiController
                           }).ToList())
                         : null
                 });
+
+                await RecordCvSendsAsync(userId, dto.ApplicationId, dto.Attachments, userCvs, sentAt);
                 sent++;
             }
             catch (Exception ex)
@@ -394,5 +402,47 @@ public class MailboxController : BaseApiController
             Contacts = (int)totalContacts,
             SuccessRate = successRate
         }));
+    }
+
+    /// <summary>
+    /// Matches the sent email's attachment filenames against the user's CV versions and records
+    /// one CvVersionSend per matched version. Dedupes by (CvVersionId, SentAt within a few
+    /// seconds) so a successful send is never double-counted across retries.
+    /// </summary>
+    private async Task RecordCvSendsAsync(
+        Guid userId, Guid? applicationId, List<CV_Generator.Dto.EmailAttachmentDto>? attachments,
+        List<Models.Cv> cvs, DateTime sentAt)
+    {
+        if (attachments is not { Count: > 0 } || cvs.Count == 0) return;
+
+        try
+        {
+            var seen = new HashSet<Guid>();
+            foreach (var att in attachments)
+            {
+                var version = CV_Generator.Services.CvSendMatcher.Match(att.FileName, cvs);
+                if (version is null || !seen.Add(version.Id)) continue;
+
+                var dupCutoff = sentAt.AddSeconds(-5);
+                var alreadySent = await _db.CvVersionSends.AnyAsync(s =>
+                    s.UserId == userId && s.CvVersionId == version.Id && s.SentAt >= dupCutoff && s.SentAt < sentAt.AddSeconds(1));
+                if (alreadySent) continue;
+
+                _db.CvVersionSends.Add(new CV_Generator.Models.CvVersionSend
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    CvVersionId = version.Id,
+                    CvId = version.CvId,
+                    ApplicationId = applicationId,
+                    SentAt = sentAt
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            // The email already went out; analytics tracking must never fail the send.
+            _logger.LogWarning(ex, "Failed to record CV sends for user {UserId}", userId);
+        }
     }
 }

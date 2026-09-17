@@ -53,8 +53,10 @@ export class SidebarComponent {
     { label: 'Social Links',   route: '/my-career/sociallinks',    group: 'My Career' },
     { label: 'Interests',      route: '/my-career/interests',      group: 'My Career' },
     { label: 'CVs',            route: '/documents/cvs',            group: 'Documents' },
+    { label: 'Cover Letters',  route: '/documents/letters',        group: 'Documents' },
     { label: 'Templates',      route: '/documents/templates',      group: 'Documents' },
     { label: 'Images',         route: '/documents/images',         group: 'Documents' },
+    { label: 'Skill Library',  route: '/skills',                   group: 'My Career' },
     { label: 'LLM Settings',   route: '/settings/llm',             group: 'Settings' },
     { label: 'Notifications',  route: '/settings/notifications',   group: 'Settings' },
   ];
@@ -123,6 +125,7 @@ export class SidebarComponent {
     { label: 'Mailbox', route: '/mailbox', icon: 'mailbox', exact: false, group: 'library' },
     { label: 'Documents', route: '/documents', icon: 'documents', exact: false, group: 'library' },
     { label: 'My Career', route: '/my-career', icon: 'user', exact: false, group: 'library' },
+    { label: 'Skills', route: '/skills', icon: 'skills', exact: false, group: 'library' },
     { label: 'Companies', route: '/companies', icon: 'building', exact: false, group: 'library' },
     { label: 'Research', route: '/company-research', icon: 'research', exact: false, group: 'library' },
   ];

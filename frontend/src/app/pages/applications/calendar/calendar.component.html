@@ -10,15 +10,12 @@
     <div class="header-right">
       <app-refresh-button [loading]="refreshing()" (refresh)="onRefresh()" />
       <div class="view-group">
-        <button class="vbtn">Board</button>
-        <button class="vbtn">List</button>
         <button class="vbtn active">
           <svg viewBox="0 0 14 14" fill="none" width="12" height="12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
             <rect x="1" y="2" width="12" height="11" rx="1.5"/><line x1="1" y1="5.5" x2="13" y2="5.5"/><line x1="4" y1="1" x2="4" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/>
           </svg>
           Calendar
         </button>
-        <button class="vbtn" (click)="goToToday()">Today</button>
         <div class="filter-wrap">
           <button class="vbtn filter-btn" [class.active]="showFilter()" (click)="toggleFilter()">
             <svg viewBox="0 0 16 16" fill="none" width="12" height="12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">

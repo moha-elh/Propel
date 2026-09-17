@@ -39,6 +39,8 @@ export class DocumentsCvsComponent implements OnInit, OnDestroy {
   previewLoading = signal(false);
   pdfBlobUrl = signal<string | null>(null);
 
+  tagDrafts = signal<Record<string, string>>({});
+
   previewUrl = computed<SafeResourceUrl | string>(() => {
     const url = this.pdfBlobUrl();
     return url ? this.sanitizer.bypassSecurityTrustResourceUrl(url) : '';
@@ -169,6 +171,56 @@ export class DocumentsCvsComponent implements OnInit, OnDestroy {
       this.toast.error(extractError(err, 'Update failed'));
     } finally {
       this.saving.set(false);
+    }
+  }
+
+  tagDraftFor(cv: CvDocumentDto): string {
+    return this.tagDrafts()[cv.id] ?? '';
+  }
+
+  setTagDraft(cv: CvDocumentDto, value: string): void {
+    this.tagDrafts.set({ ...this.tagDrafts(), [cv.id]: value });
+  }
+
+  onTagKeydown(cv: CvDocumentDto, event: Event): void {
+    const key = (event as KeyboardEvent).key;
+    if (key !== 'Enter' && key !== ',') return;
+    event.preventDefault();
+    void this.commitTag(cv);
+  }
+
+  async commitTag(cv: CvDocumentDto): Promise<void> {
+    const raw = this.tagDraftFor(cv).trim();
+    if (!raw) {
+      this.setTagDraft(cv, '');
+      return;
+    }
+    const current = cv.tags ?? [];
+    const tag = raw.length > 40 ? raw.slice(0, 40) : raw;
+    if (current.some(t => t.toLowerCase() === tag.toLowerCase())) {
+      this.toast.info('That tag already exists');
+      this.setTagDraft(cv, '');
+      return;
+    }
+    if (current.length >= 20) {
+      this.toast.error('Maximum 20 tags per CV');
+      return;
+    }
+    await this.saveTags(cv, [...current, tag]);
+    this.setTagDraft(cv, '');
+  }
+
+  async removeTag(cv: CvDocumentDto, tag: string): Promise<void> {
+    await this.saveTags(cv, (cv.tags ?? []).filter(t => t !== tag));
+  }
+
+  private async saveTags(cv: CvDocumentDto, tags: string[]): Promise<void> {
+    try {
+      const res = await this.service.updateTags(cv.id, tags);
+      this.toast.success(res.message ?? 'Tags updated');
+      await this.load();
+    } catch (err) {
+      this.toast.error(extractError(err, 'Failed to update tags'));
     }
   }
 

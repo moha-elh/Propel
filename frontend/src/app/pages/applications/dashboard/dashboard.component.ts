@@ -110,6 +110,20 @@ export class DashboardComponent implements OnInit {
   pendingFollowUps = computed(() => this.s().applied);
   activeOffers = computed(() => this.s().offer);
 
+  monthApplied = computed(() => {
+    const now = new Date();
+    const apps = this.applications();
+    if (apps.length > 0) {
+      return apps.filter(a => {
+        if (!a.appliedAt) return false;
+        const d = new Date(a.appliedAt);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      }).length;
+    }
+    const trends = this.trends()?.monthlyTrends ?? [];
+    return trends.length ? trends[trends.length - 1].applied : 0;
+  });
+
   statCards = computed<StatCard[]>(() => {
     const s = this.s();
     const mv = this._monthlyValues();
@@ -190,7 +204,9 @@ export class DashboardComponent implements OnInit {
     const rejected = s.rejected;
     const applied = Math.max(0, total - s.saved - s.withdrawn - interview - offered - rejected);
 
-    const W = 480, H = 120;
+    const W = 480, H = 150;
+    const topPad = 26, labelPad = 26;
+    const maxBarH = H - topPad - labelPad;
     const statuses = [
       { label: 'Applied', count: applied, color: 'oklch(0.68 0.015 250)' },
       { label: 'Interview', count: Math.max(0, interview), color: 'oklch(0.6 0.16 250)' },
@@ -204,15 +220,16 @@ export class DashboardComponent implements OnInit {
 
     statuses.forEach((st, i) => {
       const x = gap + i * (barW + gap);
-      const barH = Math.max(8, (st.count / maxCount) * 80);
-      const y = H - 24 - barH;
-      svg += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="5" fill="${st.color}" opacity="0.9"/>`;
+      const barH = Math.max(6, (st.count / maxCount) * maxBarH);
+      const y = H - labelPad - barH;
+      svg += `<rect x="${x}" y="${topPad}" width="${barW}" height="${maxBarH}" rx="6" fill="oklch(0.96 0.004 80)"/>`;
+      svg += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="6" fill="${st.color}" opacity="0.92"/>`;
       svg += `<text x="${x + barW / 2}" y="${H - 8}" text-anchor="middle" font-size="10" fill="oklch(0.6 0.005 80)" font-family="inherit">${st.label}</text>`;
-      svg += `<text x="${x + barW / 2}" y="${y - 4}" text-anchor="middle" font-size="11" fill="${st.color}" font-weight="600" font-family="inherit">${st.count}</text>`;
+      svg += `<text x="${x + barW / 2}" y="${y - 6}" text-anchor="middle" font-size="11" fill="${st.color}" font-weight="600" font-family="inherit">${st.count}</text>`;
     });
 
     return this.sanitizer.bypassSecurityTrustHtml(
-      `<svg viewBox="0 0 ${W} ${H}" width="100%" height="130" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`
+      `<svg viewBox="0 0 ${W} ${H}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style="display:block" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`
     );
   });
 

@@ -62,6 +62,11 @@ builder.Services.AddHttpClient<IPdfThumbnailService, PdfThumbnailService>(c =>
     c.BaseAddress = new Uri($"{agentBase}/api/agents/pdf/");
     c.Timeout = TimeSpan.FromSeconds(20);
 });
+builder.Services.AddHttpClient<ITextPdfService, TextPdfService>(c =>
+{
+    c.BaseAddress = new Uri($"{agentBase}/api/agents/pdf/");
+    c.Timeout = TimeSpan.FromSeconds(60);
+});
 builder.Services.AddHttpClient<IApplyPrepClient, ApplyPrepClient>(c =>
 {
     c.BaseAddress = new Uri($"{agentBase}/api/agents/apply-prep/");

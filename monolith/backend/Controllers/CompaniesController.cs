@@ -98,7 +98,7 @@ public class CompaniesController : BaseApiController
         // merged in memory to keep sorting by aggregates trivial.
         var matched = await query.OrderBy(c => c.Name).ToListAsync();
         var appRows = await _db.Applications.AsNoTracking()
-            .Where(a => a.CandidateId == userId)
+            .Where(a => a.CandidateId == userId && !a.IsDeleted)
             .Select(a => new { a.CompanyName, a.AppliedAt })
             .ToListAsync();
 
@@ -362,7 +362,7 @@ public class CompaniesController : BaseApiController
     {
         var key = companyName.Trim().ToLower();
         var query = _db.Applications.AsNoTracking()
-            .Where(a => a.CandidateId == userId && a.CompanyName.Trim().ToLower() == key);
+            .Where(a => a.CandidateId == userId && !a.IsDeleted && a.CompanyName.Trim().ToLower() == key);
 
         var count = await query.CountAsync();
         var last = await query.MaxAsync(a => (DateTime?)a.AppliedAt);

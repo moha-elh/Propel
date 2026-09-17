@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +36,7 @@ public class CvsController : ControllerBase
             .Include(c => c.Versions.OrderByDescending(v => v.VersionNumber).Take(3))
             .OrderByDescending(c => c.UpdatedAt)
             .ToListAsync();
+        await PopulateSendStatsAsync(cvs.SelectMany(c => c.Versions).ToList(), userId.Value);
         return Ok(ApiResponse<List<Cv>>.Ok(cvs));
     }
 
@@ -45,6 +47,7 @@ public class CvsController : ControllerBase
         if (userId == null) return Unauthorized();
         var cv = await _db.Cvs.Include(c => c.Versions).FirstOrDefaultAsync(c => c.Id == id);
         if (cv == null || cv.UserId != userId.Value) return NotFound(ApiResponse<Cv>.Error("CV not found"));
+        await PopulateSendStatsAsync(cv.Versions, userId.Value);
         return Ok(ApiResponse<Cv>.Ok(cv));
     }
 
@@ -84,6 +87,28 @@ public class CvsController : ControllerBase
         cv.Title = input.Title.Trim();
         cv.TemplateId = input.TemplateId ?? cv.TemplateId;
         cv.IsActive = input.IsActive;
+        cv.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Ok(ApiResponse<Cv>.Ok(cv));
+    }
+
+    [HttpPatch("{id}/tags")]
+    public async Task<IActionResult> UpdateTags(Guid id, [FromBody] CvTagsInput input)
+    {
+        var userId = _currentUser.UserId;
+        if (userId == null) return Unauthorized();
+        var cv = await _db.Cvs.FindAsync(id);
+        if (cv == null || cv.UserId != userId.Value) return NotFound(ApiResponse<Cv>.Error("CV not found"));
+
+        var tags = (input.Tags ?? [])
+            .Select(t => t?.Trim() ?? string.Empty)
+            .Where(t => t.Length > 0)
+            .Select(t => t.Length > 40 ? t[..40] : t)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(20)
+            .ToList();
+
+        cv.TagsJson = JsonSerializer.Serialize(tags);
         cv.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<Cv>.Ok(cv));
@@ -158,6 +183,26 @@ public class CvsController : ControllerBase
         return NoContent();
     }
 
+    private async Task PopulateSendStatsAsync(List<CvVersion> versions, Guid userId)
+    {
+        if (versions.Count == 0) return;
+        var ids = versions.Select(v => v.Id).ToList();
+        var stats = await _db.CvVersionSends
+            .Where(s => s.UserId == userId && ids.Contains(s.CvVersionId))
+            .GroupBy(s => s.CvVersionId)
+            .Select(g => new { CvVersionId = g.Key, SentCount = g.Count(), LastSentAt = g.Max(s => s.SentAt) })
+            .ToListAsync();
+        var map = stats.ToDictionary(s => s.CvVersionId);
+        foreach (var v in versions)
+        {
+            if (map.TryGetValue(v.Id, out var s))
+            {
+                v.SentCount = s.SentCount;
+                v.LastSentAt = s.LastSentAt;
+            }
+        }
+    }
+
     private async Task<string?> TryGenerateThumbnailAsync(byte[] pdf, Guid userId, Guid cvId)
     {
         try
@@ -198,4 +243,9 @@ public class CvUpdateInput
     public string Title { get; set; } = string.Empty;
     public string? TemplateId { get; set; }
     public bool IsActive { get; set; } = true;
+}
+
+public class CvTagsInput
+{
+    public List<string>? Tags { get; set; }
 }

@@ -123,9 +123,13 @@
 
           @if (asideTab() === 'templates') {
             <div class="aside-body">
+              <div class="aside-info">{{ templates.length }} templates — click to fill subject &amp; body</div>
               @for (t of templates; track t.name) {
                 <div class="template-item" [class.active]="activeTemplate() === t.name" (click)="applyTemplate(t)">
                   <div class="template-name">{{ t.name }}</div>
+                  @if (t.desc) {
+                    <div class="template-desc">{{ t.desc }}</div>
+                  }
                   <div class="template-preview">{{ t.subject }}</div>
                 </div>
               }
@@ -330,9 +334,28 @@
             } @else {
               <div class="cd-name">{{ detail.name }}</div>
               <div class="cd-email">{{ detail.email }}</div>
-              @if (detail.company) { <div class="cd-meta">{{ detail.company }}</div> }
-              @if (detail.position) { <div class="cd-meta">{{ detail.position }}</div> }
-              @if (detail.phone) { <div class="cd-meta">{{ detail.phone }}</div> }
+              @if (detail.company || detail.position || detail.phone) {
+                <div class="cd-meta">
+                  @if (detail.company) {
+                    <div class="cd-meta-line">
+                      <svg viewBox="0 0 14 14" fill="none" width="12" height="12" stroke="currentColor" stroke-width="1.5"><path d="M3 2h8a1 1 0 011 1v9H2V3a1 1 0 011-1z"/><path d="M4 5h6M4 8h6M4 11h1M9 11h1"/></svg>
+                      <span>{{ detail.company }}</span>
+                    </div>
+                  }
+                  @if (detail.position) {
+                    <div class="cd-meta-line">
+                      <svg viewBox="0 0 14 14" fill="none" width="12" height="12" stroke="currentColor" stroke-width="1.5"><path d="M3 5h8v7H3V5z"/><path d="M5 3h4v2H5z"/></svg>
+                      <span>{{ detail.position }}</span>
+                    </div>
+                  }
+                  @if (detail.phone) {
+                    <div class="cd-meta-line">
+                      <svg viewBox="0 0 14 14" fill="none" width="12" height="12" stroke="currentColor" stroke-width="1.5"><path d="M3.5 2h2l1 2.5-1.5 1.2a7 7 0 004.3 4.3l1.2-1.5 2.5 1v2a1 1 0 01-1 1A10 10 0 012.5 3a1 1 0 011-1z"/></svg>
+                      <span>{{ detail.phone }}</span>
+                    </div>
+                  }
+                </div>
+              }
               <app-contact-quick-actions [linkedinUrl]="detail.linkedinUrl" [email]="detail.email" [phone]="detail.phone" />
               @if (detail.notes) { <div class="cd-notes">{{ detail.notes }}</div> }
               <div class="cd-actions">
@@ -397,6 +420,22 @@
                 <h3>{{ editingContactId() ? 'Edit Contact' : 'New Contact' }}</h3>
                 <button type="button" class="mb-btn-primary" (click)="openContactAutofill()">Auto-fill</button>
               </div>
+              <div class="contact-form-avatar">
+                <div class="cfa-avatar">
+                  @if (contactFormAvatar()) {
+                    <img class="cfa-img" [src]="contactFormAvatar()" alt="Contact photo" />
+                  } @else {
+                    <span>{{ (contactFormName() || 'C').slice(0, 2).toUpperCase() }}</span>
+                  }
+                </div>
+                <div class="cfa-actions">
+                  <button type="button" class="mb-btn sm" (click)="contactAvatarInput.click()">Change photo</button>
+                  @if (contactFormAvatar()) {
+                    <button type="button" class="mb-btn sm danger" (click)="contactFormAvatar.set(null)">Remove</button>
+                  }
+                  <input #contactAvatarInput type="file" accept="image/*" hidden (change)="onContactFormAvatarChange($event)" />
+                </div>
+              </div>
               <div class="form-grid">
                 <input placeholder="Name" [ngModel]="contactFormName()" (ngModelChange)="contactFormName.set($event)" />
                 <input placeholder="Email" [ngModel]="contactFormEmail()" (ngModelChange)="contactFormEmail.set($event)" />
@@ -428,26 +467,32 @@
               @for (c of contacts(); track c.id) {
                 <div class="contact-card" (click)="loadContactHistory(c)">
                   <div class="contact-card-header">
-                    <button class="fav-btn" [class.fav-active]="c.isFavorite" (click)="$event.stopPropagation(); toggleFavorite(c)">
+                    <button class="fav-btn" [class.fav-active]="c.isFavorite" (click)="$event.stopPropagation(); toggleFavorite(c)" title="Favorite">
                       <svg viewBox="0 0 14 14" fill="none" width="12" height="12" stroke="currentColor" stroke-width="1.5"><path d="M7 1l1.5 4.6h5l-4 3 1.5 4.4L7 10.2l-4 2.8L4.5 8.6l-4-3h5L7 1z"/></svg>
                     </button>
                   </div>
-                  <div class="contact-avatar">{{ c.name.slice(0, 2).toUpperCase() }}</div>
+                  <div class="contact-avatar">
+                    @if (c.avatarBase64) {
+                      <img class="contact-avatar-img" [src]="c.avatarBase64" alt="" />
+                    } @else {
+                      {{ c.name.slice(0, 2).toUpperCase() }}
+                    }
+                  </div>
                   <div class="contact-name">{{ c.name }}</div>
                   <div class="contact-position">{{ c.position || '—' }}</div>
                   <div class="contact-company">{{ c.company || '—' }}</div>
                   <div class="contact-email">
-                  @if (c.email) {
-                    <span>{{ c.email }}</span>
-                  } @else if (c.phone) {
-                    <span>{{ c.phone }}</span>
-                  } @else {
-                    <span>—</span>
-                  }
-                  @if (c.linkedinUrl) {
-                    <a class="contact-chip-link" [href]="c.linkedinUrl" target="_blank" rel="noopener" (click)="$event.stopPropagation()">LinkedIn ↗</a>
-                  }
-                </div>
+                    @if (c.email) {
+                      <span class="contact-email-value">{{ c.email }}</span>
+                    } @else if (c.phone) {
+                      <span class="contact-email-value">{{ c.phone }}</span>
+                    } @else {
+                      <span class="contact-email-value">—</span>
+                    }
+                    @if (c.linkedinUrl) {
+                      <a class="contact-chip-link" [href]="c.linkedinUrl" target="_blank" rel="noopener" (click)="$event.stopPropagation()">LinkedIn ↗</a>
+                    }
+                  </div>
                   <app-contact-quick-actions [dense]="true" [linkedinUrl]="c.linkedinUrl" [email]="c.email" [phone]="c.phone" />
                   <div class="contact-actions">
                     <button class="mb-btn-sm" (click)="$event.stopPropagation(); editContact(c)">Edit</button>

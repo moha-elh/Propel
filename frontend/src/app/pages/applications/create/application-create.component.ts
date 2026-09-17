@@ -5,6 +5,7 @@ import { AppSelectComponent } from '@app/shared/components/app-select/app-select
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ApplicationService } from '@app/services/application.service';
+import { DirectAiService } from '@app/services/direct-ai.service';
 import { ContactService } from '@app/services/contact.service';
 import { AuthService } from '@app/services/auth.service';
 import { CompanyService } from '@app/services/company.service';
@@ -38,6 +39,7 @@ interface ChannelTile {
 })
 export class ApplicationCreateComponent implements OnInit {
   private appService = inject(ApplicationService);
+  private directAi = inject(DirectAiService);
   private contactApi = inject(ContactService);
   private companyApi = inject(CompanyService);
   private authService = inject(AuthService);
@@ -53,6 +55,54 @@ export class ApplicationCreateComponent implements OnInit {
   submitting = signal(false);
   error = signal<string | null>(null);
   duplicateWarning = signal<DuplicateMatchDto[] | null>(null);
+
+  // ── Paste-to-fill: extract fields from a pasted job post / email ──────────────
+  pasteOpen = signal(false);
+  pasteText = signal('');
+  extracting = signal(false);
+  extractError = signal<string | null>(null);
+
+  async extractFromPaste() {
+    const text = this.pasteText().trim();
+    if (!text || this.extracting()) return;
+    this.extracting.set(true);
+    this.extractError.set(null);
+    try {
+      const res = await this.directAi.chat({
+        system:
+          'Extract job-application fields from the text. Reply with ONLY a JSON object, no markdown, ' +
+          'using these keys (empty string when unknown): companyName, positionTitle, offerSource ' +
+          '(e.g. LinkedIn, company site, referral), internshipType (e.g. PFE, summer, "" if not an internship), ' +
+          'recipientName (contact person), recipientEmail, notes (short 1-2 sentence summary).',
+        user: text,
+        temperature: 0,
+      });
+      const raw = res.data?.text ?? '';
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (!res.success || !match) {
+        this.extractError.set('Could not extract fields — fill them in manually.');
+        return;
+      }
+      const d = JSON.parse(match[0]) as Record<string, string>;
+      const set = (sig: { set: (v: string) => void; (): string }, v?: string) => {
+        if (v && v.trim()) sig.set(v.trim());
+      };
+      set(this.companyName, d['companyName']);
+      set(this.positionTitle, d['positionTitle']);
+      set(this.offerSource, d['offerSource']);
+      set(this.internshipType, d['internshipType']);
+      set(this.notes, d['notes']);
+      set(this.recipientName, d['recipientName']);
+      set(this.recipientContact, d['recipientEmail']);
+      if (d['companyName']?.trim()) this.companyIsNew.set(true);
+      this.pasteOpen.set(false);
+      this.pasteText.set('');
+    } catch {
+      this.extractError.set('Could not extract fields — fill them in manually.');
+    } finally {
+      this.extracting.set(false);
+    }
+  }
 
   // ── Form state ──────────────────────────────────────────────────────────────
   companyName = signal('');
@@ -94,6 +144,9 @@ export class ApplicationCreateComponent implements OnInit {
   contactSearch = signal('');
   contactResults = signal<ContactSummaryDto[]>([]);
   searchingContacts = signal(false);
+
+  /** When an unmatched recipient is typed, optionally persist them to the contact list. */
+  saveRecipientAsContact = signal(false);
 
   // Inline "add a new contact" (create + link in one go)
   newContactMode = signal(false);
@@ -389,6 +442,25 @@ export class ApplicationCreateComponent implements OnInit {
       // Log the first apply attempt — a SENT attempt flips the app to APPLIED server-side.
       if (this.stage() === 'APPLIED') {
         const cfg = this.channelFields();
+        let contactId = this.pickedContact()?.id;
+
+        // Optional side effect: persist an unmatched recipient to the contact list.
+        if (contactId == null && this.saveRecipientAsContact()) {
+          try {
+            const recipientName = this.recipientName().trim();
+            const recipientContact = this.recipientContact().trim();
+            if (recipientName && recipientContact.includes('@')) {
+              const created = await this.contactApi.createContact({
+                name: recipientName,
+                email: recipientContact,
+                company: this.companyName().trim() || undefined,
+                position: this.positionTitle().trim() || undefined,
+              });
+              if (created.success && created.data) contactId = created.data.id;
+            }
+          } catch { /* contact save failed — never block application creation */ }
+        }
+
         try {
           await this.appService.createAttempt(appId, {
             channel: this.channel(),
@@ -398,7 +470,7 @@ export class ApplicationCreateComponent implements OnInit {
             body: cfg.message ? (this.body().trim() || undefined) : undefined,
             recipientName: cfg.recipientName ? (this.recipientName().trim() || undefined) : undefined,
             recipientContact: cfg.recipientContact ? (this.recipientContact().trim() || undefined) : undefined,
-            contactId: this.pickedContact()?.id,
+            contactId,
             channelMetadataJson: (this.channel() === 'WEB_FORM' && this.recipientContact().trim())
               ? JSON.stringify({ formUrl: this.recipientContact().trim() })
               : undefined,

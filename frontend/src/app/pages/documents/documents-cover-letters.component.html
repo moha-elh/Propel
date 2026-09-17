@@ -1,0 +1,255 @@
+<div class="letters-tab">
+  <div class="toolbar">
+    <div>
+      <h2>Cover letters</h2>
+      <p class="muted">{{ letters().length }} letter{{ letters().length === 1 ? '' : 's' }} · {{ companies().length }} companies</p>
+    </div>
+    <div class="toolbar-actions">
+      <button class="btn-ghost" (click)="openCreate()"><i class="ti ti-plus"></i> New letter</button>
+      <button class="btn-primary" (click)="toggleUpload()">
+        <i class="ti ti-upload"></i> Upload letter
+      </button>
+    </div>
+  </div>
+
+  @if (uploadOpen()) {
+    <div class="upload-card">
+      <div class="upload-rows">
+        <label class="file-drop" for="cl-file-input">
+          <i class="ti ti-file-upload"></i>
+          @if (uploadFile()) {
+            <span class="file-name">{{ uploadFile()!.name }}</span>
+          } @else {
+            <span>Choose a file — PDF, DOCX, TXT, TEX…</span>
+          }
+        </label>
+        <input id="cl-file-input" type="file" hidden accept=".pdf,.docx,.doc,.txt,.tex,.html,.htm"
+          (change)="onFileSelected($event)">
+      </div>
+      <div class="upload-actions">
+        <div class="form-group grow">
+          <label>Title</label>
+          <input type="text" [(ngModel)]="uploadTitle" name="clUploadTitle" placeholder="e.g. Cover letter — Capgemini">
+        </div>
+        <div class="form-group grow">
+          <label>Company <span class="hint">(General = no company)</span></label>
+          <select [(ngModel)]="uploadCompanyId" name="clUploadCompany">
+            <option [ngValue]="null">General</option>
+            @for (c of companies(); track c.id) {
+              <option [ngValue]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        </div>
+        <button class="btn-primary" [disabled]="uploading()" (click)="doUpload()">
+          {{ uploading() ? 'Uploading…' : 'Upload & save' }}
+        </button>
+        <button class="btn-ghost" (click)="toggleUpload()">Cancel</button>
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="state-row">Loading…</div>
+  } @else if (letters().length === 0) {
+    <div class="empty-state">
+      <i class="ti ti-mail-off"></i>
+      <p>No cover letters yet</p>
+      <span>Upload a letter, or create one and attach it to a company. You can then tag it on an apply attempt to track which applications went out with a cover letter.</span>
+    </div>
+  } @else {
+    <div class="cl-list">
+      @for (letter of letters(); track letter.id) {
+        <div class="cl-card" [class.inactive]="!letter.isActive">
+          <div
+            class="cl-thumb"
+            [class.clickable]="canPreview(letter)"
+            role="button"
+            tabindex="0"
+            (click)="canPreview(letter) && openPreview(previewVersionOf(letter)!)"
+            (keydown.enter)="canPreview(letter) && openPreview(previewVersionOf(letter)!)"
+            [title]="canPreview(letter) ? 'Preview ' + letter.title : ''"
+          >
+            <div class="thumb-fallback"><i class="ti ti-mail"></i></div>
+            @if (thumbSrc(letter)) {
+              <img
+                [src]="thumbSrc(letter)"
+                [alt]="letter.title + ' preview'"
+                loading="lazy"
+                (error)="$event.target.hidden = true"
+              >
+            }
+          </div>
+
+          <div class="cl-main">
+            <div class="cl-head">
+              <h3>{{ letter.title }}</h3>
+              @if (letter.isActive) {
+                <span class="badge badge-active"><i class="ti ti-check"></i> Active</span>
+              } @else {
+                <span class="badge">Inactive</span>
+              }
+            </div>
+            <div class="cl-meta">
+              <span class="company-chip" [class.general]="!letter.companyId">
+                <i class="ti" [class.ti-building]="letter.companyId" [class.ti-world]="!letter.companyId"></i>
+                {{ letter.companyName || 'General' }}
+              </span>
+              <span><i class="ti ti-clock"></i> Updated {{ letter.updatedAt | date: 'medium' }}</span>
+            </div>
+
+            @if (letter.versions.length > 0) {
+              <div class="versions">
+                @for (ver of letter.versions; track ver.id) {
+                  <div class="version-chip">
+                    <i class="ti ti-file-text"></i>
+                    <span>v{{ ver.versionNumber }} — {{ ver.label }}</span>
+                    @if (ver.pdfUrl) {
+                      <button class="btn-ghost-sm" (click)="openPreview(ver)">
+                        <i class="ti ti-eye"></i> Preview
+                      </button>
+                      <a class="btn-ghost-sm" [href]="service.coverLetterVersionFileUrl(ver.id)" target="_blank" rel="noopener">
+                        <i class="ti ti-download"></i> PDF
+                      </a>
+                    } @else if (ver.fileUrl) {
+                      <a class="btn-ghost-sm" [href]="service.coverLetterVersionFileUrl(ver.id)" target="_blank" rel="noopener">
+                        <i class="ti ti-download"></i> File
+                      </a>
+                    }
+                  </div>
+                }
+              </div>
+            }
+
+            <div class="cl-actions">
+              <button class="btn-ghost-sm" (click)="openEdit(letter)"><i class="ti ti-edit"></i> Edit</button>
+              <button class="btn-danger-sm" (click)="deleteLetter(letter)"><i class="ti ti-trash"></i> Delete</button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Create modal -->
+@if (creating()) {
+  <div class="modal-backdrop" (click)="closeCreate()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <h2>New cover letter</h2>
+        <button class="icon-btn" (click)="closeCreate()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Title <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="createTitle" name="clCreateTitle" placeholder="e.g. Cover letter — PFE">
+        </div>
+        <div class="form-group">
+          <label>Company <span class="hint">(General = reusable for any application)</span></label>
+          <select [(ngModel)]="createCompanyId" name="clCreateCompany">
+            <option [ngValue]="null">General</option>
+            @for (c of companies(); track c.id) {
+              <option [ngValue]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="checks-row">
+          <label class="check-row">
+            <input type="checkbox" [(ngModel)]="createIncludeTitle" name="clCreateIncludeTitle">
+            <span>Include title as PDF header</span>
+          </label>
+          <label class="check-row">
+            <input type="checkbox" [(ngModel)]="createIsActive" name="clCreateActive">
+            <span>Active</span>
+          </label>
+        </div>
+        <div class="form-group">
+          <label>Letter text <span class="hint">(optional — a PDF version is generated from this text)</span></label>
+          <textarea
+            [(ngModel)]="createText"
+            name="clCreateText"
+            rows="10"
+            placeholder="Paste your letter text here, e.g. the body of a cover letter you'd normally paste into Word. Paragraphs separated by a blank line are preserved."
+          ></textarea>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-ghost" (click)="closeCreate()">Cancel</button>
+        <button class="btn-primary" [disabled]="saving()" (click)="doCreate()">
+          {{ saving() ? (createText().trim() ? 'Generating PDF…' : 'Creating…') : (createText().trim() ? 'Create & generate PDF' : 'Create letter') }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Edit modal -->
+@if (editing()) {
+  <div class="modal-backdrop" (click)="closeEdit()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <h2>Edit cover letter</h2>
+        <button class="icon-btn" (click)="closeEdit()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Title <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="editTitle" name="clEditTitle">
+        </div>
+        <div class="form-group">
+          <label>Company <span class="hint">(General = reusable for any application)</span></label>
+          <select [(ngModel)]="editCompanyId" name="clEditCompany">
+            <option [ngValue]="null">General</option>
+            @for (c of companies(); track c.id) {
+              <option [ngValue]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        </div>
+        <label class="check-row">
+          <input type="checkbox" [(ngModel)]="editIsActive" name="clEditActive">
+          <span>Active letter</span>
+        </label>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-ghost" (click)="closeEdit()">Cancel</button>
+        <button class="btn-primary" [disabled]="saving()" (click)="doEdit()">
+          {{ saving() ? 'Saving…' : 'Save changes' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- PDF preview modal -->
+@if (previewVersion()?.pdfUrl || pdfBlobUrl()) {
+  <div class="modal-backdrop preview-backdrop" (click)="closePreview()">
+    <div class="modal modal-preview" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <h2>PDF Preview</h2>
+        <div class="preview-head-actions">
+          <span class="preview-version-label">v{{ previewVersion()!.versionNumber }} — {{ previewVersion()!.label }}</span>
+          <a class="btn-ghost-sm" [href]="previewVersion()!.pdfUrl" target="_blank" rel="noopener">
+            <i class="ti ti-external-link"></i> Open in new tab
+          </a>
+          <a class="btn-ghost-sm" [href]="downloadUrl()">
+            <i class="ti ti-download"></i> Download
+          </a>
+          <button class="icon-btn" (click)="closePreview()">✕</button>
+        </div>
+      </div>
+      <div class="modal-body preview-body">
+        @if (previewLoading() && !pdfBlobUrl()) {
+          <div class="preview-loading">
+            <i class="ti ti-loader ti-spin"></i> Loading PDF…
+          </div>
+        }
+        <iframe
+          class="pdf-iframe"
+          [src]="previewUrl()"
+          frameborder="0"
+          title="Cover letter PDF preview"
+        ></iframe>
+      </div>
+    </div>
+  </div>
+}

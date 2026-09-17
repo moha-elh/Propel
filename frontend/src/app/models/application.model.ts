@@ -190,6 +190,19 @@ export interface MonthlyTrendDto {
   withdrawn: number;
 }
 
+export interface WeeklyTrendDto {
+  year: number;
+  week: number;
+  saved: number;
+  applied: number;
+  screening: number;
+  interview: number;
+  offer: number;
+  accepted: number;
+  rejected: number;
+  withdrawn: number;
+}
+
 export interface StatisticsTrendsDto {
   current: ApplicationStatisticsDto;
   monthlyTrends: MonthlyTrendDto[];
@@ -201,12 +214,26 @@ export interface AnalyticsSummaryDto {
   averageResponseTimeDays: number | null;
   distinctCompanies: number;
   monthlyTrends: MonthlyTrendDto[];
+  weeklyTrends?: WeeklyTrendDto[];
   priorityCounts: Record<string, number>;
   originCounts: Record<string, number>;
   channelCounts: Record<string, number>;
   funnel: FunnelStageDto[];
   topCompanies: TopCompanyDto[];
   email: EmailStatsDto;
+  cvPerformance?: CvPerformanceDto[];
+}
+
+export interface CvPerformanceDto {
+  cvTitle: string;
+  versionNumber: number;
+  versionLabel?: string;
+  versionId: string;
+  tags: string[];
+  sentCount: number;
+  linkedApplications: number;
+  interviewCount: number;
+  offerCount: number;
 }
 
 export interface FunnelStageDto {
@@ -242,6 +269,7 @@ export interface ActivityItemDto {
   newStatus: string;
   changedAt: string;
   comment?: string;
+  isDeleted?: boolean;
 }
 
 export interface ActivityFeedDto {
@@ -272,7 +300,7 @@ export const STATUS_ORDER: readonly ApplicationStatus[] = [
 export const STATUS_LABELS: Record<ApplicationStatus, string> = {
   SAVED: 'Saved',
   APPLIED: 'Applied',
-  SCREENING: 'Screening',
+  SCREENING: 'Seen',
   INTERVIEW: 'Interview',
   OFFER: 'Offer',
   ACCEPTED: 'Accepted',

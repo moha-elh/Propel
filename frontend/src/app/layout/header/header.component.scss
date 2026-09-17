@@ -49,6 +49,11 @@
   cursor: pointer;
   transition: background .12s, color .12s;
 
+  .ti {
+    font-size: 14px;
+    line-height: 1;
+  }
+
   &:hover {
     background: oklch(0.95 0.005 80);
     color: var(--text);

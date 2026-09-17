@@ -29,10 +29,12 @@ import { MyCvComponent } from './pages/my-cv/my-cv.component';
 import { PersonalInfoComponent } from './pages/personal-info/personal-info.component';
 import { DocumentsLayoutComponent } from './pages/documents/documents-layout.component';
 import { DocumentsCvsComponent } from './pages/documents/documents-cvs.component';
+import { DocumentsCoverLettersComponent } from './pages/documents/documents-cover-letters.component';
 import { DocumentsTemplatesComponent } from './pages/documents/documents-templates.component';
 import { DocumentsImagesComponent } from './pages/documents/documents-images.component';
 import { EntityDetailsComponent } from './pages/entity-details/entity-details.component';
 import { EntityListComponent } from './pages/entity-list/entity-list.component';
+import { SkillLibraryComponent } from './pages/skills/skill-library.component';
 import { EntityFormComponent } from './shared/entity-form/entity-form.component';
 
 export const routes: Routes = [
@@ -89,6 +91,7 @@ export const routes: Routes = [
     children: [
       { path: '', redirectTo: 'cvs', pathMatch: 'full' },
       { path: 'cvs', component: DocumentsCvsComponent },
+      { path: 'letters', component: DocumentsCoverLettersComponent },
       { path: 'templates', component: DocumentsTemplatesComponent },
       { path: 'images', component: DocumentsImagesComponent },
     ],
@@ -97,5 +100,6 @@ export const routes: Routes = [
   { path: 'companies/:id', component: CompaniesDetailComponent, canActivate: [authGuard] },
   { path: 'company-research', component: CompanyResearchComponent, canActivate: [authGuard] },
   { path: 'company-research/:id', component: CompanyResearchDetailComponent, canActivate: [authGuard] },
+  { path: 'skills', component: SkillLibraryComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: 'applications' },
 ];

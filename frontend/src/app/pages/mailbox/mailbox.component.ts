@@ -29,6 +29,7 @@ type MailboxView = 'compose' | 'history' | 'contacts' | 'schedules' | 'templates
 
 interface EmailTemplate {
   name: string;
+  desc?: string;
   subject: string;
   body: string;
 }
@@ -36,23 +37,118 @@ interface EmailTemplate {
 const EMAIL_TEMPLATES: EmailTemplate[] = [
   {
     name: 'Initial Outreach',
-    subject: 'Application for Software Engineering Position',
-    body: `Dear Hiring Manager,\n\nI am writing to express my strong interest in the Software Engineering position. With my background in full-stack development and passion for building scalable systems, I believe I would be a great addition to your team.\n\nI have attached my resume for your review and would welcome the opportunity to discuss how my skills align with your needs.\n\nBest regards,\n[Your Name]`,
+    desc: 'First contact — cold or via referral',
+    subject: `[Your Name] — Applying for [Position] at [Company]`,
+    body: `Dear [Recruiter Name],
+
+I'm [Your Name], a final-year computer engineering student. I'd love to join [Company] for a PFE/internship placement, supporting work on [Domain or Reason you applied].
+
+I have attached my CV and would be happy to walk through [highlight project, e.g. the IoT platform I built during my internship]. I think my background fits well with what your team is building.
+
+If you have a few minutes this month, a quick call or a reply would be great. Thank you for your time.
+
+Best regards,
+[Your Name]`,
   },
   {
     name: 'Follow-up',
-    subject: 'Follow-up on Application',
-    body: `Dear Hiring Manager,\n\nI hope this message finds you well. I wanted to follow up on my application submitted recently. I remain very interested in the position and would love to hear about any updates regarding the hiring process.\n\nPlease let me know if you need any additional information from me.\n\nBest regards,\n[Your Name]`,
+    desc: 'Polite nudge ~7 days after applying',
+    subject: `Re: Application for [Position]`,
+    body: `Dear [Recruiter Name],
+
+I hope you're doing well. About a week ago I applied for the [Position] role at [Company], and I wanted to gently check whether you need anything else from me or have an update on the timeline.
+
+I remain very interested in the opportunity and would love the chance to discuss my fit in more detail.
+
+Thank you for your time.
+
+Best regards,
+[Your Name]`,
   },
   {
-    name: 'Interview Thank You',
-    subject: 'Thank You for the Interview',
-    body: `Dear Interviewer,\n\nThank you so much for taking the time to speak with me today. I truly enjoyed learning more about the team and the exciting work you are doing.\n\nOur conversation reinforced my enthusiasm for the role and I am confident that my skills and experience would be a great fit.\n\nI look forward to hearing about the next steps.\n\nBest regards,\n[Your Name]`,
+    name: 'Interview Confirmation',
+    desc: 'Confirm a time or propose slots',
+    subject: `Interview Availability — [Position]`,
+    body: `Dear [Recruiter Name],
+
+Thank you for the invitation to interview for the [Position] role. I'd like to confirm [Day, Date at Time] — if that works, please consider it booked.
+
+If not, I'm also available at [alt time 1] or [alt time 2]. A video call works well for me and I'm happy to adapt to your preference. Let me know if you need anything from me beforehand.
+
+Looking forward to it.
+
+Best regards,
+[Your Name]`,
   },
   {
-    name: 'Status Update Request',
-    subject: 'Application Status Inquiry',
-    body: `Dear Hiring Manager,\n\nI hope you are doing well. I wanted to kindly check in on the status of my application. I remain very interested in the position and am eager to hear any updates.\n\nThank you for your time and consideration.\n\nBest regards,\n[Your Name]`,
+    name: 'Interview Thank-You',
+    desc: 'Send within 24h of the interview',
+    subject: `Thank You — [Position] Interview`,
+    body: `Dear [Interviewer Name],
+
+Thank you so much for taking the time to speak with me today. I really appreciated learning about the team and the work at [Company].
+
+Our conversation left me even more excited about the [Position] role. If it helps, I'm happy to go deeper on [relevant topic/project] or share any material you'd like to see.
+
+I look forward to hearing about the next steps.
+
+Best regards,
+[Your Name]`,
+  },
+  {
+    name: 'Post-Interview Follow-up',
+    desc: 'Check-in ~1 week after the interview',
+    subject: `Update on [Position] — [Your Name]`,
+    body: `Dear [Recruiter Name],
+
+I hope your week is going well. It's been about a week since my interview for [Position], and I remain very interested in joining [Company].
+
+Please let me know if there's anything more I can provide — references, availability, or a closer look at my work — to support your decision. I'm happy to help make the process easier.
+
+Thank you again for the opportunity.
+
+Best regards,
+[Your Name]`,
+  },
+  {
+    name: 'LinkedIn Connection',
+    desc: 'Short message to connect on LinkedIn',
+    subject: `Connecting — [Your Name]`,
+    body: `Hi [Name],
+
+I'm [Your Name], a final-year engineering student applying to [Company]. I found your profile while researching the team and would genuinely like to connect — I'd enjoy hearing about your work on [Topic].
+
+Thanks!
+
+[Your Name]`,
+  },
+  {
+    name: 'Offer Reply',
+    desc: 'Accept the offer — with one polite ask',
+    subject: `Re: Offer — [Position]`,
+    body: `Dear [Recruiter Name],
+
+Thank you for the offer for [Position] — I'm genuinely excited to join [Company] and ready to contribute from day one.
+
+Before I sign, I'd like to ask about two small points: (1) could we revisit the starting salary toward [figure], given [justification, e.g. my internship experience on X]? (2) Is the start date flexible to [date]?
+
+I'm happy to jump on a call to resolve this quickly. Thank you again for this opportunity.
+
+Best regards,
+[Your Name]`,
+  },
+  {
+    name: 'Application Withdrawal',
+    desc: 'Politely step back from a process',
+    subject: `Withdrawal — [Position] Application`,
+    body: `Dear [Recruiter Name],
+
+Thank you for considering my application for [Position] and for the time you've invested so far.
+
+I've decided to accept another opportunity, so I'd like to withdraw my application. I really appreciated learning about [Company] and hope our paths cross again in the future.
+
+Best regards,
+[Your Name]`,
   },
 ];
 
@@ -144,6 +240,7 @@ export class MailboxComponent implements OnInit {
   contactFormPosition = signal('');
   contactFormLinkedin = signal('');
   contactFormNotes = signal('');
+  contactFormAvatar = signal<string | null>(null);
   editingContactId = signal<string | null>(null);
   contactAutofillOpen = signal(false);
 
@@ -518,6 +615,7 @@ export class MailboxComponent implements OnInit {
       this.contactFormAddress.set('');
       this.contactFormCompany.set(params.get('company') ?? '');
       this.contactFormPosition.set('');
+      this.contactFormAvatar.set(null);
     }
   }
 
@@ -650,22 +748,63 @@ export class MailboxComponent implements OnInit {
     }
   }
 
-  onContactAvatarChange(event: Event) {
+  /** Load an avatar file, draw it to a canvas capped at 256px, and return a compact PNG/JPEG data URL. */
+  private fileToAvatarDataUrl(file: File): Promise<string> {
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const raw = reader.result as string;
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const MAX = 256;
+            const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+            const w = Math.max(1, Math.round(img.width * scale));
+            const h = Math.max(1, Math.round(img.height * scale));
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) { resolve(raw); return; }
+            ctx.drawImage(img, 0, 0, w, h);
+            const keepPng = /png|webp|gif|avif/i.test(file.type || '');
+            const out = canvas.toDataURL(keepPng ? 'image/png' : 'image/jpeg', keepPng ? undefined : 0.85);
+            resolve(out.length < raw.length ? out : raw);
+          } catch {
+            resolve(raw);
+          }
+        };
+        img.onerror = () => resolve(raw);
+        img.src = raw;
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async onContactAvatarChange(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input?.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64 = reader.result as string;
-      const contact = this.selectedContactDetail();
-      if (!contact) return;
-      const res = await this.contactApi.updateContact(contact.id, { avatarBase64: base64 });
-      if (res.success && res.data) {
-        this.selectedContactDetail.set(res.data);
-        this.contacts.set(this.contacts().map(c => c.id === contact.id ? res.data! : c));
-      }
-    };
-    reader.readAsDataURL(file);
+    const base64 = await this.fileToAvatarDataUrl(file);
+    if (!base64) { input.value = ''; return; }
+    const contact = this.selectedContactDetail();
+    if (!contact) return;
+    const res = await this.contactApi.updateContact(contact.id, { avatarBase64: base64 });
+    if (res.success && res.data) {
+      this.selectedContactDetail.set(res.data);
+      this.contacts.set(this.contacts().map(c => c.id === contact.id ? res.data! : c));
+    }
+    input.value = '';
+  }
+
+  async onContactFormAvatarChange(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input?.files?.[0];
+    if (!file) return;
+    const base64 = await this.fileToAvatarDataUrl(file);
+    if (!base64) { input.value = ''; return; }
+    this.contactFormAvatar.set(base64);
     input.value = '';
   }
 
@@ -823,6 +962,7 @@ export class MailboxComponent implements OnInit {
     this.contactFormPosition.set('');
     this.contactFormLinkedin.set('');
     this.contactFormNotes.set('');
+    this.contactFormAvatar.set(null);
   }
 
   editContact(c: ContactDto) {
@@ -838,6 +978,7 @@ export class MailboxComponent implements OnInit {
     this.contactFormPosition.set(c.position || '');
     this.contactFormLinkedin.set(c.linkedinUrl || '');
     this.contactFormNotes.set(c.notes || '');
+    this.contactFormAvatar.set(c.avatarBase64 || null);
   }
 
   async saveContact() {
@@ -852,6 +993,7 @@ export class MailboxComponent implements OnInit {
       position: this.contactFormPosition() || undefined,
       linkedinUrl: this.contactFormLinkedin() || undefined,
       notes: this.contactFormNotes() || undefined,
+      avatarBase64: this.contactFormAvatar() || undefined,
     };
     if (this.editingContactId()) {
       await this.contactApi.updateContact(this.editingContactId()!, dto);

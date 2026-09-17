@@ -22,6 +22,9 @@ public class AppDbContext : DbContext
     public DbSet<AcademicActivity> AcademicActivities => Set<AcademicActivity>();
     public DbSet<Cv> Cvs => Set<Cv>();
     public DbSet<CvVersion> CvVersions => Set<CvVersion>();
+    public DbSet<CvVersionSend> CvVersionSends => Set<CvVersionSend>();
+    public DbSet<CoverLetter> CoverLetters => Set<CoverLetter>();
+    public DbSet<CoverLetterVersion> CoverLetterVersions => Set<CoverLetterVersion>();
     public DbSet<CvSection> CvSections => Set<CvSection>();
     public DbSet<Application> Applications => Set<Application>();
     public DbSet<ApplicationStatusHistory> ApplicationStatusHistories => Set<ApplicationStatusHistory>();
@@ -79,6 +82,24 @@ public class AppDbContext : DbContext
         {
             entity.HasIndex(e => e.CvId);
             entity.HasMany(e => e.Sections).WithOne(e => e.Version).HasForeignKey(e => e.VersionId);
+        });
+
+        modelBuilder.Entity<CvVersionSend>(entity =>
+        {
+            entity.HasIndex(e => new { e.CvVersionId, e.SentAt });
+            entity.HasIndex(e => e.UserId);
+        });
+
+        modelBuilder.Entity<CoverLetter>(entity =>
+        {
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasMany(e => e.Versions).WithOne(e => e.CoverLetter).HasForeignKey(e => e.CoverLetterId);
+        });
+
+        modelBuilder.Entity<CoverLetterVersion>(entity =>
+        {
+            entity.HasIndex(e => e.CoverLetterId);
         });
 
         modelBuilder.Entity<Application>(entity =>

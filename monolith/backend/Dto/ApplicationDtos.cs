@@ -187,7 +187,8 @@ public record ActivityItemDto(
     string? OldStatus,
     string NewStatus,
     DateTime ChangedAt,
-    string? Comment
+    string? Comment,
+    bool IsDeleted = false
 );
 
 public record ActivityFeedDto(

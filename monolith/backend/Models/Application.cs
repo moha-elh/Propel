@@ -59,6 +59,12 @@ public class Application
 
     public string? Notes { get; set; }
 
+    /// <summary>
+    /// Soft-delete flag: true keeps the row (and its history) for the activity feed
+    /// while hiding it from every list/show query.
+    /// </summary>
+    public bool IsDeleted { get; set; } = false;
+
     // Navigation
     public ICollection<ApplicationStatusHistory> StatusHistory { get; set; } = new List<ApplicationStatusHistory>();
 

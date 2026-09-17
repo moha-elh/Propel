@@ -40,6 +40,32 @@
       </div>
     }
 
+    <!-- ── Paste to auto-fill ── -->
+    <div class="paste-fill">
+      @if (!pasteOpen()) {
+        <button type="button" class="paste-toggle" (click)="pasteOpen.set(true)">
+          <i class="ti ti-clipboard-text"></i> Paste a job post to auto-fill
+        </button>
+      } @else {
+        <div class="paste-box">
+          <label>Paste the job posting, email or message — we'll fill the fields below.</label>
+          <textarea rows="5" placeholder="Paste text here…"
+            [ngModel]="pasteText()" name="pasteText"
+            (ngModelChange)="pasteText.set($event)"></textarea>
+          @if (extractError()) {
+            <div class="paste-error"><i class="ti ti-alert-circle"></i> {{ extractError() }}</div>
+          }
+          <div class="paste-actions">
+            <button type="button" class="ghost-btn" (click)="pasteOpen.set(false)">Cancel</button>
+            <button type="button" class="extract-btn"
+              [disabled]="!pasteText().trim() || extracting()" (click)="extractFromPaste()">
+              {{ extracting() ? 'Extracting…' : 'Extract & fill' }}
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+
     <form (ngSubmit)="onSubmit()">
 
       <!-- ── Company & position ── -->
@@ -255,6 +281,14 @@
                   </div>
                 }
               </div>
+            }
+
+            @if (channelFields().recipientName && !pickedContact() && recipientName().trim()) {
+              <label class="save-recipient">
+                <input type="checkbox" [checked]="saveRecipientAsContact()"
+                  (change)="saveRecipientAsContact.set($any($event.target).checked)" />
+                <span>Save this recipient as a contact</span>
+              </label>
             }
 
             @if (channelFields().subject) {

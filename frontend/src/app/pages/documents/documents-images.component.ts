@@ -2,6 +2,8 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ImageDto, ImageService } from '@app/services/image.service';
+import { ContactService } from '@app/services/contact.service';
+import { ContactDto } from '@app/models/mailbox.model';
 import { UserProfileService } from '@app/services/user-profile.service';
 import { ToastService } from '@app/services/toast.service';
 import { ImagePickerComponent } from '@app/shared/components/image-picker/image-picker.component';
@@ -18,6 +20,7 @@ const PAGE_SIZE = 40;
 export class DocumentsImagesComponent implements OnInit {
   private readonly imagesApi = inject(ImageService);
   private readonly profileSvc = inject(UserProfileService);
+  private readonly contactApi = inject(ContactService);
   private readonly toast = inject(ToastService);
 
   images = signal<ImageDto[]>([]);
@@ -30,6 +33,12 @@ export class DocumentsImagesComponent implements OnInit {
   search = signal('');
   searchTimer: ReturnType<typeof setTimeout> | null = null;
   pickerOpen = signal(false);
+  avatarPickerFor = signal<ImageDto | null>(null);
+  avatarSearch = signal('');
+  avatarContacts = signal<ContactDto[]>([]);
+  avatarContactLoading = signal(false);
+  avatarAssigningId = signal<string | null>(null);
+  avatarSearchTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit() {
     this.load();
@@ -101,6 +110,67 @@ export class DocumentsImagesComponent implements OnInit {
     this.images.set([img, ...this.images().filter(i => i.id !== img.id)]);
     if (!this.images().some(i => i.id === img.id)) this.total.set(this.total() + 1);
     this.toast.success('Image added');
+  }
+
+  openAvatarPicker(img: ImageDto): void {
+    this.avatarPickerFor.set(img);
+    this.avatarSearch.set('');
+    this.avatarContacts.set([]);
+    this.avatarAssigningId.set(null);
+    this.searchAvatarContacts();
+  }
+
+  closeAvatarPicker(): void {
+    if (this.avatarSearchTimer) clearTimeout(this.avatarSearchTimer);
+    this.avatarSearchTimer = null;
+    this.avatarPickerFor.set(null);
+    this.avatarContacts.set([]);
+    this.avatarAssigningId.set(null);
+  }
+
+  onAvatarSearchInput(value: string): void {
+    this.avatarSearch.set(value);
+    if (this.avatarSearchTimer) clearTimeout(this.avatarSearchTimer);
+    this.avatarSearchTimer = setTimeout(() => this.searchAvatarContacts(), 300);
+  }
+
+  async searchAvatarContacts(): Promise<void> {
+    this.avatarContactLoading.set(true);
+    try {
+      const term = this.avatarSearch().trim();
+      const res = await this.contactApi.getContacts(term ? { search: term, pageSize: 8 } : { pageSize: 8 });
+      this.avatarContacts.set(res.data?.items ?? []);
+    } catch {
+      this.avatarContacts.set([]);
+    } finally {
+      this.avatarContactLoading.set(false);
+    }
+  }
+
+  async assignContactAvatar(contact: ContactDto): Promise<void> {
+    const img = this.avatarPickerFor();
+    if (!img || this.avatarAssigningId()) return;
+    this.avatarAssigningId.set(contact.id);
+    try {
+      const blob = await this.imagesApi.getFile(img.id);
+      const dataUrl = await this.blobToDataUrl(blob);
+      await this.contactApi.updateContact(contact.id, { avatarBase64: dataUrl });
+      this.toast.success(`Avatar set for ${contact.name}`);
+      this.closeAvatarPicker();
+    } catch {
+      this.toast.error('Failed to set contact avatar');
+    } finally {
+      this.avatarAssigningId.set(null);
+    }
+  }
+
+  private blobToDataUrl(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
   }
 
   async setCvPhoto(img: ImageDto): Promise<void> {

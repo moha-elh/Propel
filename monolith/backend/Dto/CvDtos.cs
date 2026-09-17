@@ -30,6 +30,7 @@ public record CvDto(
     DateTime CreatedAt,
     DateTime UpdatedAt,
     bool IsActive,
+    string[] Tags,
     List<CvVersionDto>? Versions = null
 );
 
@@ -41,7 +42,9 @@ public record CvVersionDto(
     string? FileUrl,
     string? PdfUrl,
     string ContentJson,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    int SentCount = 0,
+    DateTime? LastSentAt = null
 );
 
 public record CvSectionDto(

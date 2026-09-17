@@ -1,5 +1,6 @@
 namespace CV_Generator.Models;
 
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 // CV version entity
@@ -15,6 +16,14 @@ public class CvVersion
     public string? ThumbnailUrl { get; set; }
     public string ContentJson { get; set; } = "{}";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>CvVersionSends count for this version (computed per user; not persisted).</summary>
+    [NotMapped]
+    public int SentCount { get; set; }
+
+    /// <summary>Most recent CvVersionSend time for this version (computed per user; not persisted).</summary>
+    [NotMapped]
+    public DateTime? LastSentAt { get; set; }
 
     [JsonIgnore]
     public Cv Cv { get; set; } = null!;

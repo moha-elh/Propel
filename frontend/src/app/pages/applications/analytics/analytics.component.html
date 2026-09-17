@@ -96,71 +96,87 @@
         }
       </section>
 
-      <!-- Email & schedules -->
+      <!-- How you applied -->
       <section class="card">
-        <h2>Email & schedules</h2>
-        @if (summary()?.email) {
-          <div class="email-kpis">
-            <div class="email-kpi">
-              <div class="email-val">{{ summary()!.email.emailsSent }}</div>
-              <div class="muted">Sent</div>
-            </div>
-            <div class="email-kpi">
-              <div class="email-val">{{ summary()!.email.emailsFailed }}</div>
-              <div class="muted">Failed</div>
-            </div>
-            <div class="email-kpi">
-              <div class="email-val">{{ summary()!.email.successRate }}%</div>
-              <div class="muted">Success</div>
-            </div>
-            <div class="email-kpi">
-              <div class="email-val">{{ summary()!.email.activeSchedules }}</div>
-              <div class="muted">Active schedules</div>
-            </div>
+        <h2>How you applied</h2>
+        @if (channelBreakdown().length === 0) {
+          <div class="muted">No sent applications yet. When you apply through a channel, it shows up here.</div>
+        } @else {
+          <div class="funnel">
+            @for (c of channelBreakdown(); track c.name) {
+              <div class="funnel-row">
+                <div class="funnel-head">
+                  <span class="funnel-label">{{ c.name }}</span>
+                  <span class="funnel-count">{{ c.value }} · {{ channelPct(c.value) }}%</span>
+                </div>
+                <div class="funnel-track">
+                  <div class="funnel-bar" [style.width.%]="channelPct(c.value)" style="background:oklch(0.6 0.16 250)"></div>
+                </div>
+              </div>
+            }
           </div>
-          @if (emailPie().length > 0) {
-            <div class="email-pie">
-              <ngx-charts-pie-chart
-                [view]="[180, 180]"
-                [results]="emailPie()"
-                [customColors]="emailColors()"
-                [doughnut]="true"
-                [labels]="false"
-                [legend]="true"
-                [animations]="false">
-              </ngx-charts-pie-chart>
-            </div>
-          }
-          @if (channelBreakdown().length > 0) {
-            <div class="channel-breakdown">
-              <div class="muted small">Send channels</div>
-              <ul class="channel-list">
-                @for (c of channelBreakdown(); track c.name) {
-                  <li><span>{{ c.name }}</span><span class="muted">{{ c.value }}</span></li>
-                }
-              </ul>
-            </div>
-          }
         }
       </section>
 
-      <!-- Monthly stacked -->
+      <!-- CV performance -->
+      <section class="card span-2">
+        <h2>CV performance</h2>
+        @if (cvPerformance().length === 0) {
+          <div class="muted">No CV sends tracked yet. When you send a CV from the mailbox or an apply, its performance shows up here.</div>
+        } @else {
+          <div class="cv-perf-list">
+            @for (p of cvPerformance(); track p.versionId) {
+              <div class="cv-perf-row">
+                <div class="cv-perf-head">
+                  <span class="cv-perf-title">{{ p.cvTitle }}</span>
+                  <span class="cv-perf-version">v{{ p.versionNumber }}{{ p.versionLabel ? ' · ' + p.versionLabel : '' }}</span>
+                </div>
+                @if (p.tags.length > 0) {
+                  <div class="cv-perf-tags">
+                    @for (t of p.tags; track t) {
+                      <span class="perf-chip">{{ t }}</span>
+                    }
+                  </div>
+                }
+                <div class="cv-perf-metrics">
+                  <span class="perf-met"><b>{{ p.sentCount }}</b> sent</span>
+                  <span class="perf-met"><b>{{ p.linkedApplications }}</b> linked</span>
+                  <span class="perf-conv muted">{{ cvInterviewPct(p) }}% interviews · {{ cvOfferPct(p) }}% offers</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </section>
+
+      <!-- Over-time trend -->
       <section class="card span-2">
         <div class="card-head">
           <h2>Applications over time</h2>
           <div class="period-toggle">
-            @for (p of [3, 6, 12]; track p) {
-              <button class="chip" [class.active]="periodMonths() === p" (click)="setPeriod(p)">{{ p }}m</button>
+            <div class="granularity-toggle" role="group" aria-label="Time granularity">
+              <button class="chip" [class.active]="granularity() === 'week'" (click)="setGranularity('week')">Week</button>
+              <button class="chip" [class.active]="granularity() === 'month'" (click)="setGranularity('month')">Month</button>
+            </div>
+            @if (granularity() === 'week') {
+              @for (p of [4, 8, 16]; track p) {
+                <button class="chip" [class.active]="periodWeeks() === p" (click)="setPeriod(p)">{{ p }}w</button>
+              }
+              <button class="chip" [class.active]="periodWeeks() === 0" (click)="setPeriod(0)">All</button>
+            } @else {
+              @for (p of [3, 6, 12]; track p) {
+                <button class="chip" [class.active]="periodMonths() === p" (click)="setPeriod(p)">{{ p }}m</button>
+              }
+              <button class="chip" [class.active]="periodMonths() === 0" (click)="setPeriod(0)">All</button>
             }
-            <button class="chip" [class.active]="periodMonths() === 0" (click)="setPeriod(0)">All</button>
           </div>
         </div>
-        @if (monthlyStacked().length === 0) {
-          <div class="muted">No monthly data yet.</div>
+        @if (overTimeData().length === 0) {
+          <div class="muted">No data yet for this period.</div>
         } @else {
           <ngx-charts-bar-vertical-stacked
             [view]="[640, 280]"
-            [results]="monthlyStacked()"
+            [results]="overTimeData()"
             [customColors]="statusColors()"
             [xAxis]="true"
             [yAxis]="true"

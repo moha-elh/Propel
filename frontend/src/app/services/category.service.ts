@@ -58,4 +58,14 @@ export class CategoryService {
     });
     return res.data ?? [];
   }
+
+  /** Create a root category node (container) for a scope. */
+  async createNode(scope: string, name: string): Promise<ApiResponse<TaxonomyNode>> {
+    return this.http.post<ApiResponse<TaxonomyNode>>('/api/categories', { scope, name });
+  }
+
+  /** Delete a category node and its tags. */
+  async deleteNode(id: string): Promise<ApiResponse<unknown>> {
+    return this.http.delete<ApiResponse<unknown>>(`/api/categories/${id}`);
+  }
 }

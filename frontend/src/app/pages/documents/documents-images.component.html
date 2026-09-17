@@ -75,6 +75,9 @@
               <button class="btn-ghost-sm" (click)="setAvatar(img)" title="Set as your profile avatar">
                 <i class="ti ti-user"></i> Avatar
               </button>
+              <button class="btn-ghost-sm" (click)="openAvatarPicker(img)" title="Set as a contact's avatar">
+                <i class="ti ti-users"></i> Contact
+              </button>
               <a class="btn-ghost-sm" [href]="img.url" target="_blank" rel="noopener" title="Open image"><i class="ti ti-external-link"></i></a>
               <button class="btn-ghost-sm" (click)="copyUrl(img)" title="Copy URL"><i class="ti ti-copy"></i></button>
               <button class="btn-danger-sm" (click)="deleteImage(img)" title="Delete"><i class="ti ti-trash"></i></button>
@@ -85,6 +88,52 @@
     </div>
   }
 </div>
+
+@if (avatarPickerFor(); as img) {
+  <div class="avatar-picker">
+    <div class="avatar-picker-head">
+      <h3>Use "{{ img.name }}" as a contact avatar</h3>
+      <button class="btn-ghost-sm" (click)="closeAvatarPicker()" title="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="avatar-picker-search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search contacts…" [ngModel]="avatarSearch()" (ngModelChange)="onAvatarSearchInput($event)">
+    </div>
+    <div class="avatar-picker-list">
+      @if (avatarContactLoading() && avatarContacts().length === 0) {
+        <div class="avatar-picker-state">Loading contacts…</div>
+      } @else if (avatarContacts().length === 0) {
+        <div class="avatar-picker-state">
+          <i class="ti ti-users-off"></i>
+          No contacts found
+        </div>
+      } @else {
+        @for (c of avatarContacts(); track c.id) {
+          <button class="avatar-picker-row" (click)="assignContactAvatar(c)" [disabled]="avatarAssigningId() === c.id">
+            <span class="avatar-thumb">
+              @if (c.avatarBase64) {
+                <img [src]="c.avatarBase64" alt="" />
+              } @else {
+                {{ c.name.slice(0, 2).toUpperCase() }}
+              }
+            </span>
+            <span class="avatar-picker-id">
+              <strong>{{ c.name }}</strong>
+              <em>{{ c.email || 'No email' }}</em>
+            </span>
+            <span class="avatar-assign">
+              @if (avatarAssigningId() === c.id) {
+                <i class="ti ti-loader"></i> Setting…
+              } @else {
+                Set avatar
+              }
+            </span>
+          </button>
+        }
+      }
+    </div>
+  </div>
+}
 
 <app-image-picker
   [(open)]="pickerOpen"

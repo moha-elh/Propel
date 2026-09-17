@@ -12,6 +12,7 @@ import { TabBarComponent, TabItem } from '@app/shared/components/tab-bar/tab-bar
 export class DocumentsLayoutComponent {
   protected readonly tabs: TabItem[] = [
     { label: 'CVs', route: 'cvs', icon: 'file-text' },
+    { label: 'Letters', route: 'letters', icon: 'mail' },
     { label: 'Templates', route: 'templates', icon: 'layers' },
     { label: 'Images', route: 'images', icon: 'photo' },
   ];

@@ -88,6 +88,14 @@
                   <div class="version-chip">
                     <i class="ti ti-file-text"></i>
                     <span>v{{ ver.versionNumber }} — {{ ver.label }}</span>
+                    @if ((ver.sentCount ?? 0) > 0) {
+                      <span class="sent-badge" [title]="ver.lastSentAt ? 'Last sent ' + (ver.lastSentAt | date: 'medium') : ''">
+                        <i class="ti ti-send"></i> Sent {{ ver.sentCount }}×
+                        @if (ver.lastSentAt) {
+                          <span class="sent-when">{{ ver.lastSentAt | date: 'shortDate' }}</span>
+                        }
+                      </span>
+                    }
                     @if (ver.pdfUrl) {
                       <button class="btn-ghost-sm" (click)="openPreview(ver)">
                         <i class="ti ti-eye"></i> Preview
@@ -104,6 +112,25 @@
                 }
               </div>
             }
+
+            <div class="tags-row">
+              @for (tag of cv.tags ?? []; track tag) {
+                <span class="tag-chip">
+                  {{ tag }}
+                  <button class="tag-remove" type="button" (click)="removeTag(cv, tag)" [title]="'Remove ' + tag">✕</button>
+                </span>
+              }
+              <input
+                class="tag-input"
+                type="text"
+                maxlength="40"
+                placeholder="+ add tag"
+                [value]="tagDraftFor(cv)"
+                (input)="setTagDraft(cv, $any($event.target).value)"
+                (keydown)="onTagKeydown(cv, $event)"
+                (blur)="commitTag(cv)"
+              >
+            </div>
 
             <div class="cv-actions">
               <button class="btn-ghost-sm" (click)="openEdit(cv)"><i class="ti ti-edit"></i> Edit</button>

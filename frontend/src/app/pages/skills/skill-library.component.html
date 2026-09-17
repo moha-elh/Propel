@@ -1,0 +1,162 @@
+<div class="skill-library">
+  <div class="lib-header">
+    <div class="lib-title">
+      <h2>Skills</h2>
+      <p class="lib-sub" *ngIf="loading()">Loading…</p>
+      <p class="lib-sub" *ngIf="!loading()">{{ totalSkills() }} skill{{ totalSkills() === 1 ? '' : 's' }}</p>
+    </div>
+    <div class="lib-actions">
+      <ng-container *ngIf="!manageMode()">
+        <input
+          class="search-input"
+          type="search"
+          placeholder="Search skills…"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+        />
+        <input
+          class="category-input"
+          type="text"
+          placeholder="New category…"
+          [(ngModel)]="newCategory"
+          (keydown.enter)="createCategory()"
+        />
+        <button type="button" class="btn btn-secondary" (click)="createCategory()">Add category</button>
+        <button type="button" class="btn btn-secondary" (click)="importOpen.set(true)">Import</button>
+        <app-refresh-button [loading]="loading()" (refresh)="refresh()" />
+        <button
+          type="button"
+          class="collapse-btn"
+          [title]="allCollapsed() ? 'Expand all' : 'Collapse all'"
+          (click)="toggleAll()"
+        >
+          @if (allCollapsed()) {
+            <svg viewBox="0 0 24 24" fill="none" width="15" height="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/></svg>
+          } @else {
+            <svg viewBox="0 0 24 24" fill="none" width="15" height="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/></svg>
+          }
+        </button>
+        <button type="button" class="btn btn-primary" (click)="addSkill()">Add skill</button>
+      </ng-container>
+      <button
+        type="button"
+        class="btn btn-secondary"
+        [class.active-manage]="manageMode()"
+        (click)="manageMode() ? exitManage() : enterManage()"
+      >{{ manageMode() ? 'Done' : 'Manage' }}</button>
+    </div>
+  </div>
+
+  <div class="bulk-bar" *ngIf="manageMode()">
+    <span class="bulk-count" *ngIf="selected().size > 0">{{ selected().size }} selected</span>
+    <span class="bulk-count muted" *ngIf="selected().size === 0">Select skills below</span>
+    <button type="button" class="btn btn-ghost btn-sm" (click)="selectAllSkills()" [disabled]="busyBulk()">Select all ({{ selected().size }}/{{ skills().length }})</button>
+    <button type="button" class="btn btn-ghost btn-sm" (click)="clearSelection()" [disabled]="busyBulk()">Clear</button>
+    <span class="bulk-spacer"></span>
+    <button type="button" class="btn btn-secondary btn-sm" (click)="openMoveDialog()" [disabled]="selected().size === 0 || busyBulk()">Move to…</button>
+    <button type="button" class="btn delete-btn btn-sm" (click)="deleteSelected()" [disabled]="selected().size === 0 || busyBulk()">{{ busyBulk() ? 'Working…' : 'Delete' }}</button>
+  </div>
+
+  <app-sheet-import-dialog [type]="'skills'" [(open)]="importOpen" (imported)="refresh()" />
+
+  @if (showMoveDialog()) {
+    <div class="move-backdrop" (click)="closeMoveDialog()">
+      <div class="move-dialog" (click)="$event.stopPropagation()">
+        <h3>Move {{ selected().size }} skill{{ selected().size === 1 ? '' : 's' }} to…</h3>
+        <div class="move-list">
+          <button type="button" class="move-opt" [class.active]="moveChoice()?.kind === 'uncategorized'" (click)="chooseUncategorized()">
+            <span class="opt-name">Uncategorized</span>
+          </button>
+          <button
+            type="button"
+            class="move-opt"
+            *ngFor="let c of categories()"
+            [class.active]="moveChoice()?.kind === 'existing' && moveChoice()?.name === c.name"
+            (click)="chooseExisting(c.name)"
+          >
+            <span class="opt-name">{{ c.name }}</span>
+            <span class="opt-count" *ngIf="c.count">{{ c.count }}</span>
+          </button>
+          <div class="move-new" [class.active]="moveChoice()?.kind === 'new'">
+            <input
+              type="text"
+              placeholder="New category name…"
+              [(ngModel)]="newMoveName"
+              (ngModelChange)="chooseNew()"
+              (keydown.enter)="applyMoveChoice()"
+            />
+            <small>This container will be created on apply.</small>
+          </div>
+        </div>
+        <div class="move-foot">
+          <button type="button" class="btn btn-ghost" (click)="closeMoveDialog()">Cancel</button>
+          <button type="button" class="btn btn-primary" [disabled]="!moveChoice() || busyBulk()" (click)="applyMoveChoice()">{{ busyBulk() ? 'Moving…' : 'Apply' }}</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <ng-container *ngIf="!loading()">
+    <div *ngIf="categories().length === 0 && skills().length === 0" class="lib-empty">
+      <p>No categories or skills yet.</p>
+      <button type="button" class="btn btn-primary" (click)="addSkill()">Add your first skill</button>
+    </div>
+
+    <div class="container-cards">
+      <section class="category-card" *ngFor="let group of containers()">
+        <header class="card-head" (click)="toggleCollapsed(group.id)">
+          <div class="card-title">
+            <svg class="chevron" [class.rotated]="!isCollapsed(group.id)" viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+            <span class="cat-name">{{ group.name }}</span>
+            <span class="cat-count">{{ group.skills.length }}</span>
+          </div>
+          <div class="card-actions" (click)="$event.stopPropagation()">
+            <ng-container *ngIf="group.id !== 'uncategorized'">
+              <button type="button" class="icon-btn" title="Delete category" (click)="deleteCategory(group.id, group.name)">✕</button>
+            </ng-container>
+            <button type="button" class="small-btn" (click)="addSkill(group.id === 'uncategorized' ? undefined : group.name)">+ Add</button>
+          </div>
+        </header>
+
+        <div class="card-body" *ngIf="!isCollapsed(group.id)">
+          <ng-container *ngIf="group.skills.length; else emptyBody">
+            <div class="skill-row"
+              *ngFor="let skill of visibleSkills(group)"
+              [class.selected]="selected().has(skill.id)"
+              (click)="rowClick($event, skill.id)">
+              <input
+                type="checkbox"
+                class="row-check"
+                *ngIf="manageMode()"
+                [checked]="selected().has(skill.id)"
+                [attr.aria-label]="'Select ' + skill.name"
+                (click)="$event.stopPropagation()"
+                (change)="toggleSelect(skill.id)"
+              />
+              <span class="skill-name" [title]="skill.name">{{ skill.name }}</span>
+              <span class="skill-dots">
+                <span
+                  class="dot"
+                  *ngFor="let i of dots"
+                  [class.filled]="dotFill(skill.level, i)"
+                  [class.muted]="!dotFill(skill.level, i)"
+                ></span>
+              </span>
+            </div>
+            <button
+              type="button"
+              class="show-more"
+              *ngIf="group.skills.length > expandLimit"
+              (click)="toggleMore(group.id)"
+            >{{ expanded().has(group.id) ? 'Show less' : 'Show all ' + group.skills.length }}</button>
+          </ng-container>
+          <ng-template #emptyBody>
+            <p class="card-empty">No skills in this category yet.</p>
+          </ng-template>
+        </div>
+      </section>
+    </div>
+  </ng-container>
+</div>

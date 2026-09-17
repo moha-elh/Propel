@@ -3,9 +3,9 @@ import { CommonModule } from '@angular/common';
 import { NgxChartsModule } from '@swimlane/ngx-charts';
 import { ApplicationService } from '@app/services/application.service';
 import {
-  AnalyticsSummaryDto, MonthlyTrendDto, ApplicationStatus,
+  AnalyticsSummaryDto, MonthlyTrendDto, WeeklyTrendDto, ApplicationStatus,
   STATUS_ORDER, STATUS_LABELS, STATUS_COLORS,
-  ATTEMPT_CHANNEL_LABELS,
+  ATTEMPT_CHANNEL_LABELS, CvPerformanceDto,
 } from '@app/models/application.model';
 import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
 
@@ -15,6 +15,7 @@ interface KpiCard { label: string; value: string; sub: string; color: string; }
 interface FunnelRow { label: string; count: number; pct: number; color: string; }
 interface NameValue { name: string; value: number; }
 interface StatusSlice extends NameValue { color: string; }
+type Granularity = 'week' | 'month';
 
 @Component({
   selector: 'app-analytics',
@@ -29,7 +30,9 @@ export class AnalyticsComponent implements OnInit {
   summary = signal<AnalyticsSummaryDto | null>(null);
   loading = signal(true);
   refreshing = signal(false);
+  granularity = signal<Granularity>('month');
   periodMonths = signal(6);
+  periodWeeks = signal(8);
 
   ngOnInit() { this.load(); }
 
@@ -41,7 +44,11 @@ export class AnalyticsComponent implements OnInit {
   }
 
   onRefresh() { this.refreshing.set(true); this.load(); }
-  setPeriod(months: number) { this.periodMonths.set(months); }
+  setGranularity(g: Granularity) { this.granularity.set(g); }
+  setPeriod(n: number) {
+    if (this.granularity() === 'week') this.periodWeeks.set(n);
+    else this.periodMonths.set(n);
+  }
 
   stats = computed(() => this.summary()?.statistics ?? {
     total: 0, saved: 0, applied: 0, screening: 0, interview: 0, offer: 0, accepted: 0, rejected: 0, withdrawn: 0,
@@ -97,19 +104,6 @@ export class AnalyticsComponent implements OnInit {
   topCompanyColors = computed(() => this.topCompanies().map(c => ({ name: c.name, value: 'oklch(0.6 0.16 250)' })));
   topCompanyView = computed<[number, number]>(() => [320, Math.max(120, this.topCompanies().length * 34 + 30)]);
 
-  emailPie = computed<NameValue[]>(() => {
-    const e = this.summary()?.email;
-    if (!e) return [];
-    const arr: NameValue[] = [];
-    if (e.emailsSent > 0) arr.push({ name: 'Sent', value: e.emailsSent });
-    if (e.emailsFailed > 0) arr.push({ name: 'Failed', value: e.emailsFailed });
-    return arr;
-  });
-  emailColors = computed(() => [
-    { name: 'Sent', value: 'oklch(0.62 0.15 155)' },
-    { name: 'Failed', value: 'oklch(0.62 0.18 25)' },
-  ]);
-
   channelBreakdown = computed<NameValue[]>(() => {
     const c = this.summary()?.channelCounts ?? {};
     return Object.keys(c)
@@ -118,18 +112,52 @@ export class AnalyticsComponent implements OnInit {
       .sort((a, b) => b.value - a.value);
   });
 
-  filteredTrends = computed<MonthlyTrendDto[]>(() => {
+  totalChannels = computed(() => this.channelBreakdown().reduce((sum, c) => sum + c.value, 0));
+
+  channelPct(value: number): number {
+    const total = this.totalChannels();
+    return total > 0 ? Math.round((value / total) * 100) : 0;
+  }
+
+  filteredTrends = computed(() => {
+    const granularity = this.granularity();
+    if (granularity === 'week') {
+      const trends = this.summary()?.weeklyTrends ?? [];
+      const cutoff = this.periodWeeks();
+      return cutoff > 0 ? trends.slice(-cutoff) : trends;
+    }
     const trends = this.summary()?.monthlyTrends ?? [];
     const cutoff = this.periodMonths();
     return cutoff > 0 ? trends.slice(-cutoff) : trends;
   });
 
   monthlyStacked = computed(() =>
-    this.filteredTrends().map(d => ({
+    (this.filteredTrends() as MonthlyTrendDto[]).map(d => ({
       name: MONTH_LABELS[d.month - 1] + (d.year !== new Date().getFullYear() ? ` ${d.year}` : ''),
       series: STATUS_ORDER.map(st => ({ name: STATUS_LABELS[st], value: (d as unknown as Record<string, number>)[st.toLowerCase()] ?? 0 })),
     }))
   );
 
+  weeklyStacked = computed(() =>
+    (this.filteredTrends() as WeeklyTrendDto[]).map(d => ({
+      name: `W${d.week}` + (d.year !== new Date().getFullYear() ? ` ${d.year}` : ''),
+      series: STATUS_ORDER.map(st => ({ name: STATUS_LABELS[st], value: (d as unknown as Record<string, number>)[st.toLowerCase()] ?? 0 })),
+    }))
+  );
+
+  overTimeData = computed(() =>
+    this.granularity() === 'week' ? this.weeklyStacked() : this.monthlyStacked()
+  );
+
   hasData = computed(() => this.stats().total > 0);
+
+  cvPerformance = computed<CvPerformanceDto[]>(() => this.summary()?.cvPerformance ?? []);
+
+  cvInterviewPct(p: CvPerformanceDto): number {
+    return p.linkedApplications > 0 ? Math.round((p.interviewCount / p.linkedApplications) * 100) : 0;
+  }
+
+  cvOfferPct(p: CvPerformanceDto): number {
+    return p.linkedApplications > 0 ? Math.round((p.offerCount / p.linkedApplications) * 100) : 0;
+  }
 }

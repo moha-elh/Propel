@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using CV_Generator.Data;
 using CV_Generator.Dto;
@@ -35,7 +37,7 @@ public class ApplicationService : IApplicationService
         var app = await _db.Applications
             .Include(a => a.StatusHistory.OrderByDescending(h => h.ChangedAt))
             .Include(a => a.Attempts.OrderBy(t => t.AttemptNumber))
-            .FirstOrDefaultAsync(a => a.Id == id && a.CandidateId == userId);
+            .FirstOrDefaultAsync(a => a.Id == id && a.CandidateId == userId && !a.IsDeleted);
         return app == null ? null : MapToDtoWithHistory(app);
     }
 
@@ -104,7 +106,7 @@ public class ApplicationService : IApplicationService
 
     public async Task<ApplicationResponseDto?> UpdateStatusAsync(Guid id, UpdateStatusDto dto, Guid userId)
     {
-        var app = await _db.Applications.FirstOrDefaultAsync(a => a.Id == id && a.CandidateId == userId);
+        var app = await _db.Applications.FirstOrDefaultAsync(a => a.Id == id && a.CandidateId == userId && !a.IsDeleted);
         if (app == null) return null;
 
         if (!Enum.TryParse<ApplicationStatus>(dto.Status?.ToUpperInvariant(), out var newStatus))
@@ -130,7 +132,7 @@ public class ApplicationService : IApplicationService
 
     public async Task<ApplicationResponseDto?> UpdateDetailsAsync(Guid id, UpdateApplicationDto dto, Guid userId)
     {
-        var app = await _db.Applications.FirstOrDefaultAsync(a => a.Id == id && a.CandidateId == userId);
+        var app = await _db.Applications.FirstOrDefaultAsync(a => a.Id == id && a.CandidateId == userId && !a.IsDeleted);
         if (app == null) return null;
 
         if (!string.IsNullOrWhiteSpace(dto.CompanyName))
@@ -169,15 +171,16 @@ public class ApplicationService : IApplicationService
         var app = await _db.Applications.FirstOrDefaultAsync(a => a.Id == id && a.CandidateId == userId);
         if (app == null) return false;
 
-        _db.Applications.Remove(app);
+        app.IsDeleted = true;
+        app.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Application {Id} deleted", id);
+        _logger.LogInformation("Application {Id} soft-deleted", id);
         return true;
     }
 
     public async Task<bool?> ToggleSaveAsync(Guid id, Guid userId)
     {
-        var app = await _db.Applications.FirstOrDefaultAsync(a => a.Id == id && a.CandidateId == userId);
+        var app = await _db.Applications.FirstOrDefaultAsync(a => a.Id == id && a.CandidateId == userId && !a.IsDeleted);
         if (app == null) return null;
 
         var oldStatus = app.Status;
@@ -209,7 +212,7 @@ public class ApplicationService : IApplicationService
     public async Task<ApplicationStatisticsDto> GetStatisticsAsync(Guid userId)
     {
         var stats = await _db.Applications
-            .Where(a => a.CandidateId == userId)
+            .Where(a => a.CandidateId == userId && !a.IsDeleted)
             .GroupBy(a => a.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Status, x => x.Count);
@@ -240,9 +243,10 @@ public class ApplicationService : IApplicationService
     {
         var stats = await GetStatisticsAsync(userId);
         var monthly = await GetMonthlyTrendsAsync(userId);
+        var weekly = await GetWeeklyTrendsAsync(userId);
         var avg = await GetAverageResponseTimeAsync(userId);
 
-        var apps = _db.Applications.Where(a => a.CandidateId == userId);
+        var apps = _db.Applications.Where(a => a.CandidateId == userId && !a.IsDeleted);
 
         var priorityCounts = await apps.GroupBy(a => a.Priority)
             .Select(g => new { Key = g.Key.ToString(), Count = g.Count() })
@@ -281,9 +285,98 @@ public class ApplicationService : IApplicationService
 
         var distinctCompanies = await apps.Select(a => a.CompanyName).Distinct().CountAsync();
 
+        var cvPerformance = await GetCvPerformanceAsync(userId);
+
         var email = await GetEmailStatsAsync(userId);
 
-        return new AnalyticsSummaryDto(stats, avg, distinctCompanies, monthly, priorityCounts, originCounts, channelCounts, funnel, topCompanies, email);
+        return new AnalyticsSummaryDto(stats, avg, distinctCompanies, monthly, weekly, priorityCounts, originCounts, channelCounts, funnel, topCompanies, email, cvPerformance);
+    }
+
+    private async Task<List<CvPerformanceDto>> GetCvPerformanceAsync(Guid userId)
+    {
+        var sends = await _db.CvVersionSends
+            .Where(s => s.UserId == userId)
+            .Select(s => new
+            {
+                s.CvVersionId,
+                s.ApplicationId,
+                Status = s.Application != null && !s.Application.IsDeleted
+                    ? (ApplicationStatus?)s.Application.Status
+                    : null
+            })
+            .ToListAsync();
+
+        var sentVersionIds = sends.Select(s => s.CvVersionId).Distinct().ToList();
+        var versions = await _db.CvVersions.AsNoTracking()
+            .Where(v => sentVersionIds.Contains(v.Id) && v.Cv.UserId == userId)
+            .Select(v => new { v.Id, v.VersionNumber, v.Label, CvTitle = v.Cv.Title, v.Cv.TagsJson })
+            .ToListAsync();
+        var versionMeta = versions.ToDictionary(v => v.Id);
+
+        var results = new List<CvPerformanceDto>();
+        foreach (var group in sends.GroupBy(s => s.CvVersionId))
+        {
+            if (!versionMeta.TryGetValue(group.Key, out var meta)) continue;
+
+            var distinctApps = group
+                .Where(s => s.ApplicationId.HasValue && s.Status.HasValue)
+                .Select(s => (Id: s.ApplicationId!.Value, Status: s.Status!.Value))
+                .Distinct()
+                .ToList();
+
+            results.Add(new CvPerformanceDto(
+                meta.CvTitle,
+                meta.VersionNumber,
+                string.IsNullOrWhiteSpace(meta.Label) ? null : meta.Label,
+                meta.Id,
+                Cv.ParseTags(meta.TagsJson),
+                group.Count(),
+                distinctApps.Count,
+                distinctApps.Count(a => a.Status == ApplicationStatus.INTERVIEW),
+                distinctApps.Count(a => a.Status is ApplicationStatus.OFFER or ApplicationStatus.ACCEPTED)
+            ));
+        }
+
+        return results
+            .OrderByDescending(p => p.SentCount)
+            .ThenBy(p => p.CvTitle)
+            .ToList();
+    }
+
+    private async Task<List<WeeklyTrendDto>> GetWeeklyTrendsAsync(Guid userId, int weeks = 16)
+    {
+        var cutoff = DateTime.UtcNow.AddDays(-(weeks * 7));
+
+        var raw = await _db.Applications
+            .Where(a => a.CandidateId == userId && !a.IsDeleted && a.AppliedAt != null && a.AppliedAt >= cutoff)
+            .ToListAsync();
+
+        var calendar = CultureInfo.InvariantCulture.Calendar;
+        var byWeek = raw
+            .GroupBy(a =>
+            {
+                var d = a.AppliedAt!.Value;
+                var week = calendar.GetWeekOfYear(d, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
+                return new { d.Year, Week = week };
+            })
+            .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Week)
+            .ToList();
+
+        return byWeek.Select(r =>
+        {
+            var s = r.GroupBy(a => a.Status).ToDictionary(x => x.Key, x => x.Count());
+            return new WeeklyTrendDto(
+                r.Key.Year, r.Key.Week,
+                s.GetValueOrDefault(ApplicationStatus.SAVED, 0),
+                s.GetValueOrDefault(ApplicationStatus.APPLIED, 0),
+                s.GetValueOrDefault(ApplicationStatus.SCREENING, 0),
+                s.GetValueOrDefault(ApplicationStatus.INTERVIEW, 0),
+                s.GetValueOrDefault(ApplicationStatus.OFFER, 0),
+                s.GetValueOrDefault(ApplicationStatus.ACCEPTED, 0),
+                s.GetValueOrDefault(ApplicationStatus.REJECTED, 0),
+                s.GetValueOrDefault(ApplicationStatus.WITHDRAWN, 0)
+            );
+        }).ToList();
     }
 
     private async Task<EmailStatsDto> GetEmailStatsAsync(Guid userId)
@@ -311,7 +404,7 @@ public class ApplicationService : IApplicationService
         var cutoff = DateTime.UtcNow.AddMonths(-months);
 
         var raw = await _db.Applications
-            .Where(a => a.CandidateId == userId && a.AppliedAt != null && a.AppliedAt >= cutoff)
+            .Where(a => a.CandidateId == userId && !a.IsDeleted && a.AppliedAt != null && a.AppliedAt >= cutoff)
             .GroupBy(a => new { a.AppliedAt!.Value.Year, a.AppliedAt.Value.Month })
             .Select(g => new
             {
@@ -348,6 +441,7 @@ public class ApplicationService : IApplicationService
         var appsWithResponse = await _db.Applications
             .Include(a => a.StatusHistory)
             .Where(a => a.CandidateId == userId
+                && !a.IsDeleted
                 && a.AppliedAt != null
                 && a.StatusHistory.Any(h => !initialStatuses.Contains(h.NewStatus)))
             .Select(a => new
@@ -385,7 +479,8 @@ public class ApplicationService : IApplicationService
                 h.OldStatus != null ? h.OldStatus.ToString() : null,
                 h.NewStatus.ToString(),
                 h.ChangedAt,
-                h.Comment
+                h.Comment,
+                h.Application.IsDeleted
             ))
             .ToListAsync();
 
@@ -406,6 +501,7 @@ public class ApplicationService : IApplicationService
         {
             var appliedEvents = await _db.Applications
                 .Where(a => a.CandidateId == userId
+                    && !a.IsDeleted
                     && a.AppliedAt != null
                     && a.AppliedAt >= from
                     && a.AppliedAt <= to)
@@ -426,6 +522,7 @@ public class ApplicationService : IApplicationService
             .Include(h => h.Application)
             .Where(h => h.Application != null
                 && h.Application.CandidateId == userId
+                && !h.Application.IsDeleted
                 && h.ChangedAt >= from
                 && h.ChangedAt <= to
                 && parsedStatuses.Contains(h.NewStatus)
@@ -513,6 +610,9 @@ public class ApplicationService : IApplicationService
         if (attempt.Status == AttemptStatus.SENT)
             await ApplySentSideEffectsAsync(app, attempt, userId.ToString());
 
+        if (attempt.Status == AttemptStatus.SENT)
+            await RecordCvSendAsync(app, attempt);
+
         _logger.LogInformation("Attempt #{Number} ({Channel}) created on application {AppId}",
             attempt.AttemptNumber, channel, applicationId);
 
@@ -561,6 +661,7 @@ public class ApplicationService : IApplicationService
         {
             var app = await _db.Applications.FirstAsync(a => a.Id == applicationId);
             await ApplySentSideEffectsAsync(app, attempt, userId.ToString());
+            await RecordCvSendAsync(app, attempt);
         }
 
         await HydrateAttemptContactsAsync(new List<ApplicationAttempt> { attempt });
@@ -612,7 +713,7 @@ public class ApplicationService : IApplicationService
         if (appIds.Count == 0) return [];
 
         var apps = await _db.Applications
-            .Where(a => a.CandidateId == userId && appIds.Contains(a.Id))
+            .Where(a => a.CandidateId == userId && !a.IsDeleted && appIds.Contains(a.Id))
             .Include(a => a.StatusHistory.OrderByDescending(h => h.ChangedAt))
             .Include(a => a.Attempts.OrderBy(t => t.AttemptNumber)).ThenInclude(t => t.Contact)
             .OrderByDescending(a => a.UpdatedAt)
@@ -629,7 +730,7 @@ public class ApplicationService : IApplicationService
         var key = companyName.Trim().ToLower();
 
         var apps = await _db.Applications
-            .Where(a => a.CandidateId == userId && a.CompanyName.Trim().ToLower() == key)
+            .Where(a => a.CandidateId == userId && !a.IsDeleted && a.CompanyName.Trim().ToLower() == key)
             .Include(a => a.StatusHistory.OrderByDescending(h => h.ChangedAt))
             .Include(a => a.Attempts.OrderBy(t => t.AttemptNumber)).ThenInclude(t => t.Contact)
             .OrderByDescending(a => a.AppliedAt ?? a.UpdatedAt)
@@ -668,11 +769,34 @@ public class ApplicationService : IApplicationService
         }
     }
 
+    /// <summary>
+    /// When a SENT attempt carries a linked CV version, records a CvVersionSend so the
+    /// per-CV sent analytics can attribute the application.
+    /// </summary>
+    private async Task RecordCvSendAsync(Application app, ApplicationAttempt attempt)
+    {
+        if (!attempt.CvVersionId.HasValue) return;
+        var version = await _db.CvVersions.AsNoTracking()
+            .FirstOrDefaultAsync(v => v.Id == attempt.CvVersionId.Value);
+        if (version is null) return;
+
+        _db.CvVersionSends.Add(new CvVersionSend
+        {
+            Id = Guid.NewGuid(),
+            UserId = app.CandidateId,
+            CvVersionId = version.Id,
+            CvId = version.CvId,
+            ApplicationId = app.Id,
+            SentAt = attempt.SentAt ?? DateTime.UtcNow
+        });
+        await _db.SaveChangesAsync();
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────────────
 
     private IQueryable<Application> BuildFilteredQuery(Guid userId, string[]? statuses, string? search, DateTime? appliedFrom, DateTime? appliedTo, DateTime? updatedFrom, DateTime? updatedTo)
     {
-        var query = _db.Applications.Where(a => a.CandidateId == userId);
+        var query = _db.Applications.Where(a => a.CandidateId == userId && !a.IsDeleted);
 
         if (statuses is { Length: > 0 })
         {
@@ -705,7 +829,7 @@ public class ApplicationService : IApplicationService
 
     private async Task<List<Application>> FindDuplicatesAsync(Guid userId, string fingerprint, Guid? jobOfferId, Guid? excludeId)
     {
-        var query = _db.Applications.Where(a => a.CandidateId == userId);
+        var query = _db.Applications.Where(a => a.CandidateId == userId && !a.IsDeleted);
 
         if (!string.IsNullOrEmpty(fingerprint))
             query = query.Where(a => a.Fingerprint == fingerprint);
@@ -750,7 +874,7 @@ public class ApplicationService : IApplicationService
     private async Task<Application> EnsureOwnedAsync(Guid applicationId, Guid userId)
     {
         var app = await _db.Applications
-            .FirstOrDefaultAsync(a => a.Id == applicationId && a.CandidateId == userId)
+            .FirstOrDefaultAsync(a => a.Id == applicationId && a.CandidateId == userId && !a.IsDeleted)
             ?? throw new KeyNotFoundException($"Application {applicationId} not found");
         return app;
     }

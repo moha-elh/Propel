@@ -228,6 +228,9 @@ namespace CV_Generator.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid?>("JobOfferId")
                         .HasColumnType("uuid");
 
@@ -784,6 +787,75 @@ namespace CV_Generator.Migrations
                     b.ToTable("Contacts");
                 });
 
+            modelBuilder.Entity("CV_Generator.Models.CoverLetter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("cover_letters");
+                });
+
+            modelBuilder.Entity("CV_Generator.Models.CoverLetterVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CoverLetterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FileUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PdfUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ThumbnailUrl")
+                        .HasColumnType("text");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CoverLetterId");
+
+                    b.ToTable("cover_letter_versions");
+                });
+
             modelBuilder.Entity("CV_Generator.Models.Cv", b =>
                 {
                     b.Property<Guid>("Id")
@@ -795,6 +867,9 @@ namespace CV_Generator.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("TagsJson")
+                        .HasColumnType("text");
 
                     b.Property<string>("TemplateId")
                         .IsRequired()
@@ -1010,6 +1085,38 @@ namespace CV_Generator.Migrations
                     b.HasIndex("CvId");
 
                     b.ToTable("CvVersions");
+                });
+
+            modelBuilder.Entity("CV_Generator.Models.CvVersionSend", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CvId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CvVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("CvVersionId", "SentAt");
+
+                    b.ToTable("CvVersionSends");
                 });
 
             modelBuilder.Entity("CV_Generator.Models.Education", b =>
@@ -2441,6 +2548,17 @@ namespace CV_Generator.Migrations
                     b.Navigation("Parent");
                 });
 
+            modelBuilder.Entity("CV_Generator.Models.CoverLetterVersion", b =>
+                {
+                    b.HasOne("CV_Generator.Models.CoverLetter", "CoverLetter")
+                        .WithMany("Versions")
+                        .HasForeignKey("CoverLetterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CoverLetter");
+                });
+
             modelBuilder.Entity("CV_Generator.Models.CvSection", b =>
                 {
                     b.HasOne("CV_Generator.Models.CvVersion", "Version")
@@ -2461,6 +2579,15 @@ namespace CV_Generator.Migrations
                         .IsRequired();
 
                     b.Navigation("Cv");
+                });
+
+            modelBuilder.Entity("CV_Generator.Models.CvVersionSend", b =>
+                {
+                    b.HasOne("CV_Generator.Models.Application", "Application")
+                        .WithMany()
+                        .HasForeignKey("ApplicationId");
+
+                    b.Navigation("Application");
                 });
 
             modelBuilder.Entity("CV_Generator.Models.EmailMessage", b =>
@@ -2527,6 +2654,11 @@ namespace CV_Generator.Migrations
             modelBuilder.Entity("CV_Generator.Models.CategoryNode", b =>
                 {
                     b.Navigation("Children");
+                });
+
+            modelBuilder.Entity("CV_Generator.Models.CoverLetter", b =>
+                {
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("CV_Generator.Models.Cv", b =>

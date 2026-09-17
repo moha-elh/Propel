@@ -24,10 +24,18 @@
 
   <!-- Stat cards -->
   <div class="stats-row">
-    @for (s of statCards(); track s.label) {
+    @for (s of statCards(); track s.label; let i = $index) {
       <div class="stat-card">
+        <span class="stat-accent" [style.background]="'linear-gradient(90deg, ' + s.dotColor + ', transparent 90%)'"></span>
         <div class="stat-head">
-          <span class="stat-dot" [style.background]="s.dotColor"></span>
+          <span class="stat-icon" [style.color]="s.dotColor">
+            @switch (i) {
+              @case (0) { <i class="ti ti-briefcase"></i> }
+              @case (1) { <i class="ti ti-users"></i> }
+              @case (2) { <i class="ti ti-trophy"></i> }
+              @default { <i class="ti ti-mail-forward"></i> }
+            }
+          </span>
           <span class="stat-label">{{ s.label }}</span>
           <span class="stat-change" [class.positive]="s.change > 0" [class.negative]="s.change < 0">
             {{ s.change > 0 ? '+' : '' }}{{ s.change > 0 || s.change < 0 ? s.change + '%' : '—' }}
@@ -37,7 +45,7 @@
         <div class="stat-sub">{{ s.sub }}</div>
         <div class="stat-bars">
           @for (b of s.bars; track $index) {
-            <span class="stat-bar" [style.height.px]="b" [class.active]="$last" [style.background]="$last ? s.dotColor : 'oklch(0.93 0.004 80)'"></span>
+            <span class="stat-bar" [style.height.px]="b" [class.active]="$last" [style.background]="$last ? s.dotColor : null"></span>
           }
         </div>
       </div>
@@ -48,8 +56,8 @@
   <div class="cta-banner">
     <div class="cta-left">
       <div class="credits-pill">
-        <svg viewBox="0 0 24 24" fill="none" width="11" height="11"><path d="M12 4l1.5 4.5L18 10l-4.5 1.5L12 16l-1.5-4.5L6 10l4.5-1.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
-        24 credits left this month
+        <i class="ti ti-send" aria-hidden="true"></i>
+        {{ monthApplied() }} {{ monthApplied() === 1 ? 'application' : 'applications' }} this month
       </div>
       <h2 class="cta-title">Got a new role you're chasing?</h2>
       <p class="cta-sub">Paste a job description. Get a tailored CV in 11 seconds.</p>
@@ -72,9 +80,11 @@
       </div>
       <p class="card-sub">Applications by status, last 6 months</p>
       @if (hasPipelineData()) {
-        <div [innerHTML]="pipelineSvg()"></div>
+        <div class="pipeline-chart" [innerHTML]="pipelineSvg()"></div>
       } @else {
-        <div class="followup-empty">No applications yet.</div>
+        <div class="pipeline-chart">
+          <div class="followup-empty">No applications yet.</div>
+        </div>
       }
     </div>
 

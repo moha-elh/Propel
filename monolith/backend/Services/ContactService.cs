@@ -60,7 +60,8 @@ public class ContactService : IContactService
                 Source = c.Source,
                 IsFavorite = c.IsFavorite,
                 CreatedAt = c.CreatedAt,
-                UpdatedAt = c.UpdatedAt
+                UpdatedAt = c.UpdatedAt,
+                AvatarBase64 = c.AvatarBase64
             })
             .ToListAsync();
 

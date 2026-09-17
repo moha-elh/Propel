@@ -122,32 +122,44 @@
       } @else {
         <div class="activity-list">
           @for (item of activityFeed(); track item.applicationId + item.changedAt) {
-            <div class="activity-row" [routerLink]="['/applications', item.applicationId]">
-              <div class="act-icon" [class.act-positive]="item.newStatus === 'ACCEPTED'" [class.act-negative]="item.newStatus === 'REJECTED' || item.newStatus === 'WITHDRAWN'">
-                @if (item.newStatus === 'ACCEPTED') {
-                  <svg viewBox="0 0 14 14" fill="none" width="12" height="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="2 7 5 10 12 3"/></svg>
-                } @else if (item.newStatus === 'REJECTED' || item.newStatus === 'WITHDRAWN') {
-                  <svg viewBox="0 0 14 14" fill="none" width="12" height="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="11" y2="11"/><line x1="11" y1="3" x2="3" y2="11"/></svg>
-                } @else if (item.newStatus === 'INTERVIEW') {
-                  <svg viewBox="0 0 14 14" fill="none" width="12" height="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="7" cy="7" r="6"/><polyline points="7 4 7 7 9 9"/></svg>
-                } @else {
-                  <svg viewBox="0 0 14 14" fill="none" width="12" height="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="7" cy="7" r="2"/></svg>
-                }
+            @if (item.isDeleted) {
+              <div class="activity-row act-deleted">
+                <ng-container *ngTemplateOutlet="activityRow; context: { $implicit: item }" />
               </div>
-              <div class="act-body">
-                <div class="act-company">{{ item.companyName }}</div>
-                <div class="act-detail">
-                  {{ item.positionTitle }} &middot;
-                  <span class="act-status" [attr.data-status]="item.newStatus">{{ getStatusLabel(item.newStatus) }}</span>
-                  @if (item.comment) {
-                    <span class="act-comment">&middot; {{ item.comment }}</span>
-                  }
-                </div>
+            } @else {
+              <div class="activity-row" [routerLink]="['/applications', item.applicationId]">
+                <ng-container *ngTemplateOutlet="activityRow; context: { $implicit: item }" />
               </div>
-              <span class="act-time">{{ relativeTime(item.changedAt) }}</span>
-            </div>
+            }
           }
         </div>
+        <ng-template #activityRow let-item>
+          <div class="act-icon" [class.act-positive]="item.newStatus === 'ACCEPTED'" [class.act-negative]="item.newStatus === 'REJECTED' || item.newStatus === 'WITHDRAWN'">
+            @if (item.newStatus === 'ACCEPTED') {
+              <svg viewBox="0 0 14 14" fill="none" width="12" height="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="2 7 5 10 12 3"/></svg>
+            } @else if (item.newStatus === 'REJECTED' || item.newStatus === 'WITHDRAWN') {
+              <svg viewBox="0 0 14 14" fill="none" width="12" height="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="11" y2="11"/><line x1="11" y1="3" x2="3" y2="11"/></svg>
+            } @else if (item.newStatus === 'INTERVIEW') {
+              <svg viewBox="0 0 14 14" fill="none" width="12" height="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="7" cy="7" r="6"/><polyline points="7 4 7 7 9 9"/></svg>
+            } @else {
+              <svg viewBox="0 0 14 14" fill="none" width="12" height="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="7" cy="7" r="2"/></svg>
+            }
+          </div>
+          <div class="act-body">
+            <div class="act-company">{{ item.companyName }}</div>
+            <div class="act-detail">
+              {{ item.positionTitle }} &middot;
+              <span class="act-status" [attr.data-status]="item.newStatus">{{ getStatusLabel(item.newStatus) }}</span>
+              @if (item.comment) {
+                <span class="act-comment">&middot; {{ item.comment }}</span>
+              }
+              @if (item.isDeleted) {
+                <span class="act-deleted-tag">deleted</span>
+              }
+            </div>
+          </div>
+          <span class="act-time">{{ relativeTime(item.changedAt) }}</span>
+        </ng-template>
       }
     </div>
   } @else if (view() === 'saved') {

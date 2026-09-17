@@ -163,7 +163,7 @@ public class CompanyResearchController : BaseApiController
     {
         var key = companyName.Trim().ToLower();
         var query = _db.Applications.AsNoTracking()
-            .Where(a => a.CandidateId == userId && a.CompanyName.Trim().ToLower() == key);
+            .Where(a => a.CandidateId == userId && !a.IsDeleted && a.CompanyName.Trim().ToLower() == key);
 
         var count = await query.CountAsync();
         var last = await query.MaxAsync(a => (DateTime?)a.AppliedAt);

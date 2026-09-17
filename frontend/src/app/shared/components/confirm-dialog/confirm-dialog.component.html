@@ -1,0 +1,42 @@
+<div
+  class="confirm-backdrop"
+  *ngIf="confirmService.state() as s"
+  (click)="dismiss()"
+  (keydown)="onKeydown($event)"
+>
+  <div
+    class="confirm-dialog"
+    [class.danger]="s.variant === 'danger'"
+    role="alertdialog"
+    aria-modal="true"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="confirm-body">
+      <div class="confirm-side" *ngIf="s.variant === 'danger'">
+        <svg viewBox="0 0 24 24" fill="none" width="22" height="22" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/>
+        </svg>
+      </div>
+      <div class="confirm-text">
+        <h3 *ngIf="s.title">{{ s.title }}</h3>
+        <p>{{ s.message }}</p>
+      </div>
+    </div>
+    <div class="confirm-actions">
+      <button
+        *ngIf="s.kind === 'confirm'"
+        type="button"
+        class="btn btn-secondary"
+        (click)="dismiss()"
+      >{{ s.cancelText || 'Cancel' }}</button>
+      <button
+        #confirmBtn
+        type="button"
+        class="btn"
+        [class.btn-danger]="s.variant === 'danger'"
+        [class.btn-primary]="s.variant !== 'danger'"
+        (click)="accept()"
+      >{{ s.confirmText || (s.kind === 'alert' ? 'OK' : 'Confirm') }}</button>
+    </div>
+  </div>
+</div>

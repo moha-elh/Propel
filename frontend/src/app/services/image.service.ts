@@ -1,4 +1,6 @@
 import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { HttpService } from './http.service';
 import { environment } from '@env/environment';
 import { ApiResponse } from '../models/application.model';
@@ -22,6 +24,7 @@ export interface ImageListResponse {
 @Injectable({ providedIn: 'root' })
 export class ImageService {
   private readonly http = inject(HttpService);
+  private readonly httpClient = inject(HttpClient);
 
   list(params?: { page?: number; pageSize?: number; search?: string }): Promise<ApiResponse<ImageListResponse>> {
     const qs = new URLSearchParams();
@@ -45,6 +48,17 @@ export class ImageService {
 
   delete(id: string): Promise<void> {
     return this.http.delete<void>(`/api/images/${id}`);
+  }
+
+  // Raw bytes via the authenticated HTTP path, e.g. to build a data URL for a contact avatar.
+  getFile(id: string): Promise<Blob> {
+    const url = `${environment.apiUrl}/api/images/${id}/file`;
+    return firstValueFrom(
+      this.httpClient.get(url, {
+        responseType: 'blob',
+        withCredentials: true,
+      }),
+    );
   }
 
   fileUrl(id: string, download = false): string {
