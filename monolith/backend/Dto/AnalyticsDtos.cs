@@ -7,6 +7,7 @@ public record AnalyticsSummaryDto(
     int DistinctCompanies,
     List<MonthlyTrendDto> MonthlyTrends,
     List<WeeklyTrendDto> WeeklyTrends,
+    List<DailyTrendDto> DailyTrends,
     Dictionary<string, int> PriorityCounts,
     Dictionary<string, int> OriginCounts,
     Dictionary<string, int> ChannelCounts,

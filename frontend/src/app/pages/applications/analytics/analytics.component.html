@@ -118,7 +118,7 @@
         }
       </section>
 
-      <!-- CV performance -->
+<!-- CV performance -->
       <section class="card span-2">
         <h2>CV performance</h2>
         @if (cvPerformance().length === 0) {
@@ -155,10 +155,16 @@
           <h2>Applications over time</h2>
           <div class="period-toggle">
             <div class="granularity-toggle" role="group" aria-label="Time granularity">
+              <button class="chip" [class.active]="granularity() === 'day'" (click)="setGranularity('day')">Day</button>
               <button class="chip" [class.active]="granularity() === 'week'" (click)="setGranularity('week')">Week</button>
               <button class="chip" [class.active]="granularity() === 'month'" (click)="setGranularity('month')">Month</button>
             </div>
-            @if (granularity() === 'week') {
+            @if (granularity() === 'day') {
+              @for (p of [7, 14, 30]; track p) {
+                <button class="chip" [class.active]="periodDays() === p" (click)="setPeriod(p)">{{ p }}d</button>
+              }
+              <button class="chip" [class.active]="periodDays() === 0" (click)="setPeriod(0)">All</button>
+            } @else if (granularity() === 'week') {
               @for (p of [4, 8, 16]; track p) {
                 <button class="chip" [class.active]="periodWeeks() === p" (click)="setPeriod(p)">{{ p }}w</button>
               }

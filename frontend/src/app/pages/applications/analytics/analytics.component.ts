@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { NgxChartsModule } from '@swimlane/ngx-charts';
 import { ApplicationService } from '@app/services/application.service';
 import {
-  AnalyticsSummaryDto, MonthlyTrendDto, WeeklyTrendDto, ApplicationStatus,
+  AnalyticsSummaryDto, MonthlyTrendDto, WeeklyTrendDto, DailyTrendDto, ApplicationStatus,
   STATUS_ORDER, STATUS_LABELS, STATUS_COLORS,
   ATTEMPT_CHANNEL_LABELS, CvPerformanceDto, AttemptChannel,
 } from '@app/models/application.model';
@@ -17,17 +17,21 @@ const CHANNEL_COLORS: Record<AttemptChannel, string> = {
   WHATSAPP: 'oklch(0.58 0.15 160)',
   LINKEDIN_MESSAGE: 'oklch(0.52 0.15 280)',
   LINKEDIN_CONNECTION: 'oklch(0.5 0.14 310)',
+  LINKEDIN_APPLY: 'oklch(0.55 0.15 230)',
   WEB_FORM: 'oklch(0.62 0.15 90)',
   IN_PERSON: 'oklch(0.6 0.17 35)',
   OTHER: 'oklch(0.5 0.02 70)',
 };
+
+const DAY_LABEL = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
+const DAY_LABEL_YEAR = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 interface KpiCard { label: string; value: string; sub: string; color: string; }
 interface FunnelRow { label: string; count: number; pct: number; color: string; }
 interface NameValue { name: string; value: number; }
 interface ChannelRow extends NameValue { key: string; }
 interface StatusSlice extends NameValue { color: string; }
-type Granularity = 'week' | 'month';
+type Granularity = 'day' | 'week' | 'month';
 
 @Component({
   selector: 'app-analytics',
@@ -42,9 +46,10 @@ export class AnalyticsComponent implements OnInit {
   summary = signal<AnalyticsSummaryDto | null>(null);
   loading = signal(true);
   refreshing = signal(false);
-  granularity = signal<Granularity>('month');
-  periodMonths = signal(6);
+granularity = signal<Granularity>('day');
+  periodDays = signal(7);
   periodWeeks = signal(8);
+  periodMonths = signal(6);
 
   ngOnInit() { this.load(); }
 
@@ -56,10 +61,11 @@ export class AnalyticsComponent implements OnInit {
   }
 
   onRefresh() { this.refreshing.set(true); this.load(); }
-  setGranularity(g: Granularity) { this.granularity.set(g); }
+setGranularity(g: Granularity) { this.granularity.set(g); }
   setPeriod(n: number) {
     if (this.granularity() === 'week') this.periodWeeks.set(n);
-    else this.periodMonths.set(n);
+    else if (this.granularity() === 'month') this.periodMonths.set(n);
+    else this.periodDays.set(n);
   }
 
   stats = computed(() => this.summary()?.statistics ?? {
@@ -146,6 +152,11 @@ export class AnalyticsComponent implements OnInit {
       const cutoff = this.periodWeeks();
       return cutoff > 0 ? trends.slice(-cutoff) : trends;
     }
+    if (granularity === 'day') {
+      const trends = this.summary()?.dailyTrends ?? [];
+      const cutoff = this.periodDays();
+      return cutoff > 0 ? trends.slice(-cutoff) : trends;
+    }
     const trends = this.summary()?.monthlyTrends ?? [];
     const cutoff = this.periodMonths();
     return cutoff > 0 ? trends.slice(-cutoff) : trends;
@@ -165,9 +176,21 @@ export class AnalyticsComponent implements OnInit {
     }))
   );
 
-  overTimeData = computed(() =>
-    this.granularity() === 'week' ? this.weeklyStacked() : this.monthlyStacked()
-  );
+  dailyStacked = computed(() => {
+    const now = new Date();
+    return (this.filteredTrends() as DailyTrendDto[]).map(d => ({
+      name: new Date(d.date).getFullYear() !== now.getFullYear()
+        ? DAY_LABEL_YEAR.format(new Date(d.date))
+        : DAY_LABEL.format(new Date(d.date)),
+      series: STATUS_ORDER.map(st => ({ name: STATUS_LABELS[st], value: (d as unknown as Record<string, number>)[st.toLowerCase()] ?? 0 })),
+    }));
+  });
+
+  overTimeData = computed(() => {
+    if (this.granularity() === 'week') return this.weeklyStacked();
+    if (this.granularity() === 'month') return this.monthlyStacked();
+    return this.dailyStacked();
+  });
 
   hasData = computed(() => this.stats().total > 0);
 

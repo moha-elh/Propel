@@ -165,6 +165,18 @@ public record MonthlyTrendDto(
     int Withdrawn
 );
 
+public record DailyTrendDto(
+    DateTime Date,
+    int Saved,
+    int Applied,
+    int Screening,
+    int Interview,
+    int Offer,
+    int Accepted,
+    int Rejected,
+    int Withdrawn
+);
+
 public record StatisticsTrendsDto(
     ApplicationStatisticsDto Current,
     List<MonthlyTrendDto> MonthlyTrends,
