@@ -195,6 +195,34 @@ export class CompaniesDetailComponent {
     if (failed > 0) this.toast.error(`${failed} contact(s) failed to save`);
   }
 
+  // ── Note editor ────────────────────────────────────────────────────────────
+  editingNote = signal(false);
+  noteDraft = signal('');
+
+  startEditNote() {
+    this.noteDraft.set(this.company()?.note ?? '');
+    this.editingNote.set(true);
+  }
+
+  cancelNote() {
+    this.editingNote.set(false);
+  }
+
+  async saveNote() {
+    const c = this.company();
+    if (!c) return;
+    try {
+      const res = await this.companyService.updateCompany(c.id, { note: this.noteDraft().trim() || undefined });
+      if (res.success && res.data) {
+        this.company.set(res.data);
+        this.toast.success('Note saved');
+      }
+      this.editingNote.set(false);
+    } catch {
+      this.toast.error('Failed to save note');
+    }
+  }
+
   // ── Description editor ─────────────────────────────────────────────────────
   editingDesc = signal(false);
   descDraft = signal('');

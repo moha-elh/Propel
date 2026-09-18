@@ -62,8 +62,19 @@
             }
             <span class="meta-chip dim">Added {{ formatDate(c.createdAt) }}</span>
           </div>
-          @if (c.note) {
-            <p class="co-note">{{ c.note }}</p>
+          @if (editingNote()) {
+            <div class="co-desc-edit">
+              <textarea class="co-desc-input" [(ngModel)]="noteDraft" rows="3" placeholder="Add a note about this company…"></textarea>
+              <div class="row end">
+                <button class="mb-btn" (click)="cancelNote()">Cancel</button>
+                <button class="mb-btn-primary" (click)="saveNote()">Save</button>
+              </div>
+            </div>
+          } @else {
+            @if (c.note) {
+              <p class="co-note">{{ c.note }}</p>
+            }
+            <button class="co-desc-edit-btn" (click)="startEditNote()">{{ c.note ? 'Edit note' : 'Add note' }}</button>
           }
           @if (editingDesc()) {
             <div class="co-desc-edit">
