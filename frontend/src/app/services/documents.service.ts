@@ -36,6 +36,59 @@ export class DocumentsService {
     return this.http.get<ApiResponse<CvDocumentDto[]>>('/api/cv');
   }
 
+  /**
+   * CVs with versions whose PDF can actually be fetched right now.
+   * Broken versions (missing storage objects) are dropped so pickers never
+   * offer a CV that will fail to attach/preview.
+   */
+  async listUsableCvVersions(): Promise<CvDocumentDto[]> {
+    const res = await this.listCvs();
+    const docs = (res.success && res.data) ? res.data : [];
+    const usable = new Set<string>();
+
+    const probeUrl = async (url: string): Promise<boolean> => {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 8000);
+      try {
+        const r = await fetch(url, { method: 'GET', credentials: 'include', signal: ctrl.signal });
+        r.body?.cancel();
+        return r.ok;
+      } catch {
+        return false;
+      } finally {
+        clearTimeout(t);
+      }
+    }
+
+    const limiter = async (items: { versionId: string; key: string; cvId: string }[], limit: number) => {
+      let i = 0;
+      const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+        while (i < items.length) {
+          const item = items[i++];
+          const ok = await probeUrl(this.versionFileUrl(item.versionId));
+          if (ok) usable.add(item.key);
+        }
+      });
+      await Promise.all(workers);
+    };
+
+    const flat: { versionId: string; key: string; cvId: string }[] = [];
+    for (const cv of docs) {
+      for (const v of cv.versions) {
+        if (!v.pdfUrl && !v.fileUrl) continue;
+        flat.push({ versionId: v.id, key: `${cv.id}|${v.id}`, cvId: cv.id });
+      }
+    }
+    await limiter(flat, 4);
+
+    return docs
+      .map(cv => ({
+        ...cv,
+        versions: cv.versions.filter(v => usable.has(`${cv.id}|${v.id}`)),
+      }))
+      .filter(cv => cv.versions.length > 0);
+  }
+
   getCv(id: string): Promise<ApiResponse<CvDocumentDto>> {
     return this.http.get<ApiResponse<CvDocumentDto>>(`/api/cv/${id}`);
   }

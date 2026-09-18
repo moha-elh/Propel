@@ -111,7 +111,7 @@ export class CalendarComponent implements OnInit {
       if (selected.length === 0 || this.isStatusInFilter(e.type, selected)) {
         events.push({
           id: e.applicationId,
-          date: new Date(e.date + 'T00:00:00'),
+          date: new Date(e.date),
           type: e.type,
           title: e.title,
           subtitle: `${e.companyName} - ${e.positionTitle}`,

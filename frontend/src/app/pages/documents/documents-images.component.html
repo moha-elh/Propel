@@ -78,7 +78,7 @@
               <button class="btn-ghost-sm" (click)="openAvatarPicker(img)" title="Set as a contact's avatar">
                 <i class="ti ti-users"></i> Contact
               </button>
-              <a class="btn-ghost-sm" [href]="img.url" target="_blank" rel="noopener" title="Open image"><i class="ti ti-external-link"></i></a>
+              <a class="btn-ghost-sm" [href]="imageUrl(img)" target="_blank" rel="noopener" title="Open image"><i class="ti ti-external-link"></i></a>
               <button class="btn-ghost-sm" (click)="copyUrl(img)" title="Copy URL"><i class="ti ti-copy"></i></button>
               <button class="btn-danger-sm" (click)="deleteImage(img)" title="Delete"><i class="ti ti-trash"></i></button>
             </div>

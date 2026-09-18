@@ -72,6 +72,41 @@
   &::placeholder { color: var(--text-3); }
 }
 
+/* Sort control */
+.sort-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sort-label {
+  font-size: 12px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.sort-sel {
+  width: 158px;
+}
+
+.sort-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 31px;
+  height: 31px;
+  border: 1px solid oklch(0.9 0.004 80);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-2);
+  font-size: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s, border-color 0.12s;
+
+  &:hover { background: oklch(0.97 0.003 80); border-color: oklch(0.84 0.005 80); }
+}
+
 /* Filter button */
 .filter-btn-wrap { position: relative; }
 

@@ -5,6 +5,7 @@ import { AppSelectComponent } from '@app/shared/components/app-select/app-select
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApplicationService } from '@app/services/application.service';
 import { ContactService } from '@app/services/contact.service';
+import { ToastService } from '@app/services/toast.service';
 import {
   ApplicationResponseDto,
   ApplicationStatus,
@@ -24,7 +25,10 @@ import {
   ATTEMPT_STATUS_LABELS,
 } from '@app/models/application.model';
 import { ContactDto, EmailMessageDto } from '@app/models/mailbox.model';
+import { CvDocumentDto, CvVersionDto } from '@app/models/document.model';
+import { DocumentsService } from '@app/services/documents.service';
 import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
+import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
 
 type AttemptForm = {
   channel: AttemptChannel;
@@ -38,13 +42,15 @@ type AttemptForm = {
 @Component({
   selector: 'app-application-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSelectComponent, RouterLink, RefreshButtonComponent],
+  imports: [CommonModule, FormsModule, AppSelectComponent, RouterLink, RefreshButtonComponent, CompanyLogoComponent],
   templateUrl: './application-detail.component.html',
   styleUrl: './application-detail.component.scss',
 })
 export class ApplicationDetailComponent implements OnInit {
   private appService = inject(ApplicationService);
   private contactApi = inject(ContactService);
+  private docsApi = inject(DocumentsService);
+  private toast = inject(ToastService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
@@ -96,6 +102,28 @@ export class ApplicationDetailComponent implements OnInit {
   panelEmails = signal<EmailMessageDto[]>([]);
   panelApplications = signal<ApplicationResponseDto[]>([]);
 
+  // Linked-CV support (which CV version was used in the attachments)
+  cvDocs = signal<CvDocumentDto[]>([]);
+  cvLoading = signal(false);
+  editCvVersionId = signal<string>('');
+
+  cvOptions = computed(() => {
+    const opts: { id: string; label: string }[] = [];
+    for (const cv of this.cvDocs()) {
+      for (const v of cv.versions) {
+        if (!v.pdfUrl && !v.fileUrl) continue;
+        const tags = cv.tags?.length ? ` — ${cv.tags.join(', ')}` : '';
+        opts.push({ id: v.id, label: `${cv.title} — ${this.cvVersionLabel(v)}${tags}` });
+      }
+    }
+    return opts;
+  });
+
+  linkedCv = computed<string | null>(() => {
+    if (!this.application()?.cvVersionId) return null;
+    return this.cvOptions().find(o => o.id === this.application()?.cvVersionId)?.label ?? null;
+  });
+
   availableStatuses = computed(() => NEXT_STATUSES[this.application()?.status || 'SAVED'] || []);
   sortedAttempts = computed(() =>
     [...this.attempts()].sort((a, b) => b.attemptNumber - a.attemptNumber)
@@ -128,6 +156,24 @@ export class ApplicationDetailComponent implements OnInit {
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) this.loadApplication(id);
+    this.loadCvDocs();
+  }
+
+  /** Loads the user's CV versions so the edit modal can link which CV was used. */
+  async loadCvDocs() {
+    this.cvLoading.set(true);
+    try {
+      this.cvDocs.set(await this.docsApi.listUsableCvVersions().catch(() => []));
+    } catch {
+      this.cvDocs.set([]);
+    } finally {
+      this.cvLoading.set(false);
+    }
+  }
+
+  cvVersionLabel(v: CvVersionDto): string {
+    const base = `v${v.versionNumber}`;
+    return v.label ? `${base} · ${v.label}` : base;
   }
 
   async loadApplication(id: string) {
@@ -159,6 +205,7 @@ export class ApplicationDetailComponent implements OnInit {
     this.editNotes.set(app.notes || '');
     this.editInternshipType.set(app.internshipType || '');
     this.editPriority.set(app.priority || 'MEDIUM');
+    this.editCvVersionId.set(app.cvVersionId ?? '');
   }
 
   openStatusModal() {
@@ -362,10 +409,14 @@ export class ApplicationDetailComponent implements OnInit {
         offerSource: this.editOfferSource() || undefined, notes: this.editNotes() || undefined,
         internshipType: this.editInternshipType().trim() || undefined,
         priority: this.editPriority(),
+        cvVersionId: this.editCvVersionId().trim() || undefined,
       });
       if (res.success && res.data) this.application.set(res.data);
+      this.toast.success('Application saved');
       this.closeEditModal();
-    } catch { } finally { this.saving.set(false); }
+    } catch {
+      this.toast.error('Failed to save application');
+    } finally { this.saving.set(false); }
   }
 
   async onDelete() {

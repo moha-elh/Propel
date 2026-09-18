@@ -122,10 +122,13 @@ export class ApplyWizardComponent implements OnInit {
   async ngOnInit() {
     this.history.set(await this.extractionSvc.getHistory('job-extractor').catch(() => []));
     this.templates.set((await this.mailboxSvc.getScheduleTemplates().catch(() => ({ success: true, data: [] }) as any)).data ?? []);
-    const cvs = (await this.docsSvc.listCvs().catch(() => ({ success: true, data: [] }) as any)).data ?? [];
+    const cvs = await this.docsSvc.listUsableCvVersions().catch(() => [] as CvDocumentDto[]);
     const opts: CvOption[] = [];
     for (const cv of cvs as CvDocumentDto[]) {
-      for (const v of cv.versions) opts.push({ id: v.id, label: `${cv.title} — ${v.label}` });
+      for (const v of cv.versions) {
+        const tags = cv.tags?.length ? ` — ${cv.tags.join(', ')}` : '';
+        opts.push({ id: v.id, label: `${cv.title} — ${v.label}${tags}` });
+      }
     }
     this.cvOptions.set(opts);
     try {

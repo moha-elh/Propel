@@ -16,7 +16,8 @@ public record ApplicationResponseDto(
     string? InternshipType = null,
     string Priority = "MEDIUM",
     List<StatusHistoryDto>? History = null,
-    List<AttemptResponseDto>? Attempts = null
+    List<AttemptResponseDto>? Attempts = null,
+    Guid? LinkedEmailMessageId = null
 );
 
 public record StatusHistoryDto(
@@ -55,7 +56,8 @@ public record UpdateApplicationDto(
     string? OfferSource,
     string? Notes,
     string? InternshipType = null,
-    string? Priority = null
+    string? Priority = null,
+    Guid? CvVersionId = null
 );
 
 public record DuplicateCheckRequestDto(
@@ -201,4 +203,8 @@ public record ApplicationListDto(
     int Total,
     int Page,
     int PageSize
+);
+
+public record UpdateLinkedEmailDto(
+    string? EmailMessageId
 );

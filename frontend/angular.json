@@ -37,7 +37,7 @@
             ],
             "styles": [
               "src/styles.scss",
-              "node_modules/@tabler/icons-webfont/dist/tabler-icons.min.css"
+              "src/assets/tabler/tabler-icons.min.css"
             ],
             "optimization": {
               "fonts": {

@@ -11,9 +11,7 @@
     <a routerLink="/applications/kanban" class="back-link"><i class="ti ti-arrow-left"></i> Applications</a>
     <div class="det-header-row">
       <div class="det-title-block">
-        <div class="co-init"
-          [style.background]="'oklch(0.95 0.03 ' + avatarHue(app.companyName) + ')'"
-          [style.color]="'oklch(0.45 0.13 ' + avatarHue(app.companyName) + ')'">{{ initials(app.companyName) }}</div>
+        <app-company-logo [companyName]="app.companyName" size="lg" />
         <div class="det-title-text">
           <div class="det-co">{{ app.companyName }}</div>
           <div class="det-pos">{{ app.positionTitle }}</div>
@@ -150,6 +148,21 @@
           <div><dt>Last updated</dt><dd>{{ formatDate(app.updatedAt) }}</dd></div>
           <div><dt>Attempts</dt><dd>{{ attempts().length }}</dd></div>
         </dl>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Linked CV</div>
+        @if (linkedCv(); as cv) {
+          <div class="linked-email">
+            <div class="le-head">
+              <strong>{{ cv }}</strong>
+              <span class="attempt-pill" [attr.data-astatus]="'SENT'">CV</span>
+            </div>
+            <div class="le-meta"><i class="ti ti-file-text"></i> Attached CV version</div>
+          </div>
+        } @else {
+          <div class="empty-inline">—</div>
+        }
       </div>
 
       <div class="card">
@@ -312,6 +325,20 @@
           </div>
         </div>
         <div class="form-group"><label>Notes</label><textarea class="form-textarea" [(ngModel)]="editNotes" rows="3"></textarea></div>
+        <div class="form-group">
+          <label>CV used</label>
+          <app-select class="form-select" [value]="editCvVersionId()" (valueChange)="editCvVersionId.set($event)">
+            <option value="">None</option>
+            @for (cv of cvOptions(); track cv.id) {
+              <option [value]="cv.id">{{ cv.label }}</option>
+            }
+          </app-select>
+          @if (cvLoading()) {
+            <div class="linked-hint">Loading CVs…</div>
+          } @else {
+            <div class="linked-hint">Choose the CV version that was attached when applying.</div>
+          }
+        </div>
       </div>
       <div class="modal-footer">
         <button class="det-btn" (click)="closeEditModal()">Cancel</button>

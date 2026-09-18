@@ -110,7 +110,7 @@
                   <span class="funnel-count">{{ c.value }} · {{ channelPct(c.value) }}%</span>
                 </div>
                 <div class="funnel-track">
-                  <div class="funnel-bar" [style.width.%]="channelPct(c.value)" style="background:oklch(0.6 0.16 250)"></div>
+                  <div class="funnel-bar" [style.width.%]="channelPct(c.value)" [style.background]="channelColor(c.key)"></div>
                 </div>
               </div>
             }

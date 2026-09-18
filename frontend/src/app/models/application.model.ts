@@ -109,6 +109,7 @@ export interface ApplicationResponseDto {
   notes?: string;
   internshipType?: string;
   priority: ApplicationPriority;
+  linkedEmailMessageId?: string | null;
   history?: StatusHistoryDto[];
   attempts?: AttemptResponseDto[];
 }
@@ -141,6 +142,7 @@ export interface UpdateApplicationDto {
   notes?: string;
   internshipType?: string;
   priority?: ApplicationPriority;
+  cvVersionId?: string | null;
 }
 
 export interface DuplicateCheckRequestDto {

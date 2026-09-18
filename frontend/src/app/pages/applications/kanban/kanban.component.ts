@@ -15,6 +15,7 @@ import {
 import { ApplicationsListComponent } from '../list/applications-list.component';
 import { SheetImportDialogComponent } from '@app/shared/components/sheet-import-dialog/sheet-import-dialog.component';
 import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
+import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
 
 interface Column {
   status: ApplicationStatus;
@@ -33,7 +34,7 @@ const COLUMNS: { status: ApplicationStatus; label: string; colorVar: string }[] 
 @Component({
   selector: 'app-kanban',
   standalone: true,
-  imports: [CommonModule, RouterLink, ApplicationsListComponent, SheetImportDialogComponent, RefreshButtonComponent],
+  imports: [CommonModule, RouterLink, ApplicationsListComponent, SheetImportDialogComponent, RefreshButtonComponent, CompanyLogoComponent],
   templateUrl: './kanban.component.html',
   styleUrl: './kanban.component.scss',
 })

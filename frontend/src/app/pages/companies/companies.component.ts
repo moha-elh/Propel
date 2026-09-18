@@ -8,12 +8,13 @@ import { ToastService } from '@app/services/toast.service';
 import { SheetImportDialogComponent } from '@app/shared/components/sheet-import-dialog/sheet-import-dialog.component';
 import { CompanyFormDialogComponent } from '@app/shared/components/company-form-dialog/company-form-dialog.component';
 import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
+import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
 import { COUNTRIES } from '@app/shared/data/geo-data';
 
 @Component({
   selector: 'app-companies',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSelectComponent, RouterLink, SheetImportDialogComponent, CompanyFormDialogComponent, RefreshButtonComponent],
+  imports: [CommonModule, FormsModule, AppSelectComponent, RouterLink, SheetImportDialogComponent, CompanyFormDialogComponent, RefreshButtonComponent, CompanyLogoComponent],
   templateUrl: './companies.component.html',
   styleUrl: './companies.component.scss',
 })

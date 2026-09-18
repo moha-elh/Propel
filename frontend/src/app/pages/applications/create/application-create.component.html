@@ -160,6 +160,46 @@
         </div>
       </div>
 
+      <!-- ── CV used (conditional) ── -->
+      @if (stage() === 'APPLIED') {
+        <div class="section attempt-section">
+          <div class="section-header"><i class="ti ti-file-cv"></i> CV used</div>
+          <div class="section-body">
+            <div class="field">
+              <label>Which CV did you attach?</label>
+              @if (cvLoading() && !cvTiles().length) {
+                <p class="field-hint">Loading CVs…</p>
+              } @else if (!cvTiles().length) {
+                <p class="field-hint">No CV with an available PDF yet — add one from CV &gt; Generate before applying.</p>
+              } @else {
+                <div class="cv-grid">
+                  @for (t of cvTiles(); track t.id) {
+                    <button
+                      type="button"
+                      class="cv-tile"
+                      [class.active]="selectedCvVersionId() === t.id"
+                      (click)="selectedCvVersionId.set(selectedCvVersionId() === t.id ? '' : t.id)"
+                    >
+                      <i class="ti ti-file-text"></i>
+                      <span class="cv-title">{{ t.title }}</span>
+                      <span class="cv-version">{{ t.version }}</span>
+                      @if (t.tags.length) {
+                        <span class="cv-tags">
+                          @for (tag of t.tags; track tag) {
+                            <em>{{ tag }}</em>
+                          }
+                        </span>
+                      }
+                    </button>
+                  }
+                </div>
+                <p class="field-hint">Only CV versions whose PDF is available are listed — you can also link one later from the application detail page.</p>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- ── First attempt (conditional) ── -->
       @if (stage() === 'APPLIED') {
         <div class="section attempt-section">

@@ -98,7 +98,7 @@
       <div class="followup-list">
         @for (item of followUpItems(); track item.id) {
           <div class="followup-row">
-            <div class="followup-logo" [style.background]="logoBg(item.company)">{{ logoText(item.company) }}</div>
+            <app-company-logo [companyName]="item.company" size="sm" />
             <div class="followup-body">
               <div class="followup-company">{{ item.company }}</div>
               <div class="followup-role">{{ item.role }}</div>

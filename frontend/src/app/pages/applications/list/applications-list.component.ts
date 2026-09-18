@@ -15,11 +15,12 @@ import {
   PRIORITY_COLORS,
 } from '@app/models/application.model';
 import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
+import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
 
 @Component({
   selector: 'app-applications-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSelectComponent, RouterLink, RefreshButtonComponent],
+  imports: [CommonModule, FormsModule, AppSelectComponent, RouterLink, RefreshButtonComponent, CompanyLogoComponent],
   templateUrl: './applications-list.component.html',
   styleUrl: './applications-list.component.scss',
 })
@@ -40,6 +41,9 @@ export class ApplicationsListComponent implements OnInit {
   appliedTo = signal('');
   updatedFrom = signal('');
   updatedTo = signal('');
+
+  sortBy = signal<'appliedAt' | 'updatedAt' | 'companyName' | 'positionTitle'>('appliedAt');
+  sortDir = signal<'asc' | 'desc'>('desc');
 
   filterOpen = signal(false);
   refreshing = signal(false);
@@ -96,6 +100,8 @@ export class ApplicationsListComponent implements OnInit {
           appliedTo: this.appliedTo() || undefined,
           updatedFrom: this.updatedFrom() || undefined,
           updatedTo: this.updatedTo() || undefined,
+          sortBy: this.sortBy(),
+          sortDir: this.sortDir(),
         }),
         this.appService.getStatistics(),
       ]);
@@ -111,6 +117,18 @@ export class ApplicationsListComponent implements OnInit {
   onRefresh() { this.refreshing.set(true); this.loadData(); }
 
   onSearch() { this.page.set(1); this.loadData(); this.filterOpen.set(false); }
+
+  onSortByChange(value: string) {
+    this.sortBy.set(value as 'appliedAt' | 'updatedAt' | 'companyName' | 'positionTitle');
+    this.page.set(1);
+    this.loadData();
+  }
+
+  toggleSortDir() {
+    this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc');
+    this.page.set(1);
+    this.loadData();
+  }
 
   applyFilters() { this.page.set(1); this.loadData(); this.filterOpen.set(false); }
 

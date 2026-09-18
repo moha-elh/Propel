@@ -9,7 +9,9 @@ import { DirectAiService } from '@app/services/direct-ai.service';
 import { ContactService } from '@app/services/contact.service';
 import { AuthService } from '@app/services/auth.service';
 import { CompanyService } from '@app/services/company.service';
+import { DocumentsService } from '@app/services/documents.service';
 import type { CompanyDto } from '@app/services/company.service';
+import { CvDocumentDto, CvVersionDto } from '@app/models/document.model';
 import {
   DuplicateMatchDto,
   ApiResponse,
@@ -43,6 +45,7 @@ export class ApplicationCreateComponent implements OnInit {
   private contactApi = inject(ContactService);
   private companyApi = inject(CompanyService);
   private authService = inject(AuthService);
+  private docsApi = inject(DocumentsService);
   protected router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -50,6 +53,23 @@ export class ApplicationCreateComponent implements OnInit {
     // Prefill support, e.g. /applications/new?companyName=… from a company detail page.
     const prefill = this.route.snapshot.queryParamMap.get('companyName');
     if (prefill) this.companyName.set(prefill);
+    void this.loadCvDocs();
+  }
+
+  cvVersionLabel(v: CvVersionDto): string {
+    const base = `v${v.versionNumber}`;
+    return v.label ? `${base} · ${v.label}` : base;
+  }
+
+  async loadCvDocs() {
+    this.cvLoading.set(true);
+    try {
+      this.cvDocs.set(await this.docsApi.listUsableCvVersions().catch(() => []));
+    } catch {
+      this.cvDocs.set([]);
+    } finally {
+      this.cvLoading.set(false);
+    }
   }
 
   submitting = signal(false);
@@ -114,6 +134,20 @@ export class ApplicationCreateComponent implements OnInit {
 
   /** Where the candidate stands at creation time. */
   stage = signal<'SAVED' | 'APPLIED'>('APPLIED');
+
+  // ── CV used (linked to this application) ────────────────────────────────────
+  cvDocs = signal<CvDocumentDto[]>([]);
+  cvLoading = signal(false);
+  selectedCvVersionId = signal('');
+  cvTiles = computed(() => {
+    const tiles: { id: string; title: string; version: string; tags: string[] }[] = [];
+    for (const cv of this.cvDocs()) {
+      for (const v of cv.versions) {
+        tiles.push({ id: v.id, title: cv.title, version: this.cvVersionLabel(v), tags: cv.tags ?? [] });
+      }
+    }
+    return tiles;
+  });
 
   // ── First attempt (only used when stage === 'APPLIED') ──────────────────────
   channel = signal<AttemptChannel>('EMAIL_GMAIL');
@@ -430,6 +464,7 @@ export class ApplicationCreateComponent implements OnInit {
         internshipType: this.internshipType().trim() || undefined,
         priority: this.priority(),
         appliedAt: this.stage() === 'APPLIED' ? this.isoFromDate(this.appliedDate()) : undefined,
+        cvVersionId: this.selectedCvVersionId().trim() || undefined,
       });
 
       if (!res.success || !res.data) {

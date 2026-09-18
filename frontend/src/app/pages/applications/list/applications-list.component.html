@@ -20,6 +20,17 @@
         </svg>
         <input class="search-input" placeholder="Search company or position…" [(ngModel)]="searchQuery" (keyup.enter)="onSearch()">
       </div>
+      <div class="sort-wrap">
+        <span class="sort-label">Sort</span>
+        <app-select class="sort-sel" [value]="sortBy()" (valueChange)="onSortByChange($event)">
+          <option value="appliedAt">Applied date</option>
+          <option value="updatedAt">Updated date</option>
+          <option value="companyName">Company (A-Z)</option>
+          <option value="positionTitle">Position</option>
+        </app-select>
+        <button class="sort-toggle" (click)="toggleSortDir()"
+          [title]="sortDir() === 'asc' ? 'Ascending' : 'Descending'">{{ sortDir() === 'asc' ? '↑' : '↓' }}</button>
+      </div>
       <div class="filter-btn-wrap">
         <button class="filter-btn" (click)="filterOpen.set(!filterOpen())">
           <svg viewBox="0 0 14 14" fill="none" width="13" height="13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
@@ -94,7 +105,7 @@
             <tr [routerLink]="['/applications', app.id]">
               <td>
                 <div class="co-cell">
-                  <div class="co-logo" [style.background]="logoBg(app.companyName)">{{ app.companyName[0] }}</div>
+                  <app-company-logo [companyName]="app.companyName" size="md" />
                   <div>
                     <div class="co-name">
                       <span class="prio-dot" [style.background]="priorityColor(app.priority)" [title]="'Priority: ' + PRIORITY_LABELS[app.priority || 'MEDIUM']"></span>

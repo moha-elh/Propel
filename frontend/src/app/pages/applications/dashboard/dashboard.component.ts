@@ -6,6 +6,7 @@ import { ApplicationService } from '@app/services/application.service';
 import { AuthService } from '@app/services/auth.service';
 import { StatisticsTrendsDto, MonthlyTrendDto, ApplicationResponseDto } from '@app/models/application.model';
 import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
+import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
 
 interface StatCard {
   label: string;
@@ -29,7 +30,7 @@ const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RefreshButtonComponent],
+  imports: [CommonModule, RefreshButtonComponent, CompanyLogoComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })

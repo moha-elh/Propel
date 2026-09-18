@@ -117,13 +117,14 @@
       </div>
 
       <div class="fld">
-        <label>CV version (used as context)</label>
+        <label>CV used <span class="opt-hint">(attached &amp; linked to the application)</span></label>
         <app-select [(ngModel)]="selectedCvVersionId">
-          <option value="">— none —</option>
+          <option value="">— select —</option>
           @for (o of cvOptions(); track o.id) {
             <option [value]="o.id">{{ o.label }}</option>
           }
         </app-select>
+        <p class="hint">Only CV versions whose PDF is available are shown.</p>
       </div>
 
       @if (prepMode() === 'email') {

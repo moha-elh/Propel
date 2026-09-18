@@ -5,15 +5,27 @@ import { ApplicationService } from '@app/services/application.service';
 import {
   AnalyticsSummaryDto, MonthlyTrendDto, WeeklyTrendDto, ApplicationStatus,
   STATUS_ORDER, STATUS_LABELS, STATUS_COLORS,
-  ATTEMPT_CHANNEL_LABELS, CvPerformanceDto,
+  ATTEMPT_CHANNEL_LABELS, CvPerformanceDto, AttemptChannel,
 } from '@app/models/application.model';
 import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+const CHANNEL_COLORS: Record<AttemptChannel, string> = {
+  EMAIL_GMAIL: 'oklch(0.6 0.16 250)',
+  EMAIL_SMTP: 'oklch(0.58 0.14 200)',
+  WHATSAPP: 'oklch(0.58 0.15 160)',
+  LINKEDIN_MESSAGE: 'oklch(0.52 0.15 280)',
+  LINKEDIN_CONNECTION: 'oklch(0.5 0.14 310)',
+  WEB_FORM: 'oklch(0.62 0.15 90)',
+  IN_PERSON: 'oklch(0.6 0.17 35)',
+  OTHER: 'oklch(0.5 0.02 70)',
+};
+
 interface KpiCard { label: string; value: string; sub: string; color: string; }
 interface FunnelRow { label: string; count: number; pct: number; color: string; }
 interface NameValue { name: string; value: number; }
+interface ChannelRow extends NameValue { key: string; }
 interface StatusSlice extends NameValue { color: string; }
 type Granularity = 'week' | 'month';
 
@@ -104,13 +116,21 @@ export class AnalyticsComponent implements OnInit {
   topCompanyColors = computed(() => this.topCompanies().map(c => ({ name: c.name, value: 'oklch(0.6 0.16 250)' })));
   topCompanyView = computed<[number, number]>(() => [320, Math.max(120, this.topCompanies().length * 34 + 30)]);
 
-  channelBreakdown = computed<NameValue[]>(() => {
+  channelBreakdown = computed<ChannelRow[]>(() => {
     const c = this.summary()?.channelCounts ?? {};
     return Object.keys(c)
-      .map(key => ({ name: ATTEMPT_CHANNEL_LABELS[key as keyof typeof ATTEMPT_CHANNEL_LABELS] ?? key, value: c[key] }))
+      .map(key => ({
+        key,
+        name: ATTEMPT_CHANNEL_LABELS[key as keyof typeof ATTEMPT_CHANNEL_LABELS] ?? key,
+        value: c[key],
+      }))
       .filter(d => d.value > 0)
       .sort((a, b) => b.value - a.value);
   });
+
+  channelColor(c: string): string {
+    return CHANNEL_COLORS[c as AttemptChannel] ?? 'oklch(0.6 0.01 80)';
+  }
 
   totalChannels = computed(() => this.channelBreakdown().reduce((sum, c) => sum + c.value, 0));
 

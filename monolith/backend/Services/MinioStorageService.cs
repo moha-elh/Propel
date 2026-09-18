@@ -28,6 +28,7 @@ public class MinioStorageService : IMinioStorageService
             ?? config["Minio:SecretKey"]
             ?? "minioadmin";
         var secure = bool.TryParse(Environment.GetEnvironmentVariable("MINIO_SECURE") ?? config["Minio:Secure"], out var s) && s;
+        var publicBaseUrl = Environment.GetEnvironmentVariable("MINIO_PUBLIC_URL") ?? $"{(secure ? "https" : "http")}://{endpoint}";
 
         var host = endpoint;
         var port = 9000;
@@ -43,7 +44,7 @@ public class MinioStorageService : IMinioStorageService
             .WithCredentials(accessKey, secretKey)
             .WithSSL(secure)
             .Build();
-        _publicBaseUrl = $"{(secure ? "https" : "http")}://{endpoint}";
+        _publicBaseUrl = publicBaseUrl;
     }
 
     public async Task EnsureBucketAsync(string bucket, CancellationToken ct = default)

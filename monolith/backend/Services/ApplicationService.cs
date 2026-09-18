@@ -18,13 +18,22 @@ public class ApplicationService : IApplicationService
         _logger = logger;
     }
 
-    public async Task<ApplicationListDto> GetAllAsync(Guid userId, int page, int pageSize, string[]? statuses = null, string? search = null, DateTime? appliedFrom = null, DateTime? appliedTo = null, DateTime? updatedFrom = null, DateTime? updatedTo = null)
+    public async Task<ApplicationListDto> GetAllAsync(Guid userId, int page, int pageSize, string[]? statuses = null, string? search = null, DateTime? appliedFrom = null, DateTime? appliedTo = null, DateTime? updatedFrom = null, DateTime? updatedTo = null, string? sortBy = null, string? sortDir = null)
     {
         var query = BuildFilteredQuery(userId, statuses, search, appliedFrom, appliedTo, updatedFrom, updatedTo);
         var total = await query.CountAsync();
-        var apps = await query
-            .OrderBy(a => a.AppliedAt == null)
-            .ThenByDescending(a => a.AppliedAt)
+        IOrderedQueryable<Application> ordered = query.OrderBy(a => a.AppliedAt == null).ThenByDescending(a => a.AppliedAt);
+        var dir = string.Equals(sortDir, "asc", StringComparison.OrdinalIgnoreCase);
+        switch ((sortBy ?? "appliedAt").ToLowerInvariant())
+        {
+            case "updatedat": ordered = dir ? query.OrderBy(a => a.UpdatedAt) : query.OrderByDescending(a => a.UpdatedAt); break;
+            case "companyname": ordered = dir ? query.OrderBy(a => a.CompanyName) : query.OrderByDescending(a => a.CompanyName); break;
+            case "positiontitle": ordered = dir ? query.OrderBy(a => a.PositionTitle) : query.OrderByDescending(a => a.PositionTitle); break;
+            default: ordered = dir
+                ? query.OrderBy(a => a.AppliedAt == null).ThenBy(a => a.AppliedAt)
+                : query.OrderBy(a => a.AppliedAt == null).ThenByDescending(a => a.AppliedAt); break;
+        }
+        var apps = await ordered
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -158,8 +167,32 @@ public class ApplicationService : IApplicationService
                 throw new ArgumentException($"Invalid priority value '{dto.Priority}'");
             app.Priority = parsedPriority;
         }
+        if (dto.CvVersionId.HasValue)
+        {
+            var cvOwned = await _db.CvVersions.AnyAsync(v => v.Id == dto.CvVersionId.Value && v.Cv.UserId == userId);
+            if (!cvOwned) throw new ArgumentException("Invalid cvVersionId");
+            app.CvVersionId = dto.CvVersionId.Value;
+        }
 
         app.Fingerprint = FingerprintHelper.ComputeFor(app);
+        app.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return MapToDtoWithHistory(await ReloadAsync(id));
+    }
+
+    public async Task<ApplicationResponseDto?> UpdateLinkedEmailAsync(Guid id, Guid? emailMessageId, Guid userId)
+    {
+        var app = await _db.Applications.FirstOrDefaultAsync(a => a.Id == id && a.CandidateId == userId && !a.IsDeleted);
+        if (app == null) return null;
+
+        if (emailMessageId.HasValue)
+        {
+            var email = await _db.EmailMessages.AsNoTracking().FirstOrDefaultAsync(m => m.Id == emailMessageId.Value && m.UserId == userId);
+            if (email == null) throw new ArgumentException($"Email message {emailMessageId} not found");
+        }
+
+        app.LinkedEmailMessageId = emailMessageId;
         app.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
@@ -506,7 +539,7 @@ public class ApplicationService : IApplicationService
                     && a.AppliedAt >= from
                     && a.AppliedAt <= to)
                 .Select(a => new CalendarEventDto(
-                    a.AppliedAt!.Value.ToString("yyyy-MM-dd"),
+                    a.AppliedAt!.Value.ToUniversalTime().ToString("O"),
                     "applied",
                     "Applied at " + a.CompanyName,
                     a.Id,
@@ -528,7 +561,7 @@ public class ApplicationService : IApplicationService
                 && parsedStatuses.Contains(h.NewStatus)
                 && h.NewStatus != ApplicationStatus.APPLIED)
             .Select(h => new CalendarEventDto(
-                h.ChangedAt.ToString("yyyy-MM-dd"),
+                h.ChangedAt.ToUniversalTime().ToString("O"),
                 h.NewStatus.ToString().ToLower(),
                 h.Application!.CompanyName + " - " + h.NewStatus.ToString(),
                 h.ApplicationId,
@@ -928,7 +961,7 @@ public class ApplicationService : IApplicationService
         a.Id, a.CandidateId, a.CvVersionId, a.JobOfferId,
         a.CompanyName, a.PositionTitle, a.OfferSource,
         a.Status.ToString(), a.AppliedAt, a.UpdatedAt, a.Notes, a.Origin.ToString(),
-        a.InternshipType, a.Priority.ToString()
+        a.InternshipType, a.Priority.ToString(), null, null, a.LinkedEmailMessageId
     );
 
     private static ApplicationResponseDto MapToDtoWithHistory(Application a) => new(
@@ -940,7 +973,8 @@ public class ApplicationService : IApplicationService
             h.Id, h.OldStatus?.ToString(), h.NewStatus.ToString(),
             h.ChangedAt, h.ChangedBy, h.Comment
         )).ToList(),
-        a.Attempts?.Select(MapAttemptToDto).ToList()
+        a.Attempts?.Select(MapAttemptToDto).ToList(),
+        a.LinkedEmailMessageId
     );
 
     private static AttemptResponseDto MapAttemptToDto(ApplicationAttempt t) => new(

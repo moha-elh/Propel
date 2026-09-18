@@ -5,12 +5,13 @@ namespace CV_Generator.Services;
 
 public interface IApplicationService
 {
-    Task<ApplicationListDto> GetAllAsync(Guid userId, int page, int pageSize, string[]? statuses = null, string? search = null, DateTime? appliedFrom = null, DateTime? appliedTo = null, DateTime? updatedFrom = null, DateTime? updatedTo = null);
+    Task<ApplicationListDto> GetAllAsync(Guid userId, int page, int pageSize, string[]? statuses = null, string? search = null, DateTime? appliedFrom = null, DateTime? appliedTo = null, DateTime? updatedFrom = null, DateTime? updatedTo = null, string? sortBy = null, string? sortDir = null);
     Task<ApplicationResponseDto?> GetByIdAsync(Guid id, Guid userId);
     Task<DuplicateCheckResponseDto> CheckDuplicatesAsync(Guid userId, DuplicateCheckRequestDto dto);
     Task<ApplicationResponseDto> CreateAsync(CreateApplicationDto dto, Guid userId);
     Task<ApplicationResponseDto?> UpdateStatusAsync(Guid id, UpdateStatusDto dto, Guid userId);
     Task<ApplicationResponseDto?> UpdateDetailsAsync(Guid id, UpdateApplicationDto dto, Guid userId);
+    Task<ApplicationResponseDto?> UpdateLinkedEmailAsync(Guid id, Guid? emailMessageId, Guid userId);
     Task<bool> DeleteAsync(Guid id, Guid userId);
     Task<ApplicationStatisticsDto> GetStatisticsAsync(Guid userId);
     Task<StatisticsTrendsDto> GetTrendsAsync(Guid userId);

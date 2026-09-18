@@ -188,7 +188,7 @@ export class DocumentsImagesComponent implements OnInit {
 
   async setAvatar(img: ImageDto): Promise<void> {
     try {
-      await this.profileSvc.applyFields({ avatarUrl: img.url });
+      await this.profileSvc.applyFields({ avatarUrl: this.imagesApi.fileUrl(img.id) });
       this.toast.success('Avatar updated');
     } catch {
       this.toast.error('Failed to update avatar');
@@ -197,7 +197,7 @@ export class DocumentsImagesComponent implements OnInit {
 
   async copyUrl(img: ImageDto): Promise<void> {
     try {
-      await navigator.clipboard.writeText(img.url);
+      await navigator.clipboard.writeText(this.imagesApi.fileUrl(img.id));
       this.toast.success('URL copied');
     } catch {
       this.toast.error('Copy failed');
@@ -217,7 +217,7 @@ export class DocumentsImagesComponent implements OnInit {
   }
 
   imageUrl(img: ImageDto): string {
-    return img.url;
+    return this.imagesApi.fileUrl(img.id);
   }
 
   srcLabel(source: ImageDto['source']): string {

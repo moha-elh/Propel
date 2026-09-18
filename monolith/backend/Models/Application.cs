@@ -59,6 +59,9 @@ public class Application
 
     public string? Notes { get; set; }
 
+    /// <summary>Id of the mailbox email (EmailMessages) used to send this application (with attachments). Null = none linked.</summary>
+    public Guid? LinkedEmailMessageId { get; set; }
+
     /// <summary>
     /// Soft-delete flag: true keeps the row (and its history) for the activity feed
     /// while hiding it from every list/show query.

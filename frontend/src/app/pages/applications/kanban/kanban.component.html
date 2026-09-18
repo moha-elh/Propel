@@ -90,7 +90,7 @@
             @for (item of col.items; track item.id) {
               <div class="kb-card" draggable="true" (dragstart)="onDragStart($event, item)" (dragend)="onDragEnd($event)">
                 <div class="kb-card-head">
-                  <div class="kb-logo" [style.background]="logoBg(item.companyName)">{{ logoText(item.companyName) }}</div>
+                  <app-company-logo [companyName]="item.companyName" size="md" />
                   <div class="kb-card-meta">
                     <span class="kb-company">
                       <span class="prio-dot" [style.background]="priorityColor(item.priority)" [title]="'Priority: ' + PRIORITY_LABELS[item.priority || 'MEDIUM']"></span>
@@ -177,7 +177,7 @@
           @for (app of savedApps(); track app.id) {
             <div class="saved-card" [routerLink]="['/applications', app.id]">
               <div class="saved-head">
-                <div class="saved-logo" [style.background]="logoBg(app.companyName)">{{ logoText(app.companyName) }}</div>
+                <app-company-logo [companyName]="app.companyName" size="md" />
                 <button class="saved-unpin" (click)="toggleSave(app, $event)" title="Unsave">
                   <svg viewBox="0 0 14 14" fill="currentColor" width="12" height="12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
                     <path d="M11 1H3a1 1 0 00-1 1v11l5-3 5 3V2a1 1 0 00-1-1z"/>
