@@ -13,6 +13,7 @@ export interface ContactDto {
   source?: string;
   notes?: string;
   avatarBase64?: string;
+  gender?: string;
   isFavorite: boolean;
   createdAt: string;
   updatedAt: string;

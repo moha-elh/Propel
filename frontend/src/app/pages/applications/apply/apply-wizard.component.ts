@@ -22,10 +22,27 @@ import {
 } from '@app/models/apply.model';
 import { CvDocumentDto, CvVersionDto } from '@app/models/document.model';
 import { EmailAttachmentPayload } from '@app/models/apply.model';
+import { CompanyService } from '@app/services/company.service';
+import {
+  resolveTemplateVars,
+  recipientGreeting,
+  TemplateVarValues,
+  extractTemplateVars,
+  templateVarLabel,
+  TEMPLATE_AUTO_OPTIONAL,
+} from '@app/shared/template-vars';
 
 interface CvOption {
   id: string;
   label: string;
+}
+
+/** One dynamic fill field rendered for a variable token used by the selected template. */
+interface FillVarField {
+  token: string;
+  label: string;
+  hint?: string;
+  required?: boolean;
 }
 
 const CUSTOM_CRON = '__custom__';
@@ -51,6 +68,7 @@ export class ApplyWizardComponent implements OnInit {
   private contactSvc = inject(ContactService);
   private docsSvc = inject(DocumentsService);
   private authSvc = inject(AuthService);
+  private companySvc = inject(CompanyService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private toast = inject(ToastService);
@@ -216,37 +234,139 @@ export class ApplyWizardComponent implements OnInit {
       `Best regards,\n{{my_name}}`;
   }
 
+// ── Email templates: pick a saved template → fill values → live preview → apply ──
+  fillOpen = signal(false);
+  fillTemplate = signal<ScheduleTemplateDto | null>(null);
+  /** One dynamic fill field rendered for a variable token used by the selected template. */
+  fillVars = signal<FillVarField[]>([]);
+  /** Current input values keyed by token (lowercase). */
+  fillValues = signal<Record<string, string>>({});
+
+  /** Dropdown selection → open the dynamic per-variable fill dialog for that template. */
   useTemplate() {
     const tpl = this.templates().find(t => t.id === this.selectedTemplateId());
     if (!tpl) return;
-    const rendered = this.renderTemplate(tpl.subjectTemplate, tpl.bodyTemplate);
-    this.subject = rendered.subject;
-    this.body = rendered.body;
-    if (tpl.cvVersionId) this.selectedCvVersionId.set(tpl.cvVersionId);
+    this.openFillDialog(tpl);
   }
 
-  /** Client-side best-effort token resolution (mirrors backend TemplateVariableResolver). */
-  private resolveVars(text: string): string {
+  async openFillDialog(t: ScheduleTemplateDto) {
+    const tokens = extractTemplateVars(t.subjectTemplate, t.bodyTemplate);
     const user = this.authSvc.currentUser();
-    const myName = user ? `${user.firstName} ${user.lastName}`.trim() : '';
-    const map: Record<string, string> = {
-      '{{company_name}}': this.companyName,
-      '{{company_description}}': this.companyDescription,
-      '{{my_name}}': myName,
-      '{{my_email}}': user?.email ?? '',
-      '{{my_phone}}': '',
-    };
-    return text.replace(/\{\{\s*(\w+)\s*\}\}/g,
-      (m, k) => map[m.toLowerCase()] ?? map[m] ?? map[`{{${k}}}`] ?? m);
+    const name = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim();
+    const d = t.variableDefaults ?? {};
+    const company = await this.lookupCompanyInfo().catch(() => null);
+    const values: Record<string, string> = {};
+    const fields: FillVarField[] = [];
+    for (const token of tokens) {
+      const label = templateVarLabel(token);
+      const [value, hint] = this.autoFillValue(token, d, company, name);
+      values[token] = value;
+      fields.push({ token, label, hint, required: !TEMPLATE_AUTO_OPTIONAL.has(token) });
+    }
+    this.fillTemplate.set(t);
+    this.fillVars.set(fields);
+    this.fillValues.set(values);
+    this.fillOpen.set(true);
   }
 
-  private renderTemplate(subjectTpl: string, bodyTpl: string) {
-    return { subject: this.resolveVars(subjectTpl), body: this.resolveVars(bodyTpl) };
+  closeFillDialog() {
+    this.fillOpen.set(false);
+    this.fillTemplate.set(null);
+    this.fillVars.set([]);
+    this.fillValues.set({});
+  }
+
+  /** Look up the wizard's company (by name) so domaine/web_company auto-fill from real data. */
+  private async lookupCompanyInfo(): Promise<{ sector?: string; websiteUrl?: string } | null> {
+    const name = this.companyName.trim();
+    if (!name) return null;
+    try {
+      const res = await this.companySvc.getCompanies({ search: name, pageSize: 20 });
+      const norm = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+      const target = norm(name);
+      const items = res.data?.items ?? [];
+      const hit = items.find(c => c.name && norm(c.name) === target);
+      const src = hit ?? items[0];
+      if (!src) return null;
+      return { sector: src.sector ?? undefined, websiteUrl: src.websiteUrl ?? undefined };
+    } catch {
+      return null;
+    }
+  }
+
+  /** Derive a starting value + hint for one template variable from the wizard context. */
+  private autoFillValue(
+    token: string,
+    d: ScheduleTemplateDto['variableDefaults'],
+    company: { sector?: string; websiteUrl?: string } | null,
+    userName: string,
+  ): [string, string | undefined] {
+    const user = this.authSvc.currentUser();
+    switch (token) {
+      case 'company_name': return [this.companyName, 'From the apply context'];
+      case 'company_description': return [this.companyDescription, 'From the apply context'];
+      case 'recipient_name': return [this.recipientName, 'From the apply context'];
+      case 'recipient_greeting': return [recipientGreeting(this.recipientName), 'Derived from recipient name'];
+      case 'school': return [d?.school ?? '', 'Template default'];
+      case 'degree': return [d?.degree ?? '', 'Template default'];
+      case 'research': return [d?.research ?? '', 'Template default'];
+      case 'offer_phrase': return [d?.offer_phrase ?? '', 'Template default'];
+      case 'my_name': return [userName, 'From your profile'];
+      case 'my_email': return [user?.email ?? '', 'From your profile'];
+      case 'my_phone': return ['', ''];
+      // User-requested: domaine=role/sector, web_company=company website
+      case 'domaine': return [this.positionTitle || company?.sector || '', 'Job role / company sector'];
+      case 'web_company': return [company?.websiteUrl ?? '', 'Company website'];
+      default: return ['', undefined];
+    }
+  }
+
+  setFillValue(token: string, value: string) {
+    this.fillValues.update(v => {
+      const next = { ...v, [token]: value };
+      if (token === 'recipient_name' && 'recipient_greeting' in next) {
+        next['recipient_greeting'] = recipientGreeting(value);
+      }
+      return next;
+    });
+  }
+
+  /** Every required variable has a value; optional/derived tokens may stay blank. */
+  fillValid(): boolean {
+    return this.fillVars().every(v => !v.required || !!this.fillValues()[v.token]?.trim());
+  }
+
+  /** Values used for the template fill dialog preview (mirrors mailbox compose). */
+  fillVarValues(): TemplateVarValues {
+    return { ...this.fillValues() };
+  }
+
+  fillPreviewSubject(): string {
+    const t = this.fillTemplate();
+    return t ? resolveTemplateVars(t.subjectTemplate, this.fillVarValues()) : '';
+  }
+
+  fillPreviewBody(): string {
+    const t = this.fillTemplate();
+    return t ? resolveTemplateVars(t.bodyTemplate, this.fillVarValues()) : '';
+  }
+
+  async insertFilledTemplate() {
+    const t = this.fillTemplate();
+    if (!t) return;
+    const values = this.fillVarValues();
+    this.subject = resolveTemplateVars(t.subjectTemplate, values);
+    this.body = resolveTemplateVars(t.bodyTemplate, values);
+    if (t.cvVersionId) this.selectedCvVersionId.set(t.cvVersionId);
+    this.selectedTemplateId.set(t.id);
+    this.fillOpen.set(false);
+    this.fillTemplate.set(null);
+    this.toast.success(`Template "${t.name}" applied — review it, then continue.`);
   }
 
   /** Live preview of what the email will actually contain (variables resolved). */
-  previewSubject(): string { return this.resolveVars(this.subject); }
-  previewBody(): string { return this.resolveVars(this.body); }
+  previewSubject(): string { return resolveTemplateVars(this.subject, this.fillVarValues()); }
+  previewBody(): string { return resolveTemplateVars(this.body, this.fillVarValues()); }
 
   /** Exact list of files that will be attached, so nothing is a surprise at send time. */
   attachmentPreview(): string[] {

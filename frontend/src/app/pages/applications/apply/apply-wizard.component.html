@@ -362,3 +362,36 @@
     </section>
   }
 </div>
+@if (fillOpen() && fillTemplate(); as t) {
+  <div class="tpl-overlay" (click)="closeFillDialog()">
+    <div class="tpl-modal" (click)="$event.stopPropagation()">
+      <div class="tpl-modal-head">
+        <h3>Use template — {{ t.name }}</h3>
+        <button class="tpl-close" (click)="closeFillDialog()">✕</button>
+      </div>
+      <div class="tpl-modal-body">
+        @for (v of fillVars(); track v.token) {
+          <div class="fld">
+            <label>{{ v.label }} <code>{{ '{{' + v.token + '}}' }}</code> @if (v.required) {<span class="req">*</span>}</label>
+            <input type="text" [ngModel]="fillValues()[v.token]" (ngModelChange)="setFillValue(v.token, $event)" placeholder="{{ v.hint || 'Fill in a value' }}" />
+            @if (v.hint) {
+              <span class="sched-hint">{{ v.hint }}</span>
+            }
+          </div>
+        }
+        @if (fillVars().length === 0) {
+          <p class="hint">This template uses no variables.</p>
+        }
+        <div class="tpl-preview">
+          <h4>Preview (resolved)</h4>
+          <div class="pv-row"><span class="pv-label">Subject</span><span class="pv-val">{{ fillPreviewSubject() }}</span></div>
+          <div class="pv-block"><span class="pv-label">Body</span><pre class="pv-body">{{ fillPreviewBody() }}</pre></div>
+        </div>
+      </div>
+      <div class="tpl-modal-foot">
+        <button class="btn" (click)="closeFillDialog()">Cancel</button>
+        <button class="btn primary" [disabled]="!fillValid()" (click)="insertFilledTemplate()">Apply to email</button>
+      </div>
+    </div>
+  </div>
+}

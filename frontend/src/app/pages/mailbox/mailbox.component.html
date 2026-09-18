@@ -914,4 +914,52 @@
       </div>
     </div>
   }
+
+  @if (fillOpen() && fillTemplate()) {
+    <div class="modal-backdrop" (click)="closeFillDialog()">
+      <div class="fill-modal" (click)="$event.stopPropagation()">
+        <div class="contact-modal-header">
+          <h3>{{ fillTemplate()!.name }}</h3>
+          <button class="contact-modal-close" (click)="closeFillDialog()">&times;</button>
+        </div>
+        <div class="fill-modal-body">
+          @for (v of fillVars(); track v.token) {
+            <div class="sched-field">
+              <label>{{ v.label }} <code>{{ '{{' + v.token + '}}' }}</code> @if (v.required) {<span class="req">*</span>}</label>
+              <input type="text" [ngModel]="fillValues()[v.token]" (ngModelChange)="setFillValue(v.token, $event)" placeholder="{{ v.hint || 'Fill in a value' }}" />
+              @if (v.hint) {
+                <span class="sched-hint">{{ v.hint }}</span>
+              }
+            </div>
+          }
+          @if (fillUsesGreeting()) {
+            <div class="sched-field">
+              <label>Recipient gender</label>
+              <select [ngModel]="fillGender()" (ngModelChange)="onFillGenderChange($event)">
+                <option value="">Unknown (neutral greeting)</option>
+                <option value="male">Male → "cher"</option>
+                <option value="female">Female → "chère"</option>
+              </select>
+              <span class="sched-hint">Used for the greeting ({{ fillGender() === 'male' ? 'cher' : fillGender() === 'female' ? 'chère' : 'no title' }}).</span>
+            </div>
+          }
+          @if (fillVars().length === 0) {
+            <p class="hint">This template uses no variables.</p>
+          }
+          @if (fillTemplate()!.cvVersionId) {
+            <div class="fill-notes">The template's CV will be attached automatically.</div>
+          }
+          <div class="fill-preview">
+            <div class="fill-preview-title">Preview</div>
+            <div class="fill-preview-subject">{{ fillPreviewSubject() }}</div>
+            <pre class="fill-preview-body">{{ fillPreviewBody() }}</pre>
+          </div>
+        </div>
+        <div class="contact-modal-footer">
+          <button class="mb-btn-ghost" (click)="closeFillDialog()">Cancel</button>
+          <button class="mb-btn-primary" [disabled]="!fillValid()" (click)="insertFilledTemplate()">Insert into compose</button>
+        </div>
+      </div>
+    </div>
+  }
 </div>

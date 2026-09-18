@@ -15,6 +15,16 @@ import { MailboxService } from '@app/services/mailbox.service';
 import { ContactService } from '@app/services/contact.service';
 import { ToastService } from '@app/services/toast.service';
 import { DocumentsService } from '@app/services/documents.service';
+import { AuthService } from '@app/services/auth.service';
+import { CompanyService } from '@app/services/company.service';
+import {
+  resolveTemplateVars,
+  recipientGreeting,
+  TemplateVarValues,
+  extractTemplateVars,
+  templateVarLabel,
+  TEMPLATE_AUTO_OPTIONAL,
+} from '@app/shared/template-vars';
 import { CvDocumentDto, CvVersionDto } from '@app/models/document.model';
 import {
   ContactDto, EmailMessageDto, EmailScheduleDto, ScheduleHistoryItem,
@@ -33,6 +43,33 @@ interface EmailTemplate {
   subject: string;
   body: string;
 }
+
+/** One dynamic fill field rendered for a variable token used by the selected template. */
+interface FillVarField {
+  token: string;
+  label: string;
+  hint?: string;
+  required?: boolean;
+}
+
+/** French job-application template auto-seeded into the template library, re-usable from compose. */
+const FR_APPLY_TEMPLATE: { name: string; subjectTemplate: string; bodyTemplate: string; variableDefaults: Record<string, string> } = {
+  name: 'Candidature (FR)',
+  subjectTemplate: 'Candidature – {{research}} – {{my_name}}',
+  bodyTemplate:
+    `Bonjour {{recipient_greeting}},\n\n` +
+    `Je suis {{my_name}}, étudiant à {{school}}, {{degree}}. ` +
+    `Je suis actuellement à la recherche {{research}}. ` +
+    `Je souhaite postuler à {{offer_phrase}}.\n\n` +
+    `Veuillez trouver mon CV en pièce jointe pour plus d'informations. ` +
+    `Je reste à votre disposition pour un entretien afin de vous présenter mon profil davantage.\n\n` +
+    `Cordialement,\n{{my_name}}`,
+  variableDefaults: {
+    school: "l'ENSA Tanger",
+    degree: '5ème année en génie informatique',
+    research: "d'un stage PFE",
+  },
+};
 
 const EMAIL_TEMPLATES: EmailTemplate[] = [
   {
@@ -166,6 +203,8 @@ export class MailboxComponent implements OnInit {
   readonly toast = inject(ToastService);
   private readonly route = inject(ActivatedRoute);
   private readonly directAi = inject(DirectAiService);
+  private readonly authSvc = inject(AuthService);
+  private readonly companySvc = inject(CompanyService);
 
   view = signal<MailboxView>((localStorage.getItem('mailbox-view') as MailboxView) || 'compose');
 
@@ -282,6 +321,18 @@ export class MailboxComponent implements OnInit {
   templates = EMAIL_TEMPLATES;
   activeTemplate = signal<string | null>(null);
   attachments = signal<File[]>([]);
+
+// Re-usable (saved) templates surfaced in the compose aside + variable fill dialog.
+  composeSavedTemplates = signal<ScheduleTemplateDto[]>([]);
+  composeTemplatesLoading = signal(false);
+  private composeTemplatesLoaded = false;
+  fillOpen = signal(false);
+  fillTemplate = signal<ScheduleTemplateDto | null>(null);
+  /** Dynamic fill fields — one per {{token}} that the selected template actually uses. */
+  fillVars = signal<FillVarField[]>([]);
+  /** Current input values keyed by token (lowercase). */
+  fillValues = signal<Record<string, string>>({});
+  fillGender = signal('');
 
   // Documents picker inside the Attachments tab (CVs + their PDF versions).
   docCvs = signal<CvDocumentDto[]>([]);
@@ -1094,8 +1145,178 @@ export class MailboxComponent implements OnInit {
     this.activeTemplate.set(t.name);
   }
 
+/** Load saved templates once for the compose aside and auto-seed the French apply template. */
+  async ensureComposeTemplates() {
+    if (this.composeTemplatesLoaded || this.composeTemplatesLoading()) return;
+    this.composeTemplatesLoading.set(true);
+    try {
+      const res = await this.service.getScheduleTemplates();
+      const list = res.success && res.data ? res.data : [];
+      this.composeSavedTemplates.set(list);
+      if (!list.some(t => t.name === FR_APPLY_TEMPLATE.name)) {
+        try {
+          await this.service.createScheduleTemplate({
+            name: FR_APPLY_TEMPLATE.name,
+            subjectTemplate: FR_APPLY_TEMPLATE.subjectTemplate,
+            bodyTemplate: FR_APPLY_TEMPLATE.bodyTemplate,
+            variableDefaults: FR_APPLY_TEMPLATE.variableDefaults,
+          });
+          const res2 = await this.service.getScheduleTemplates();
+          if (res2.success && res2.data) this.composeSavedTemplates.set(res2.data);
+        } catch {}
+      }
+    } catch {
+    } finally {
+      this.composeTemplatesLoading.set(false);
+      this.composeTemplatesLoaded = true;
+    }
+  }
+
+  async openFillDialog(t: ScheduleTemplateDto) {
+    const recipient = this.composeRecipients()[0];
+    const tokens = extractTemplateVars(t.subjectTemplate, t.bodyTemplate);
+    const user = this.authSvc.currentUser();
+    const name = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim();
+    const d = t.variableDefaults ?? {};
+    const company = await this.lookupCompanyInfo(recipient?.company).catch(() => null);
+    this.fillGender.set(recipient?.gender ?? '');
+    const values: Record<string, string> = {};
+    const fields: FillVarField[] = [];
+    for (const token of tokens) {
+      const [value, hint] = this.autoFillValue(token, d, recipient, name, company);
+      values[token] = value;
+      fields.push({ token, label: templateVarLabel(token), hint, required: !TEMPLATE_AUTO_OPTIONAL.has(token) });
+    }
+    this.fillTemplate.set(t);
+    this.fillVars.set(fields);
+    this.fillValues.set(values);
+    this.fillOpen.set(true);
+  }
+
+  /** Look up a company by name so domaine/web_company auto-fill from real data. */
+  private async lookupCompanyInfo(companyName?: string | null): Promise<{ sector?: string; websiteUrl?: string } | null> {
+    const name = (companyName ?? '').trim();
+    if (!name) return null;
+    try {
+      const res = await this.companySvc.getCompanies({ search: name, pageSize: 20 });
+      const norm = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+      const target = norm(name);
+      const items = res.data?.items ?? [];
+      const hit = items.find(c => c.name && norm(c.name) === target);
+      const src = hit ?? items[0];
+      if (!src) return null;
+      return { sector: src.sector ?? undefined, websiteUrl: src.websiteUrl ?? undefined };
+    } catch {
+      return null;
+    }
+  }
+
+  /** Derive a starting value + hint for one template variable from compose context/company. */
+  private autoFillValue(
+    token: string,
+    d: ScheduleTemplateDto['variableDefaults'],
+    recipient: ContactDto | undefined,
+    userName: string,
+    company: { sector?: string; websiteUrl?: string } | null,
+  ): [string, string | undefined] {
+    const user = this.authSvc.currentUser();
+    const recipientName = recipient?.name ?? '';
+    switch (token) {
+      case 'recipient_name': return [recipientName, recipientName ? 'From the selected recipient' : undefined];
+      case 'recipient_greeting': return [recipientGreeting(recipientName, this.fillGender() || undefined), 'Derived from recipient name'];
+      case 'school': return [d?.school ?? '', 'Template default'];
+      case 'degree': return [d?.degree ?? '', 'Template default'];
+      case 'research': return [d?.research ?? '', 'Template default'];
+      case 'offer_phrase': return [d?.offer_phrase ?? '', 'Template default'];
+      case 'company_name': return [recipient?.company ?? '', 'From the selected recipient'];
+      case 'my_name': return [userName, 'From your profile'];
+      case 'my_email': return [user?.email ?? '', 'From your profile'];
+      case 'my_phone': return ['', ''];
+      // User-requested: domaine=role/sector, web_company=company website
+      case 'domaine': return [company?.sector ?? '', 'Company sector'];
+      case 'web_company': return [company?.websiteUrl ?? '', 'Company website'];
+      default: return ['', undefined];
+    }
+  }
+
+  closeFillDialog() {
+    this.fillOpen.set(false);
+    this.fillTemplate.set(null);
+    this.fillVars.set([]);
+    this.fillValues.set({});
+  }
+
+  setFillValue(token: string, value: string) {
+    this.fillValues.update(v => {
+      const next = { ...v, [token]: value };
+      if (token === 'recipient_name' && 'recipient_greeting' in next) {
+        next['recipient_greeting'] = recipientGreeting(value, this.fillGender() || undefined);
+      }
+      return next;
+    });
+  }
+
+  /** The template uses {{recipient_greeting}} → show the gender picker that drives it. */
+  fillUsesGreeting(): boolean {
+    return this.fillVars().some(v => v.token === 'recipient_greeting');
+  }
+
+  onFillGenderChange(gender: string) {
+    this.fillGender.set(gender);
+    const name = this.fillValues()['recipient_name'] ?? '';
+    if (this.fillUsesGreeting()) {
+      this.setFillValue('recipient_greeting', recipientGreeting(name, gender || undefined));
+    }
+  }
+
+  /** Every required variable has a value; optional/derived tokens may stay blank. */
+  fillValid(): boolean {
+    return this.fillVars().every(v => !v.required || !!this.fillValues()[v.token]?.trim());
+  }
+
+  /** Values used for the compose template preview + insert (mirrors the backend resolver). */
+  fillVarValues(): TemplateVarValues {
+    return { ...this.fillValues() };
+  }
+
+  fillPreviewSubject(): string {
+    const t = this.fillTemplate();
+    return t ? resolveTemplateVars(t.subjectTemplate, this.fillVarValues()) : '';
+  }
+
+  fillPreviewBody(): string {
+    const t = this.fillTemplate();
+    return t ? resolveTemplateVars(t.bodyTemplate, this.fillVarValues()) : '';
+  }
+
+  async insertFilledTemplate() {
+    const t = this.fillTemplate();
+    if (!t) return;
+    const values = this.fillVarValues();
+    this.composeSubject.set(resolveTemplateVars(t.subjectTemplate, values));
+    this.composeBody.set(resolveTemplateVars(t.bodyTemplate, values));
+    this.activeTemplate.set(t.name);
+    this.fillOpen.set(false);
+    if (t.cvVersionId) await this.attachVersionById(t.cvVersionId);
+    this.fillTemplate.set(null);
+    this.toast.success(`Template "${t.name}" applied — fill what remains, then send.`);
+  }
+
+  private async attachVersionById(versionId: string) {
+    await this.ensureDocumentsLoaded();
+    for (const cv of this.docCvs()) {
+      const v = cv.versions.find(x => x.id === versionId);
+      if (v) {
+        await this.attachDocVersion(cv, v);
+        return;
+      }
+    }
+    this.toast.error('Template CV not found in Documents');
+  }
+
   selectAsideTab(tab: 'templates' | 'attachments') {
     this.asideTab.set(tab);
+    if (tab === 'templates') void this.ensureComposeTemplates();
     if (tab === 'attachments') void this.ensureDocumentsLoaded();
   }
 
