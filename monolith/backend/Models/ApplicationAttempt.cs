@@ -83,7 +83,8 @@ public enum AttemptChannel
     LINKEDIN_CONNECTION,
     WEB_FORM,
     IN_PERSON,
-    OTHER
+    OTHER,
+    LINKEDIN_APPLY
 }
 
 public enum AttemptInitiatedBy

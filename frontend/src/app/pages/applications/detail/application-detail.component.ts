@@ -48,6 +48,7 @@ type AttemptForm = {
   body: string;
   recipientName: string;
   recipientContact: string;
+  coverLetterVersionId: string | null;
 };
 
 @Component({
@@ -91,6 +92,7 @@ export class ApplicationDetailComponent implements OnInit {
     body: '',
     recipientName: '',
     recipientContact: '',
+    coverLetterVersionId: null,
   });
   attemptError = signal<string | null>(null);
 
@@ -245,6 +247,7 @@ export class ApplicationDetailComponent implements OnInit {
       body: '',
       recipientName: '',
       recipientContact: '',
+      coverLetterVersionId: null,
     });
     this.attemptError.set(null);
     this.attemptAccountEnabled.set(false);
@@ -314,7 +317,7 @@ export class ApplicationDetailComponent implements OnInit {
   private buildAttemptMetadata(): string | undefined {
     const f = this.attemptForm();
     const meta: Record<string, string> = {};
-    if (f.channel === 'WEB_FORM') {
+    if (f.channel === 'WEB_FORM' || f.channel === 'LINKEDIN_APPLY') {
       const url = f.recipientContact.trim();
       if (url) meta['formUrl'] = url;
     }
@@ -437,6 +440,7 @@ export class ApplicationDetailComponent implements OnInit {
         recipientContact: f.recipientContact.trim() || undefined,
         contactId: this.selectedContactId() ?? undefined,
         channelMetadataJson: this.buildAttemptMetadata(),
+        coverLetterVersionId: f.coverLetterVersionId ?? null,
         sentAt: markSent ? new Date().toISOString() : undefined,
       });
       if (res.success && res.data) {

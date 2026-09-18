@@ -20,7 +20,8 @@ export type AttemptChannel =
   | 'LINKEDIN_CONNECTION'
   | 'WEB_FORM'
   | 'IN_PERSON'
-  | 'OTHER';
+  | 'OTHER'
+  | 'LINKEDIN_APPLY';
 
 export type AttemptInitiatedBy = 'USER' | 'AI_AGENT' | 'SCHEDULE';
 
@@ -205,6 +206,18 @@ export interface WeeklyTrendDto {
   withdrawn: number;
 }
 
+export interface DailyTrendDto {
+  date: string;
+  saved: number;
+  applied: number;
+  screening: number;
+  interview: number;
+  offer: number;
+  accepted: number;
+  rejected: number;
+  withdrawn: number;
+}
+
 export interface StatisticsTrendsDto {
   current: ApplicationStatisticsDto;
   monthlyTrends: MonthlyTrendDto[];
@@ -217,6 +230,7 @@ export interface AnalyticsSummaryDto {
   distinctCompanies: number;
   monthlyTrends: MonthlyTrendDto[];
   weeklyTrends?: WeeklyTrendDto[];
+  dailyTrends: DailyTrendDto[];
   priorityCounts: Record<string, number>;
   originCounts: Record<string, number>;
   channelCounts: Record<string, number>;
@@ -358,6 +372,7 @@ export const ATTEMPT_CHANNEL_LABELS: Record<AttemptChannel, string> = {
   WHATSAPP: 'WhatsApp',
   LINKEDIN_MESSAGE: 'LinkedIn message',
   LINKEDIN_CONNECTION: 'LinkedIn connection',
+  LINKEDIN_APPLY: 'LinkedIn apply',
   WEB_FORM: 'Web form',
   IN_PERSON: 'In person',
   OTHER: 'Other',
@@ -369,3 +384,79 @@ export const ATTEMPT_STATUS_LABELS: Record<AttemptStatus, string> = {
   SENT: 'Sent',
   FAILED: 'Failed',
 };
+
+export interface AttemptChannelFields {
+  subject: boolean;
+  message: boolean;
+  messageLabel: string;
+  messagePlaceholder: string;
+  recipientName: boolean;
+  recipientContact: boolean;
+  recipientContactLabel: string;
+  recipientContactPlaceholder: string;
+}
+
+/** Which attempt fields apply per channel (email gets subject, web form gets the URL, …).
+ *  Shared by the create-application page and the detail-page log-attempt modal. */
+export function attemptChannelFields(channel: AttemptChannel): AttemptChannelFields {
+  switch (channel) {
+    case 'EMAIL_GMAIL':
+    case 'EMAIL_SMTP':
+      return {
+        subject: true, message: true, messageLabel: 'Message',
+        messagePlaceholder: 'What did you send? Paste the message here…',
+        recipientName: true, recipientContact: true,
+        recipientContactLabel: 'Recipient email', recipientContactPlaceholder: 'name@email.com',
+      };
+    case 'WHATSAPP':
+      return {
+        subject: false, message: true, messageLabel: 'WhatsApp message',
+        messagePlaceholder: 'Paste the text you sent…',
+        recipientName: false, recipientContact: true,
+        recipientContactLabel: 'Recipient phone', recipientContactPlaceholder: '+212 6 00 00 00 00',
+      };
+    case 'LINKEDIN_MESSAGE':
+      return {
+        subject: false, message: true, messageLabel: 'Message',
+        messagePlaceholder: 'Paste the message you sent…',
+        recipientName: false, recipientContact: true,
+        recipientContactLabel: 'Recipient profile URL', recipientContactPlaceholder: 'linkedin.com/in/…',
+      };
+    case 'LINKEDIN_CONNECTION':
+      return {
+        subject: false, message: true, messageLabel: 'Connection note',
+        messagePlaceholder: 'Short note accompanying the connection request…',
+        recipientName: false, recipientContact: true,
+        recipientContactLabel: 'Recipient profile URL', recipientContactPlaceholder: 'linkedin.com/in/…',
+      };
+    case 'LINKEDIN_APPLY':
+      return {
+        subject: false, message: false, messageLabel: '',
+        messagePlaceholder: '',
+        recipientName: false, recipientContact: true,
+        recipientContactLabel: 'Job posting URL', recipientContactPlaceholder: 'https://www.linkedin.com/jobs/view/…',
+      };
+    case 'WEB_FORM':
+      return {
+        subject: false, message: false, messageLabel: '',
+        messagePlaceholder: '',
+        recipientName: false, recipientContact: true,
+        recipientContactLabel: 'Form URL', recipientContactPlaceholder: 'https://jobs.company.com/apply…',
+      };
+    case 'IN_PERSON':
+      return {
+        subject: false, message: true, messageLabel: 'Notes',
+        messagePlaceholder: 'Where and when did you apply? What was discussed?',
+        recipientName: false, recipientContact: false,
+        recipientContactLabel: '', recipientContactPlaceholder: '',
+      };
+    case 'OTHER':
+    default:
+      return {
+        subject: false, message: true, messageLabel: 'Notes',
+        messagePlaceholder: 'Anything worth remembering about this application…',
+        recipientName: false, recipientContact: false,
+        recipientContactLabel: '', recipientContactPlaceholder: '',
+      };
+  }
+}

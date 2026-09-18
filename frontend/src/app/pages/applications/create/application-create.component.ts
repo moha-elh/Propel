@@ -48,8 +48,8 @@ export class ApplicationCreateComponent implements OnInit {
   private directAi = inject(DirectAiService);
   private contactApi = inject(ContactService);
   private companyApi = inject(CompanyService);
-  private authService = inject(AuthService);
   private docsApi = inject(DocumentsService);
+  private authService = inject(AuthService);
   protected router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -58,6 +58,7 @@ export class ApplicationCreateComponent implements OnInit {
     const prefill = this.route.snapshot.queryParamMap.get('companyName');
     if (prefill) this.companyName.set(prefill);
     void this.loadCvDocs();
+    void this.loadCvVersions();
   }
 
   cvVersionLabel(v: CvVersionDto): string {
@@ -171,6 +172,47 @@ export class ApplicationCreateComponent implements OnInit {
   /** Date of the first apply — defaults to today; backfill earlier applications by changing it. */
   appliedDate = signal(this.localTodayStr());
 
+  // ── CV used for this application (defaults to the single active CV) ───────
+  cvVersions = signal<{ version: CvVersionDto; label: string }[]>([]);
+  cvVersionId = signal<string>('');
+
+  /** Label of the pre-selected active CV (used in the sidebar hint). */
+  activeCvName = computed<string>(() => {
+    const selected = this.cvVersionId();
+    const hit = this.cvVersions().find(o => o.version.id === selected);
+    return hit ? hit.label.replace(' (active)', '') : '';
+  });
+
+  /** Defaults the select to the active CV's latest version. */
+  private async loadCvVersions() {
+    if (this.cvLoading()) return;
+    this.cvLoading.set(true);
+    try {
+      const res = await this.docsApi.listCvs();
+      if (!res.success || !res.data) return;
+      const active = res.data.find(c => c.isActive);
+      const options: { version: CvVersionDto; label: string }[] = [];
+      for (const cv of res.data) {
+        const versions = [...cv.versions].sort((a, b) => b.versionNumber - a.versionNumber);
+        versions.forEach((v, i) => {
+          options.push({
+            version: v,
+            label: `${cv.title} · v${v.versionNumber}${i === 0 && cv.isActive ? ' (active)' : ''}${v.label ? ` — ${v.label}` : ''}`,
+          });
+        });
+      }
+      this.cvVersions.set(options);
+      if (active && active.versions.length) {
+        const latest = [...active.versions].sort((a, b) => b.versionNumber - a.versionNumber)[0];
+        this.cvVersionId.set(latest.id);
+      }
+    } catch {
+      // non-blocking — attempt still saves without a CV
+    } finally {
+      this.cvLoading.set(false);
+    }
+  }
+
   private localTodayStr(): string {
     const d = new Date();
     const off = d.getTimezoneOffset();
@@ -207,17 +249,35 @@ export class ApplicationCreateComponent implements OnInit {
   companySuggestOpen = signal(false);
   /** True when the typed name does NOT match an existing saved company. */
   companyIsNew = signal(false);
+  /** The saved company matching the typed name (tracks its logo when it exists). */
+  pickedCompany = signal<CompanyDto | null>(null);
   /** When the name is new, offer to persist it to the Companies directory. */
   saveCompanyInfo = signal(true);
   private companyTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Logo URL when the current company name resolves to a saved company that has one. */
+  companyLogoUrl = computed<string | null>(() => this.pickedCompany()?.logoUrl ?? null);
+
+  pickCompany(c: CompanyDto) {
+    if (this.companyTimer) { clearTimeout(this.companyTimer); this.companyTimer = null; }
+    this.companyName.set(c.name);
+    this.companyIsNew.set(false);
+    this.companySuggestOpen.set(false);
+    this.companyMatches.set([]);
+    this.pickedCompany.set(c);
+  }
 
   onCompanyInput(v: string) {
     this.companyName.set(v);
     const trimmed = v.trim();
     this.companyIsNew.set(trimmed.length > 0);
+    // A live edit breaks the logo match — clear it until a suggestion is re-picked.
+    const picked = this.pickedCompany();
+    if (picked && picked.name.toLowerCase() !== trimmed.toLowerCase()) this.pickedCompany.set(null);
     if (!trimmed) {
       this.companyMatches.set([]);
       this.companySuggestOpen.set(false);
+      this.pickedCompany.set(null);
       return;
     }
     this.companySuggestOpen.set(true);
@@ -244,20 +304,15 @@ export class ApplicationCreateComponent implements OnInit {
         this.companyMatches.set(items);
         const cur = this.companyName().trim().toLowerCase();
         this.companyIsNew.set(cur.length > 0 && !items.some(c => c.name.toLowerCase() === cur));
+        // Auto-resolve the logo when the typed name is an exact match.
+        const exact = items.find(c => c.name.toLowerCase() === cur);
+        if (exact) this.pickedCompany.set(exact);
       })
       .catch(() => {
         this.companyMatches.set([]);
         this.companyIsNew.set(this.companyName().trim().length > 0);
       })
       .finally(() => this.searchingCompanies.set(false));
-  }
-
-  pickCompany(c: CompanyDto) {
-    if (this.companyTimer) { clearTimeout(this.companyTimer); this.companyTimer = null; }
-    this.companyName.set(c.name);
-    this.companyIsNew.set(false);
-    this.companySuggestOpen.set(false);
-    this.companyMatches.set([]);
   }
 
   searchContacts() {
@@ -338,6 +393,7 @@ export class ApplicationCreateComponent implements OnInit {
     { value: 'WHATSAPP',             label: 'WhatsApp',           icon: 'ti-brand-whatsapp' },
     { value: 'LINKEDIN_MESSAGE',     label: 'LinkedIn message',   icon: 'ti-brand-linkedin' },
     { value: 'LINKEDIN_CONNECTION',  label: 'LinkedIn connect',   icon: 'ti-user-plus' },
+    { value: 'LINKEDIN_APPLY',       label: 'LinkedIn apply',     icon: 'ti-brand-linkedin' },
     { value: 'WEB_FORM',             label: 'Web form',           icon: 'ti-world' },
     { value: 'IN_PERSON',            label: 'In person',          icon: 'ti-users-group' },
     { value: 'OTHER',                label: 'Other',              icon: 'ti-dots' },
@@ -390,6 +446,13 @@ export class ApplicationCreateComponent implements OnInit {
           recipientName: false, recipientContact: true,
           recipientContactLabel: 'Recipient profile URL', recipientContactPlaceholder: 'linkedin.com/in/…',
         };
+      case 'LINKEDIN_APPLY':
+        return {
+          subject: false, message: false, messageLabel: '',
+          messagePlaceholder: '',
+          recipientName: false, recipientContact: true,
+          recipientContactLabel: 'Job posting URL', recipientContactPlaceholder: 'https://www.linkedin.com/jobs/view/…',
+        };
       case 'WEB_FORM':
         return {
           subject: false, message: false, messageLabel: '',
@@ -422,7 +485,7 @@ export class ApplicationCreateComponent implements OnInit {
   /** Persist extra channel info (form URL + the account used) on the attempt. */
   private buildChannelMetadataJson(): string | undefined {
     const meta: Record<string, string> = {};
-    if (this.channel() === 'WEB_FORM') {
+    if (this.channel() === 'WEB_FORM' || this.channel() === 'LINKEDIN_APPLY') {
       const url = this.recipientContact().trim();
       if (url) meta['formUrl'] = url;
     }
@@ -488,7 +551,7 @@ export class ApplicationCreateComponent implements OnInit {
         internshipType: this.internshipType().trim() || undefined,
         priority: this.priority(),
         appliedAt: this.stage() === 'APPLIED' ? this.isoFromDate(this.appliedDate()) : undefined,
-        cvVersionId: this.selectedCvVersionId().trim() || undefined,
+        cvVersionId: this.selectedCvVersionId().trim() || this.cvVersionId() || undefined,
       });
 
       if (!res.success || !res.data) {
@@ -531,6 +594,7 @@ export class ApplicationCreateComponent implements OnInit {
             recipientContact: cfg.recipientContact ? (this.recipientContact().trim() || undefined) : undefined,
             contactId,
             channelMetadataJson: this.buildChannelMetadataJson(),
+            cvVersionId: this.selectedCvVersionId().trim() || this.cvVersionId() || undefined,
             sentAt: this.markSent() ? (this.isoFromDate(this.appliedDate()) ?? new Date().toISOString()) : undefined,
           });
         } catch { /* attempt logging failed — app still created */ }

@@ -69,6 +69,7 @@ public class CvsController : ControllerBase
             IsActive = true,
         };
         _db.Cvs.Add(cv);
+        await DeactivateOtherCvsAsync(userId.Value, cv.Id);
         await _db.SaveChangesAsync();
         return Created($"/api/cv/{cv.Id}", ApiResponse<Cv>.Created(cv));
     }
@@ -87,6 +88,7 @@ public class CvsController : ControllerBase
         cv.Title = input.Title.Trim();
         cv.TemplateId = input.TemplateId ?? cv.TemplateId;
         cv.IsActive = input.IsActive;
+        if (cv.IsActive) await DeactivateOtherCvsAsync(userId.Value, cv.Id);
         cv.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         return Ok(ApiResponse<Cv>.Ok(cv));
@@ -133,6 +135,7 @@ public class CvsController : ControllerBase
             IsActive = true,
         };
         _db.Cvs.Add(cv);
+        await DeactivateOtherCvsAsync(userId.Value, cv.Id);
         await _db.SaveChangesAsync();
 
         var contentType = GetContentType(file.FileName);
@@ -230,6 +233,14 @@ public class CvsController : ControllerBase
         ".html" or ".htm" => "text/html",
         _       => "application/octet-stream",
     };
+
+    /// Keeps exactly one active CV per user: deactivates every other CV when one is marked active.
+    private async Task DeactivateOtherCvsAsync(Guid userId, Guid keepActiveId)
+    {
+        await _db.Cvs
+            .Where(c => c.UserId == userId && c.Id != keepActiveId)
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.IsActive, false));
+    }
 }
 
 public class CvInput

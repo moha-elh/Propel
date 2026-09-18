@@ -73,7 +73,13 @@
         <div class="section-header"><i class="ti ti-building"></i> Company &amp; position</div>
         <div class="section-body">
           <div class="identity-row">
-            <div class="logo-chip">{{ (companyName().trim()[0] || '?') | uppercase }}</div>
+            <div class="logo-chip">
+              @if (companyLogoUrl(); as logo) {
+                <img class="logo-img" [src]="logo" alt="" (error)="pickedCompany.set(null)" />
+              } @else {
+                {{ (companyName().trim()[0] || '?') | uppercase }}
+              }
+            </div>
             <div class="field grow company-field">
               <label>Company name <span class="req">*</span></label>
               <input type="text" placeholder="e.g. Stripe" [ngModel]="companyName()"
@@ -88,7 +94,11 @@
                   }
                   @for (m of companyMatches(); track m.id) {
                     <button type="button" class="cd-row" (mousedown)="$event.preventDefault()" (click)="pickCompany(m)">
-                      <i class="ti ti-building"></i>
+                      @if (m.logoUrl) {
+                        <img class="cd-logo" [src]="m.logoUrl" alt="" (error)="$event.target.hidden = true" />
+                      } @else {
+                        <i class="ti ti-building"></i>
+                      }
                       <span class="cd-name">{{ m.name }}</span>
                       <span class="cd-meta">{{ m.country || m.location || m.region || m.sector || '' }}</span>
                     </button>
@@ -408,7 +418,13 @@
       <div class="preview-label">Board preview</div>
       <div class="preview-card">
         <div class="pv-head">
-          <div class="pv-logo">{{ (companyName().trim()[0] || '?') | uppercase }}</div>
+          <div class="pv-logo">
+            @if (companyLogoUrl(); as logo) {
+              <img class="logo-img" [src]="logo" alt="" (error)="pickedCompany.set(null)" />
+            } @else {
+              {{ (companyName().trim()[0] || '?') | uppercase }}
+            }
+          </div>
           <span class="pv-company">{{ companyName().trim() || 'Company' }}</span>
         </div>
         <div class="pv-role">{{ positionTitle().trim() || 'Position title' }}</div>
@@ -424,6 +440,24 @@
           <input id="appliedDate" type="date"
             [ngModel]="appliedDate()" (ngModelChange)="appliedDate.set($event)" name="appliedDate">
           <small>Backdate an application you logged late.</small>
+        </div>
+
+        <div class="cv-select-field">
+          <label for="appliedCv">CV sent</label>
+          <select id="appliedCv" [ngModel]="cvVersionId()" name="appliedCv"
+            (ngModelChange)="cvVersionId.set($event)">
+            <option value="">None (no CV attached)</option>
+            @for (cv of cvVersions(); track cv.version.id) {
+              <option [value]="cv.version.id">{{ cv.label }}</option>
+            }
+          </select>
+          @if (cvLoading()) {
+            <small><i class="ti ti-loader"></i> Loading your CVs…</small>
+          } @else if (cvVersions().length === 0) {
+            <small>No CVs yet — upload one on the Documents page.</small>
+          } @else {
+            <small>The active CV (<strong>{{ activeCvName() }}</strong>) is pre-selected.</small>
+          }
         </div>
       }
 
