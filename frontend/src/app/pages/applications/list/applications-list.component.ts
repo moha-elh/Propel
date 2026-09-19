@@ -14,13 +14,17 @@ import {
   PRIORITY_LABELS,
   PRIORITY_COLORS,
 } from '@app/models/application.model';
-import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
 import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
+
+export type SortKey = 'applied' | 'updated' | 'company' | 'priority';
+export type SortDir = 'asc' | 'desc';
+
+interface SortOption { key: SortKey; label: string; }
 
 @Component({
   selector: 'app-applications-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSelectComponent, RouterLink, RefreshButtonComponent, CompanyLogoComponent],
+  imports: [CommonModule, FormsModule, AppSelectComponent, RouterLink, CompanyLogoComponent],
   templateUrl: './applications-list.component.html',
   styleUrl: './applications-list.component.scss',
 })
@@ -42,11 +46,23 @@ export class ApplicationsListComponent implements OnInit {
   updatedFrom = signal('');
   updatedTo = signal('');
 
-  sortBy = signal<'appliedAt' | 'updatedAt' | 'companyName' | 'positionTitle'>('appliedAt');
-  sortDir = signal<'asc' | 'desc'>('desc');
-
   filterOpen = signal(false);
-  refreshing = signal(false);
+  sortOpen = signal(false);
+  sortKey = signal<SortKey>('applied');
+  sortDir = signal<SortDir>('desc');
+
+  readonly SORT_OPTIONS: SortOption[] = [
+    { key: 'applied', label: 'Applied date' },
+    { key: 'updated', label: 'Updated date' },
+    { key: 'company', label: 'Company' },
+    { key: 'priority', label: 'Priority' },
+  ];
+
+  sortLabel = computed(() =>
+    this.SORT_OPTIONS.find(o => o.key === this.sortKey())?.label ?? 'Applied date');
+
+  sortTitle = computed(() =>
+    this.sortDir() === 'desc' ? 'Descending (features ↓)' : 'Ascending (features ↑)');
 
   totalPages = computed(() => Math.max(1, Math.ceil(this.totalItems() / this.pageSize())));
   visiblePages = computed(() => {
@@ -100,7 +116,7 @@ export class ApplicationsListComponent implements OnInit {
           appliedTo: this.appliedTo() || undefined,
           updatedFrom: this.updatedFrom() || undefined,
           updatedTo: this.updatedTo() || undefined,
-          sortBy: this.sortBy(),
+          sortBy: this.sortKey(),
           sortDir: this.sortDir(),
         }),
         this.appService.getStatistics(),
@@ -111,26 +127,25 @@ export class ApplicationsListComponent implements OnInit {
       }
       if (statsRes.success && statsRes.data) this.statistics.set(statsRes.data);
     } catch (err) { console.error(err); }
-    finally { this.loading.set(false); this.refreshing.set(false); }
+    finally { this.loading.set(false); }
   }
-
-  onRefresh() { this.refreshing.set(true); this.loadData(); }
 
   onSearch() { this.page.set(1); this.loadData(); this.filterOpen.set(false); }
 
-  onSortByChange(value: string) {
-    this.sortBy.set(value as 'appliedAt' | 'updatedAt' | 'companyName' | 'positionTitle');
+  applyFilters() { this.page.set(1); this.loadData(); this.filterOpen.set(false); }
+
+  setSort(key: SortKey) {
+    this.sortKey.set(key);
+    this.sortOpen.set(false);
     this.page.set(1);
     this.loadData();
   }
 
   toggleSortDir() {
-    this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc');
+    this.sortDir.update(d => (d === 'desc' ? 'asc' : 'desc'));
     this.page.set(1);
     this.loadData();
   }
-
-  applyFilters() { this.page.set(1); this.loadData(); this.filterOpen.set(false); }
 
   clearFilters() {
     this.selectedStatuses.set(new Set());

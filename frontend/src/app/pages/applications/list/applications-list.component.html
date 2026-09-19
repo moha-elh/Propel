@@ -2,7 +2,6 @@
   <!-- Toolbar -->
   <div class="list-toolbar">
     <div class="toolbar-row">
-      <app-refresh-button [loading]="refreshing()" (refresh)="onRefresh()" />
       <div class="toolbar-stats">
         <span class="ts-item"><strong>{{ statistics().total }}</strong> total</span>
         <span class="ts-sep">·</span>
@@ -20,19 +19,8 @@
         </svg>
         <input class="search-input" placeholder="Search company or position…" [(ngModel)]="searchQuery" (keyup.enter)="onSearch()">
       </div>
-      <div class="sort-wrap">
-        <span class="sort-label">Sort</span>
-        <app-select class="sort-sel" [value]="sortBy()" (valueChange)="onSortByChange($event)">
-          <option value="appliedAt">Applied date</option>
-          <option value="updatedAt">Updated date</option>
-          <option value="companyName">Company (A-Z)</option>
-          <option value="positionTitle">Position</option>
-        </app-select>
-        <button class="sort-toggle" (click)="toggleSortDir()"
-          [title]="sortDir() === 'asc' ? 'Ascending' : 'Descending'">{{ sortDir() === 'asc' ? '↑' : '↓' }}</button>
-      </div>
       <div class="filter-btn-wrap">
-        <button class="filter-btn" (click)="filterOpen.set(!filterOpen())">
+        <button class="filter-btn" (click)="sortOpen.set(false); filterOpen.set(!filterOpen())">
           <svg viewBox="0 0 14 14" fill="none" width="13" height="13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
             <line x1="1" y1="4" x2="13" y2="4"/><line x1="3" y1="7" x2="11" y2="7"/><line x1="5" y1="10" x2="9" y2="10"/>
           </svg>
@@ -72,6 +60,40 @@
             <div class="fp-actions">
               <button class="fp-apply" (click)="applyFilters()">Apply</button>
               <button class="fp-clear" (click)="clearFilters()">Clear all</button>
+            </div>
+          </div>
+        }
+      </div>
+      <div class="filter-btn-wrap sort-group">
+        <button class="filter-btn sort-dir-btn" [attr.title]="sortTitle()" aria-label="Toggle sort direction"
+                [class.active]="sortDir() === 'desc'" (click)="toggleSortDir()">
+          @if (sortDir() === 'desc') {
+            <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="8" y1="1.5" x2="8" y2="9" stroke-width="2.1"/>
+              <path d="M3 6 8 11l5-5" stroke-width="2.3"/>
+            </svg>
+          } @else {
+            <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="8" y1="14.5" x2="8" y2="7" stroke-width="2.1"/>
+              <path d="M3 10 8 5l5 5" stroke-width="2.3"/>
+            </svg>
+          }
+        </button>
+        <button class="filter-btn sort-field-btn" (click)="filterOpen.set(false); sortOpen.set(!sortOpen())">
+          <svg viewBox="0 0 14 14" fill="none" width="13" height="13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <path d="M3 4h8M5 7h4M6.5 10h1"/>
+          </svg>
+          Sort · {{ sortLabel() }}
+        </button>
+        @if (sortOpen()) {
+          <div class="filter-panel sort-panel" (click)="$event.stopPropagation()">
+            <div class="fp-label">Sort by</div>
+            <div class="sort-list">
+              @for (opt of SORT_OPTIONS; track opt.key) {
+                <button class="sort-item" [class.active]="sortKey() === opt.key" (click)="setSort(opt.key)">
+                  {{ opt.label }}
+                </button>
+              }
             </div>
           </div>
         }
