@@ -97,6 +97,12 @@
                       {{ item.companyName }}
                     </span>
                   </div>
+                  <button class="kb-card-detail" (click)="openDetail(item)" [title]="'Open ' + item.companyName + ' details'">
+                    <svg viewBox="0 0 14 14" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M2 3l6 3.5L2 10z" fill="currentColor" stroke="none"/>
+                      <rect x="8.5" y="3" width="3.5" height="4" rx="1"/><line x1="10" y1="10.5" x2="10" y2="11.5"/>
+                    </svg>
+                  </button>
                 </div>
                 <div class="kb-role">{{ item.positionTitle }}</div>
                 <div class="kb-card-footer">

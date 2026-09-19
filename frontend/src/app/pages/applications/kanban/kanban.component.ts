@@ -1,6 +1,6 @@
 import { Component, signal, inject, OnInit, computed, effect, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { ApplicationService } from '@app/services/application.service';
 import {
   ApplicationResponseDto,
@@ -61,7 +61,10 @@ export class KanbanComponent implements OnInit {
     this.columns().flatMap(c => c.items).filter(a => a.status === 'SAVED')
   );
 
-  ngOnInit() { this.loadApps(); }
+  ngOnInit() {
+    this.loadApps();
+    if (this.view() === 'activity') this.loadActivity();
+  }
 
   async loadApps() {
     this.loading.set(true);
@@ -77,10 +80,14 @@ export class KanbanComponent implements OnInit {
     } catch { } finally { this.loading.set(false); this.refreshing.set(false); }
   }
 
-  onRefresh() { this.refreshing.set(true); this.loadApps(); }
+  onRefresh() {
+    this.refreshing.set(true);
+    this.loadApps();
+    if (this.view() === 'activity') this.loadActivity(true);
+  }
 
-  async loadActivity() {
-    if (this.activityFeed().length > 0) return;
+  async loadActivity(force = false) {
+    if (this.activityFeed().length > 0 && !force) return;
     this.activityLoading.set(true);
     try {
       const res = await this.appService.getActivity({ limit: 50 });
@@ -97,6 +104,12 @@ export class KanbanComponent implements OnInit {
       await this.appService.toggleSave(app.id);
       await this.loadApps();
     } catch { }
+  }
+
+  protected router = inject(Router);
+
+  openDetail(app: ApplicationResponseDto) {
+    this.router.navigate(['/applications', app.id]);
   }
 
   savedDate(a: ApplicationResponseDto): string {
