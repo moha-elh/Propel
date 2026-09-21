@@ -33,6 +33,8 @@ interface ChannelRow extends NameValue { key: string; }
 interface StatusSlice extends NameValue { color: string; }
 type Granularity = 'day' | 'week' | 'month';
 
+interface ContactBar { label: string; pct: number; color: string; }
+
 @Component({
   selector: 'app-analytics',
   standalone: true,
@@ -186,11 +188,82 @@ setGranularity(g: Granularity) { this.granularity.set(g); }
     }));
   });
 
-  overTimeData = computed(() => {
+overTimeData = computed(() => {
     if (this.granularity() === 'week') return this.weeklyStacked();
     if (this.granularity() === 'month') return this.monthlyStacked();
     return this.dailyStacked();
   });
+
+  // ── Contact coverage ────────────────────────────────────────────────────────
+  contactCoverage = computed(() => this.summary()?.contactCoverage ?? null);
+  contactBars = computed<ContactBar[]>(() => {
+    const cc = this.contactCoverage();
+    if (!cc || cc.total === 0) return [];
+    const bars: ContactBar[] = [];
+    if (cc.emailPct > 0) bars.push({ label: 'Email', pct: cc.emailPct, color: 'oklch(0.6 0.15 200)' });
+    if (cc.phonePct > 0) bars.push({ label: 'Phone', pct: cc.phonePct, color: 'oklch(0.6 0.15 160)' });
+    if (cc.linkedinPct > 0) bars.push({ label: 'LinkedIn', pct: cc.linkedinPct, color: 'oklch(0.6 0.15 260)' });
+    if (cc.mobilePct > 0) bars.push({ label: 'Mobile', pct: cc.mobilePct, color: 'oklch(0.6 0.15 140)' });
+    if (cc.faxPct > 0) bars.push({ label: 'Fax', pct: cc.faxPct, color: 'oklch(0.6 0.15 25)' });
+    return bars;
+  });
+  contactCoverageTotal = computed(() => this.summary()?.contactCoverage?.total ?? 0);
+
+  // ── Company distribution ────────────────────────────────────────────────────
+  companyDistribution = computed(() => this.summary()?.companyDistribution ?? null);
+
+  private topOf(map: Record<string, number> | undefined, n: number): NameValue[] {
+    if (!map) return [];
+    return Object.entries(map)
+      .map(([name, value]) => ({ name, value }))
+      .filter(d => d.value > 0)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, n);
+  }
+
+  sectorTop = computed(() => this.topOf(this.companyDistribution()?.sectorCounts, 8));
+  countryTop = computed(() => this.topOf(this.companyDistribution()?.countryCounts, 8));
+  cityTop = computed(() => this.topOf(this.companyDistribution()?.cityCounts, 8));
+  companyDist = computed(() => this.summary()?.companyDistribution ?? null);
+
+  // ── Career inventory ────────────────────────────────────────────────────────
+  careerInventory = computed(() => this.summary()?.careerInventory ?? null);
+  careerKpis = computed<NameValue[]>(() => {
+    const c = this.careerInventory();
+    if (!c) return [];
+    const items: [string, number][] = [
+      ['Experiences', c.experiences], ['Projects', c.projects], ['Skills', c.skills],
+      ['Educations', c.educations], ['Certifications', c.certifications], ['Hackathons', c.hackathons],
+      ['Languages', c.languages], ['Interests', c.interests], ['Academic activities', c.academicActivities],
+      ['Distinct tags', c.distinctTags],
+    ];
+    return items.map(([name, value]) => ({ name, value }));
+  });
+
+  // ── Tooling usage ───────────────────────────────────────────────────────────
+  toolingUsage = computed(() => this.summary()?.toolingUsage ?? null);
+  toolingKpis = computed<NameValue[]>(() => {
+    const t = this.toolingUsage();
+    if (!t) return [];
+    const items: [string, number][] = [
+      ['Job extractions', t.jobExtractions], ['Template renders', t.templateRenders],
+      ['CV generations', t.cvGenerations], ['Saved tool items', t.savedToolItems],
+      ['CVs', t.cvs], ['CV versions', t.cvVersions], ['CV templates', t.cvTemplates],
+      ['Cover letters', t.coverLetters], ['Cover letter versions', t.coverLetterVersions],
+      ['User images', t.userImages], ['Schedules active', t.schedulesActive], ['Schedules total', t.schedulesTotal],
+    ];
+    return items.map(([name, value]) => ({ name, value }));
+  });
+
+  // ── Response histogram ───────────────────────────────────────────────────────
+  responseHistogram = computed<NameValue[]>(() =>
+    (this.summary()?.responseTimeHistogram ?? []).map(b => ({ name: b.bucket, value: b.count }))
+  );
+  responseHistogramTotal = computed(() => this.responseHistogram().reduce((a, b) => a + b.value, 0));
+  responseHistogramView = computed<[number, number]>(() => [
+    Math.max(320, this.responseHistogram().length * 42 + 40),
+    220,
+  ]);
 
   hasData = computed(() => this.stats().total > 0);
 

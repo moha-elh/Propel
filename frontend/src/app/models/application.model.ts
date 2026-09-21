@@ -238,6 +238,11 @@ export interface AnalyticsSummaryDto {
   topCompanies: TopCompanyDto[];
   email: EmailStatsDto;
   cvPerformance?: CvPerformanceDto[];
+  contactCoverage: ContactCoverageDto;
+  companyDistribution: CompanyDistributionDto;
+  careerInventory: CareerInventoryDto;
+  toolingUsage: ToolingUsageDto;
+  responseTimeHistogram: ResponseTimeBucketDto[];
 }
 
 export interface CvPerformanceDto {
@@ -250,12 +255,72 @@ export interface CvPerformanceDto {
   linkedApplications: number;
   interviewCount: number;
   offerCount: number;
-}
 
 export interface FunnelStageDto {
   stage: string;
   count: number;
 }
+
+export interface ContactCoverageDto {
+  total: number;
+  withEmail: number;
+  withPhone: number;
+  withLinkedin: number;
+  withMobile: number;
+  withFax: number;
+  emailPct: number;
+  phonePct: number;
+  linkedinPct: number;
+  mobilePct: number;
+  faxPct: number;
+}
+
+export interface CompanyDistributionDto {
+  total: number;
+  withWebsite: number;
+  withCountry: number;
+  cityCounts: Record<string, number>;
+  countryCounts: Record<string, number>;
+  sectorCounts: Record<string, number>;
+}
+
+export interface CareerInventoryDto {
+  experiences: number;
+  projects: number;
+  skills: number;
+  educations: number;
+  certifications: number;
+  hackathons: number;
+  languages: number;
+  interests: number;
+  academicActivities: number;
+  distinctTags: number;
+}
+
+export interface ToolingUsageDto {
+  jobExtractions: number;
+  templateRenders: number;
+  cvGenerations: number;
+  savedToolItems: number;
+  cvs: number;
+  cvVersions: number;
+  cvTemplates: number;
+  coverLetters: number;
+  coverLetterVersions: number;
+  userImages: number;
+  schedulesActive: number;
+  schedulesTotal: number;
+}
+
+export interface ResponseTimeBucketDto {
+  bucket: string;
+  count: number;
+}
+
+
+
+
+
 
 export interface TopCompanyDto {
   name: string;
@@ -269,6 +334,11 @@ export interface EmailStatsDto {
   successRate: number;
   activeSchedules: number;
 }
+
+
+
+
+
 
 export interface ApiResponse<T> {
   success: boolean;

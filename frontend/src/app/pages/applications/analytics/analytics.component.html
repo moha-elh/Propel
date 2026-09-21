@@ -191,6 +191,114 @@
           </ngx-charts-bar-vertical-stacked>
         }
       </section>
+
+      <!-- Contact coverage -->
+      <section class="card">
+        <div class="card-head">
+          <h2>Contact coverage</h2>
+          @if (contactCoverageTotal() > 0) {
+            <span class="muted">{{ contactCoverageTotal() }} contacts</span>
+          }
+        </div>
+        @if (contactBars().length === 0) {
+          <div class="muted">No contacts yet.</div>
+        } @else {
+          <div class="coverage-list">
+            @for (b of contactBars(); track b.label) {
+              <div class="coverage-row">
+                <span class="coverage-label">{{ b.label }}</span>
+                <div class="coverage-track">
+                  <div class="coverage-bar" [style.width.%]="b.pct" [style.background]="b.color"></div>
+                </div>
+                <span class="coverage-pct">{{ b.pct }}%</span>
+              </div>
+            }
+          </div>
+        }
+      </section>
+
+      <!-- Company distribution -->
+      <section class="card">
+        <div class="card-head">
+          <h2>Company distribution</h2>
+          @if (companyDist()?.total) {
+            <span class="muted">{{ companyDist()!.total }} companies</span>
+          }
+        </div>
+        <div class="dist-grid">
+          @for (g of [{ title: 'Sectors', rows: sectorTop() }, { title: 'Countries', rows: countryTop() }, { title: 'Cities', rows: cityTop() }]; track g.title) {
+            <div class="dist-col">
+              <h3>{{ g.title }}</h3>
+              @if (g.rows.length === 0) {
+                <div class="muted">—</div>
+              } @else {
+                <ul class="dist-list">
+                  @for (r of g.rows; track r.name) {
+                    <li><span>{{ r.name }}</span><span class="muted">{{ r.value }}</span></li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+        </div>
+      </section>
+
+      <!-- Career inventory -->
+      <section class="card">
+        <div class="card-head"><h2>Career inventory</h2></div>
+        @if (careerKpis().length === 0) {
+          <div class="muted">No career content yet.</div>
+        } @else {
+          <div class="kpi-grid">
+            @for (k of careerKpis(); track k.name) {
+              <div class="kpi-chip">
+                <div class="kpi-chip-value">{{ k.value }}</div>
+                <div class="kpi-chip-label">{{ k.name }}</div>
+              </div>
+            }
+          </div>
+        }
+      </section>
+
+      <!-- Tooling usage -->
+      <section class="card">
+        <div class="card-head"><h2>Tooling usage</h2></div>
+        @if (toolingKpis().length === 0) {
+          <div class="muted">No tooling data yet.</div>
+        } @else {
+          <div class="kpi-grid">
+            @for (k of toolingKpis(); track k.name) {
+              <div class="kpi-chip">
+                <div class="kpi-chip-value">{{ k.value }}</div>
+                <div class="kpi-chip-label">{{ k.name }}</div>
+              </div>
+            }
+          </div>
+        }
+      </section>
+
+      <!-- Response time histogram -->
+      <section class="card">
+        <div class="card-head">
+          <h2>Response time</h2>
+          @if (responseHistogramTotal() > 0) {
+            <span class="muted">{{ responseHistogramTotal() }} responses</span>
+          }
+        </div>
+        @if (responseHistogram().length === 0) {
+          <div class="muted">No response-time data yet.</div>
+        } @else {
+          <ngx-charts-bar-vertical
+            [view]="responseHistogramView()"
+            [results]="responseHistogram()"
+            [xAxis]="true"
+            [yAxis]="true"
+            [showDataLabel]="false"
+            [gradient]="false"
+            [animations]="false">
+          </ngx-charts-bar-vertical>
+        }
+      </section>
     </div>
   }
 </div>

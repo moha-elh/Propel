@@ -329,7 +329,13 @@ public class ApplicationService : IApplicationService
 
         var email = await GetEmailStatsAsync(userId);
 
-        return new AnalyticsSummaryDto(stats, avg, distinctCompanies, monthly, weekly, daily, priorityCounts, originCounts, channelCounts, funnel, topCompanies, email, cvPerformance);
+var contactCoverage = await GetContactCoverageAsync(userId);
+        var companyDistribution = await GetCompanyDistributionAsync(userId);
+        var careerInventory = await GetCareerInventoryAsync(userId);
+        var toolingUsage = await GetToolingUsageAsync(userId);
+        var responseHistogram = await GetResponseTimeHistogramAsync(userId);
+
+        return new AnalyticsSummaryDto(stats, avg, distinctCompanies, monthly, weekly, daily, priorityCounts, originCounts, channelCounts, funnel, topCompanies, email, cvPerformance, contactCoverage, companyDistribution, careerInventory, toolingUsage, responseHistogram);
     }
 
     private async Task<List<CvPerformanceDto>> GetCvPerformanceAsync(Guid userId)
@@ -566,6 +572,135 @@ public class ApplicationService : IApplicationService
         return appsWithResponse
             .Select(x => (x.FirstResponse - x.AppliedAt!.Value).TotalDays)
             .Average();
+    }
+
+    private async Task<ContactCoverageDto> GetContactCoverageAsync(Guid userId)
+    {
+        var contacts = await _db.Contacts
+            .Where(c => c.UserId == userId)
+            .ToListAsync();
+
+        double Pct(int n) => contacts.Count == 0 ? 0 : Math.Round(n * 100.0 / contacts.Count, 1);
+        var total = contacts.Count;
+        var withEmail = contacts.Count(c => !string.IsNullOrWhiteSpace(c.Email));
+        var withPhone = contacts.Count(c => !string.IsNullOrWhiteSpace(c.Phone));
+        var withLinkedin = contacts.Count(c => !string.IsNullOrWhiteSpace(c.LinkedInUrl));
+        var withMobile = contacts.Count(c => !string.IsNullOrWhiteSpace(c.Mobile));
+        var withFax = contacts.Count(c => !string.IsNullOrWhiteSpace(c.Fax));
+
+        return new ContactCoverageDto(
+            total, withEmail, withPhone, withLinkedin, withMobile, withFax,
+            Pct(withEmail), Pct(withPhone), Pct(withLinkedin), Pct(withMobile), Pct(withFax));
+    }
+
+    private async Task<CompanyDistributionDto> GetCompanyDistributionAsync(Guid userId)
+    {
+        var companies = await _db.Companies
+            .Where(c => c.UserId == userId)
+            .ToListAsync();
+
+        Dictionary<string, int> Counts(IEnumerable<string?> values) => values
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .GroupBy(v => v!.Trim())
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        return new CompanyDistributionDto(
+            companies.Count,
+            companies.Count(c => !string.IsNullOrWhiteSpace(c.WebsiteUrl)),
+            companies.Count(c => !string.IsNullOrWhiteSpace(c.Country)),
+            Counts(companies.Select(c => c.Location)),
+            Counts(companies.Select(c => c.Country)),
+            Counts(companies.Select(c => c.Sector)));
+    }
+
+    private async Task<CareerInventoryDto> GetCareerInventoryAsync(Guid userId)
+    {
+        var career = new
+        {
+            Experiences = await _db.Experiences.CountAsync(e => e.UserId == userId),
+            Projects = await _db.Projects.CountAsync(p => p.UserId == userId),
+            Skills = await _db.Skills.CountAsync(s => s.UserId == userId),
+            Educations = await _db.Educations.CountAsync(e => e.UserId == userId),
+            Certifications = await _db.Certifications.CountAsync(c => c.UserId == userId),
+            Hackathons = await _db.Hackathons.CountAsync(h => h.UserId == userId),
+            Languages = await _db.Languages.CountAsync(l => l.UserId == userId),
+            Interests = await _db.Interests.CountAsync(i => i.UserId == userId),
+            AcademicActivities = await _db.AcademicActivities.CountAsync(a => a.UserId == userId),
+            DistinctTags = await _db.EntityCategoryTags
+                .Where(t => t.UserId == userId)
+                .Select(t => t.CategoryNodeId)
+                .Distinct()
+                .CountAsync(),
+        };
+
+        return new CareerInventoryDto(
+            career.Experiences, career.Projects, career.Skills, career.Educations,
+            career.Certifications, career.Hackathons, career.Languages, career.Interests,
+            career.AcademicActivities, career.DistinctTags);
+    }
+
+    private async Task<ToolingUsageDto> GetToolingUsageAsync(Guid userId)
+    {
+        var cvIds = await _db.Cvs.Where(c => c.UserId == userId).Select(c => c.Id).ToListAsync();
+        var coverLetterIds = await _db.CoverLetters.Where(c => c.UserId == userId).Select(c => c.Id).ToListAsync();
+
+        return new ToolingUsageDto(
+            await _db.JobExtractions.CountAsync(j => j.UserId == userId),
+            await _db.TemplateRenderRuns.CountAsync(r => r.UserId == userId),
+            await _db.CvGenerationRuns.CountAsync(r => r.UserId == userId),
+            await _db.SavedToolContent.CountAsync(s => s.UserId == userId),
+            cvIds.Count,
+            await _db.CvVersions.CountAsync(v => cvIds.Contains(v.CvId)),
+            await _db.CvTemplates.CountAsync(),
+            coverLetterIds.Count,
+            await _db.CoverLetterVersions.CountAsync(v => coverLetterIds.Contains(v.CoverLetterId)),
+            await _db.UserImages.CountAsync(i => i.UserId == userId),
+            await _db.EmailSchedules.CountAsync(s => s.UserId == userId && s.IsActive),
+            await _db.EmailSchedules.CountAsync(s => s.UserId == userId));
+    }
+
+    private async Task<List<ResponseTimeBucketDto>> GetResponseTimeHistogramAsync(Guid userId)
+    {
+        var initialStatuses = new[] { ApplicationStatus.APPLIED, ApplicationStatus.SAVED };
+
+        var apps = await _db.Applications
+            .Include(a => a.StatusHistory)
+            .Where(a => a.CandidateId == userId
+                && a.AppliedAt != null
+                && a.StatusHistory.Any(h => !initialStatuses.Contains(h.NewStatus)))
+            .Select(a => new
+            {
+                a.AppliedAt,
+                FirstResponse = a.StatusHistory
+                    .Where(h => !initialStatuses.Contains(h.NewStatus))
+                    .Min(h => h.ChangedAt)
+            })
+            .ToListAsync();
+
+        var buckets = new[] { "<1d", "1-3d", "3-7d", "7-14d", "14-30d", "30d+" };
+
+        return buckets
+            .Select((b, i) =>
+            {
+                var (lo, hi) = i switch
+                {
+                    0 => (0d, 1d),
+                    1 => (1d, 3d),
+                    2 => (3d, 7d),
+                    3 => (7d, 14d),
+                    4 => (14d, 30d),
+                    _ => (30d, double.MaxValue),
+                };
+
+                var count = apps.Count(a =>
+                {
+                    var days = (a.FirstResponse - a.AppliedAt!.Value).TotalDays;
+                    return days >= lo && days < hi;
+                });
+
+                return new ResponseTimeBucketDto(b, count);
+            })
+            .ToList();
     }
 
     // ── Feed & calendar ────────────────────────────────────────────────────────
