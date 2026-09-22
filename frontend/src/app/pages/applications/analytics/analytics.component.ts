@@ -5,7 +5,9 @@ import { ApplicationService } from '@app/services/application.service';
 import {
   AnalyticsSummaryDto, MonthlyTrendDto, WeeklyTrendDto, DailyTrendDto, ApplicationStatus,
   STATUS_ORDER, STATUS_LABELS, STATUS_COLORS,
-  ATTEMPT_CHANNEL_LABELS, CvPerformanceDto, AttemptChannel,
+ATTEMPT_CHANNEL_LABELS, CvPerformanceDto, AttemptChannel,
+  PRIORITY_ORDER, PRIORITY_LABELS, PRIORITY_COLORS,
+  ORIGIN_ORDER, ORIGIN_LABELS, ORIGIN_COLORS,
 } from '@app/models/application.model';
 import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
 
@@ -27,7 +29,7 @@ const DAY_LABEL = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'sho
 const DAY_LABEL_YEAR = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 interface KpiCard { label: string; value: string; sub: string; color: string; }
-interface FunnelRow { label: string; count: number; pct: number; color: string; }
+interface BarRow { label: string; count: number; pct: number; color: string; }
 interface NameValue { name: string; value: number; }
 interface ChannelRow extends NameValue { key: string; }
 interface StatusSlice extends NameValue { color: string; }
@@ -103,20 +105,6 @@ setGranularity(g: Granularity) { this.granularity.set(g); }
   );
   statusColors = computed(() => this.statusPie().map(d => ({ name: d.name, value: d.color })));
 
-  funnel = computed<FunnelRow[]>(() => {
-    const f = this.summary()?.funnel ?? [];
-    // Baseline = SAVED count when present, otherwise the largest stage (e.g. when nothing is still SAVED).
-    const saved = f.find(r => r.stage === 'SAVED')?.count ?? 0;
-    const max = f.reduce((m, r) => Math.max(m, r.count), 0);
-    const base = saved > 0 ? saved : max;
-    return f.map(st => ({
-      label: STATUS_LABELS[st.stage as ApplicationStatus] ?? st.stage,
-      count: st.count,
-      pct: base > 0 ? Math.round((st.count / base) * 100) : 0,
-      color: STATUS_COLORS[st.stage as ApplicationStatus] ?? 'oklch(0.6 0.01 80)',
-    }));
-  });
-
   topCompanies = computed<NameValue[]>(() =>
     (this.summary()?.topCompanies ?? []).map(c => ({ name: c.name, value: c.count }))
   );
@@ -135,6 +123,43 @@ setGranularity(g: Granularity) { this.granularity.set(g); }
       .filter(d => d.value > 0)
       .sort((a, b) => b.value - a.value);
   });
+  channelColors = computed<{ name: string; value: string }[]>(() => {
+    const base: Record<string, string> = {
+      EMAIL_GMAIL: 'oklch(0.62 0.15 250)',
+      EMAIL_SMTP: 'oklch(0.6 0.14 215)',
+      WHATSAPP: 'oklch(0.62 0.16 160)',
+      LINKEDIN_MESSAGE: 'oklch(0.62 0.14 285)',
+      LINKEDIN_CONNECTION: 'oklch(0.6 0.12 285)',
+      WEB_FORM: 'oklch(0.6 0.14 35)',
+      IN_PERSON: 'oklch(0.6 0.14 75)',
+      OTHER: 'oklch(0.6 0.1 80)',
+    };
+    return this.channelBreakdown().map(d => ({
+      name: d.name,
+      value: base[Object.keys(this.summary()?.channelCounts ?? {}).find(k => (ATTEMPT_CHANNEL_LABELS[k as keyof typeof ATTEMPT_CHANNEL_LABELS] ?? k) === d.name) as string] ?? 'oklch(0.6 0.12 40)',
+    }));
+  });
+
+  channelColorsColorFor(name: string): string {
+    return this.channelColors().find(c => c.name === name)?.value ?? 'oklch(0.6 0.12 40)';
+  }
+
+  // ── Priority / origin breakdown ──────────────────────────────────────────────
+  private barRows(counts: Record<string, number>, order: readonly string[], labelOf: (k: string) => string, colorOf: (k: string) => string): BarRow[] {
+    const total = this.stats().total;
+    return order
+      .map(k => ({ label: labelOf(k), count: counts[k] ?? 0, color: colorOf(k) }))
+      .filter(b => b.count > 0)
+      .map(b => ({ ...b, pct: total > 0 ? Math.round((b.count / total) * 100) : 0 }));
+  }
+
+  priorityBars = computed<BarRow[]>(() =>
+    this.barRows(this.summary()?.priorityCounts ?? {}, PRIORITY_ORDER, k => PRIORITY_LABELS[k as keyof typeof PRIORITY_LABELS], k => PRIORITY_COLORS[k as keyof typeof PRIORITY_COLORS])
+  );
+
+  originBars = computed<BarRow[]>(() =>
+    this.barRows(this.summary()?.originCounts ?? {}, ORIGIN_ORDER, k => ORIGIN_LABELS[k as keyof typeof ORIGIN_LABELS], k => ORIGIN_COLORS[k as keyof typeof ORIGIN_COLORS])
+  );
 
   channelColor(c: string): string {
     return CHANNEL_COLORS[c as AttemptChannel] ?? 'oklch(0.6 0.01 80)';

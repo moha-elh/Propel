@@ -50,22 +50,24 @@
         </div>
       </section>
 
-      <!-- Conversion funnel -->
+      <!-- Applications by priority -->
       <section class="card">
-        <h2>Conversion funnel</h2>
-        <div class="funnel">
-          @for (f of funnel(); track f.label) {
-            <div class="funnel-row">
-              <div class="funnel-head">
-                <span class="funnel-label">{{ f.label }}</span>
-                <span class="funnel-count">{{ f.count }} · {{ f.pct }}%</span>
+        <h2>Applications by priority</h2>
+        @if (priorityBars().length === 0) {
+          <div class="muted">No applications yet.</div>
+        } @else {
+          <div class="coverage-list">
+            @for (b of priorityBars(); track b.label) {
+              <div class="coverage-row">
+                <span class="coverage-label">{{ b.label }}</span>
+                <div class="coverage-track">
+                  <div class="coverage-bar" [style.width.%]="b.pct" [style.background]="b.color"></div>
+                </div>
+                <span class="coverage-pct">{{ b.count }} · {{ b.pct }}%</span>
               </div>
-              <div class="funnel-track">
-                <div class="funnel-bar" [style.width.%]="f.pct" [style.background]="f.color"></div>
-              </div>
-            </div>
-          }
-        </div>
+            }
+          </div>
+        }
       </section>
 
       <!-- Top companies -->
@@ -115,6 +117,44 @@
               </div>
             }
           </div>
+@if (channelBreakdown().length > 0) {
+            <div class="email-pie">
+              <ngx-charts-pie-chart
+                [view]="[180, 180]"
+                [results]="channelBreakdown()"
+                [customColors]="channelColors()"
+                [doughnut]="true"
+                [labels]="false"
+                [legend]="false"
+                [animations]="false">
+              </ngx-charts-pie-chart>
+              <ul class="legend">
+                @for (c of channelBreakdown(); track c.name) {
+                  <li>
+                    <span class="legend-dot" [style.background]="channelColorsColorFor(c.name)"></span>
+                    <span class="legend-name">{{ c.name }}</span>
+                    <span class="legend-val">{{ c.value }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+            @if (originBars().length > 0) {
+              <div class="origin-block">
+                <h3>Applications by origin</h3>
+                <div class="coverage-list">
+                  @for (b of originBars(); track b.label) {
+                    <div class="coverage-row">
+                      <span class="coverage-label">{{ b.label }}</span>
+                      <div class="coverage-track">
+                        <div class="coverage-bar" [style.width.%]="b.pct" [style.background]="b.color"></div>
+                      </div>
+                      <span class="coverage-pct">{{ b.count }} · {{ b.pct }}%</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          }
         }
       </section>
 

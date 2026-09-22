@@ -434,6 +434,25 @@ export const PRIORITY_COLORS: Record<ApplicationPriority, string> = {
   HIGH: 'oklch(0.62 0.19 25)',
 };
 
+// ── Origin metadata ──────────────────────────────────────────────────────────
+
+export const ORIGIN_ORDER: readonly ApplicationOrigin[] =
+  ['MANUAL', 'FROM_JOB_OFFER', 'AI_AGENT_AUTO_APPLY', 'IMPORT'] as const;
+
+export const ORIGIN_LABELS: Record<ApplicationOrigin, string> = {
+  MANUAL: 'Manual',
+  FROM_JOB_OFFER: 'From a job offer',
+  AI_AGENT_AUTO_APPLY: 'AI auto-apply',
+  IMPORT: 'Imported',
+};
+
+export const ORIGIN_COLORS: Record<ApplicationOrigin, string> = {
+  MANUAL: 'oklch(0.6 0.1 250)',
+  FROM_JOB_OFFER: 'oklch(0.62 0.15 200)',
+  AI_AGENT_AUTO_APPLY: 'oklch(0.62 0.16 155)',
+  IMPORT: 'oklch(0.6 0.1 80)',
+};
+
 // ── Channel metadata ────────────────────────────────────────────────────────
 
 export const ATTEMPT_CHANNEL_LABELS: Record<AttemptChannel, string> = {
