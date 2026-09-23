@@ -73,7 +73,7 @@
   @if (loading()) {
     <div class="kb-loading">Loading your applications…</div>
   } @else if (view() === 'board') {
-    <div class="board">
+    <div class="board" #boardEl (dragover)="onBoardDragOver($event)">
       @for (col of columns(); track col.status) {
         <div class="col" (dragover)="onDragOver($event)" (drop)="onDrop($event, col.status)">
           <div class="col-header">

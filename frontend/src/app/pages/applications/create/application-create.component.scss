@@ -607,6 +607,39 @@ textarea { resize: vertical; }
   i { color: oklch(0.6 0.16 250); }
 }
 
+// ── Account used on a web form ───────────────────────────────────────────────
+.account-used {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px dashed oklch(0.6 0.16 250 / 0.5);
+  border-radius: 10px;
+  background: oklch(0.985 0.002 250 / 0.4);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.acc-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  label { font-size: 12px; font-weight: 600; color: var(--text-2); margin: 0; }
+}
+.acc-toggle {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: none; background: transparent; padding: 2px 0;
+  cursor: pointer; font-family: var(--font-body);
+  .toggle-track { background: oklch(0.87 0.005 80); }
+  &.on {
+    .toggle-track { background: oklch(0.62 0.15 155); }
+    .toggle-thumb { transform: translateX(14px); }
+  }
+}
+.pw-field { position: relative; }
+.pw-field input { width: 100%; padding-right: 34px; }
+.pw-toggle {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  border: none; background: none; cursor: pointer; padding: 4px 6px;
+  color: var(--text-3); display: inline-flex; align-items: center;
+  &:hover { color: var(--text); }
+  i { font-size: 16px; }
+}
+
 // ── Priority segmented control ───────────────────────────────────────────────
 .priority-segmented {
   display: inline-flex;

@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit, computed, effect } from '@angular/core';
+import { Component, signal, inject, OnInit, computed, effect, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApplicationService } from '@app/services/application.service';
@@ -103,16 +103,71 @@ export class KanbanComponent implements OnInit {
     return a.appliedAt ?? a.updatedAt;
   }
 
+  @ViewChild('boardEl') boardEl!: ElementRef<HTMLElement>;
+
+  private dragging = false;
+  private mousePos = { x: 0, y: 0 };
+  private scrollLoop: number | null = null;
+  private readonly EDGE_ZONE = 70;
+
   onDragStart(event: DragEvent, app: ApplicationResponseDto) {
+    this.dragging = true;
     event.dataTransfer?.setData('text/plain', JSON.stringify({ id: app.id, status: app.status }));
     (event.target as HTMLElement).classList.add('dragging');
   }
 
   onDragEnd(event: DragEvent) {
+    this.dragging = false;
+    this.stopAutoScroll();
     (event.target as HTMLElement).classList.remove('dragging');
   }
 
   onDragOver(event: DragEvent) { event.preventDefault(); }
+
+  onBoardDragOver(event: DragEvent) {
+    event.preventDefault();
+    if (!this.dragging) return;
+    this.mousePos.x = event.clientX;
+    this.mousePos.y = event.clientY;
+    if (this.scrollLoop === null) {
+      this.scrollLoop = requestAnimationFrame(this.scrollTick);
+    }
+  }
+
+  private readonly scrollTick = () => {
+    this.scrollLoop = null;
+    const board = this.boardEl?.nativeElement;
+    if (!board || !this.dragging) return;
+    const rect = board.getBoundingClientRect();
+    const x = this.mousePos.x;
+    const y = this.mousePos.y;
+    let vx = 0;
+    let vy = 0;
+
+    if (x >= rect.left - 6 && x < rect.left + this.EDGE_ZONE) {
+      vx = -Math.max(4, (rect.left + this.EDGE_ZONE - x) * 0.6);
+    } else if (x > rect.right - this.EDGE_ZONE && x <= rect.right + 6) {
+      vx = Math.max(4, (x - (rect.right - this.EDGE_ZONE)) * 0.6);
+    }
+    if (y >= rect.top - 6 && y < rect.top + this.EDGE_ZONE) {
+      vy = -Math.max(4, (rect.top + this.EDGE_ZONE - y) * 0.6);
+    } else if (y > rect.bottom - this.EDGE_ZONE && y <= rect.bottom + 6) {
+      vy = Math.max(4, (y - (rect.bottom - this.EDGE_ZONE)) * 0.6);
+    }
+
+    if (vx || vy) {
+      board.scrollLeft += vx;
+      board.scrollTop += vy;
+      this.scrollLoop = requestAnimationFrame(this.scrollTick);
+    }
+  };
+
+  private stopAutoScroll() {
+    if (this.scrollLoop !== null) {
+      cancelAnimationFrame(this.scrollLoop);
+      this.scrollLoop = null;
+    }
+  }
 
   async onDrop(event: DragEvent, targetStatus: ApplicationStatus) {
     event.preventDefault();

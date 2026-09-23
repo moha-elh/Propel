@@ -30,6 +30,17 @@ import { DocumentsService } from '@app/services/documents.service';
 import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
 import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
 
+/** Default login used to sign into an external web application portal. */
+const DEFAULT_LOGIN_EMAIL = 'mouhssineelhaouary@gmail.com';
+const DEFAULT_LOGIN_PASSWORD = 'Stage2027';
+
+/** Channel-specific metadata persisted on an attempt (form URL + account used). */
+export interface AttemptMetadata {
+  formUrl?: string;
+  accountEmail?: string;
+  accountPassword?: string;
+}
+
 type AttemptForm = {
   channel: AttemptChannel;
   initiatedBy: AttemptInitiatedBy;
@@ -82,6 +93,14 @@ export class ApplicationDetailComponent implements OnInit {
     recipientContact: '',
   });
   attemptError = signal<string | null>(null);
+
+  // Account used when logging an apply attempt (any channel, toggleable).
+  attemptAccountEnabled = signal(false);
+  attemptAccountEmail = signal(DEFAULT_LOGIN_EMAIL);
+  attemptAccountPassword = signal(DEFAULT_LOGIN_PASSWORD);
+  showAttemptAccountPassword = signal(false);
+  /** Reveal state for saved passwords, keyed by attempt id. */
+  revealedPass = signal<Record<string, boolean>>({});
 
   // Contact picker (attempt modal)
   suggestedContacts = signal<ContactSummaryDto[]>([]);
@@ -228,6 +247,9 @@ export class ApplicationDetailComponent implements OnInit {
       recipientContact: '',
     });
     this.attemptError.set(null);
+    this.attemptAccountEnabled.set(false);
+    this.attemptAccountEmail.set(DEFAULT_LOGIN_EMAIL);
+    this.attemptAccountPassword.set(DEFAULT_LOGIN_PASSWORD);
     this.showAttemptModal.set(true);
     // Load company-matching suggestions for quick recipient selection.
     if (app) {
@@ -250,6 +272,57 @@ export class ApplicationDetailComponent implements OnInit {
     this.inlineEmail.set('');
     this.inlineCompany.set('');
     this.inlineError.set(null);
+  }
+
+  setAttemptChannel(c: AttemptChannel) {
+    this.attemptForm.update(f => ({ ...f, channel: c }));
+  }
+
+  /** Parsed channel metadata (form URL + account used) for an attempt. */
+  attemptMetadata(att: AttemptResponseDto): AttemptMetadata {
+    if (!att.channelMetadataJson) return {};
+    try { return JSON.parse(att.channelMetadataJson) as AttemptMetadata; } catch { return {}; }
+  }
+
+  private toUrl(raw: string): string | null {
+    const trimmed = raw.trim();
+    if (!trimmed || /[\s@]/.test(trimmed)) return null;
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    if (/^[\w-]+(\.[\w-]+)+(:\d+)?(\/[\w\-._~:/?#[\]@!$&'()*+,;=%]*)?$/i.test(trimmed)) {
+      return `https://${trimmed}`;
+    }
+    return null;
+  }
+
+  /** Clickable link for an attempt (form URL from metadata, or a URL-ish recipient contact). */
+  attemptLink(att: AttemptResponseDto): string | null {
+    const meta = this.attemptMetadata(att);
+    const raw = (meta['formUrl'] && meta['formUrl'].trim())
+      ? meta['formUrl']
+      : (att.recipientContact ?? '');
+    return this.toUrl(raw);
+  }
+
+  hostOf(url: string): string {
+    try { return new URL(url).hostname; } catch { return url; }
+  }
+
+  toggleReveal(id: string) {
+    this.revealedPass.update(map => ({ ...map, [id]: !map[id] }));
+  }
+
+  private buildAttemptMetadata(): string | undefined {
+    const f = this.attemptForm();
+    const meta: Record<string, string> = {};
+    if (f.channel === 'WEB_FORM') {
+      const url = f.recipientContact.trim();
+      if (url) meta['formUrl'] = url;
+    }
+    if (this.attemptAccountEnabled() && this.attemptAccountEmail().trim()) {
+      meta['accountEmail'] = this.attemptAccountEmail().trim();
+      if (this.attemptAccountPassword()) meta['accountPassword'] = this.attemptAccountPassword();
+    }
+    return Object.keys(meta).length ? JSON.stringify(meta) : undefined;
   }
 
   pickContact(c: ContactSummaryDto) {
@@ -363,6 +436,7 @@ export class ApplicationDetailComponent implements OnInit {
         recipientName: f.recipientName.trim() || undefined,
         recipientContact: f.recipientContact.trim() || undefined,
         contactId: this.selectedContactId() ?? undefined,
+        channelMetadataJson: this.buildAttemptMetadata(),
         sentAt: markSent ? new Date().toISOString() : undefined,
       });
       if (res.success && res.data) {

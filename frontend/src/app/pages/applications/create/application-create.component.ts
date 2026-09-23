@@ -26,6 +26,10 @@ import {
   PRIORITY_ORDER,
 } from '@app/models/application.model';
 
+/** Default login used to sign into an external web application portal. */
+const DEFAULT_LOGIN_EMAIL = 'mouhssineelhaouary@gmail.com';
+const DEFAULT_LOGIN_PASSWORD = 'Stage2027';
+
 interface ChannelTile {
   value: AttemptChannel;
   label: string;
@@ -157,6 +161,12 @@ export class ApplicationCreateComponent implements OnInit {
   body = signal('');
   recipientName = signal('');
   recipientContact = signal('');
+
+  // ── Account used for the apply attempt (any channel, toggleable) ────────────
+  formAccountEnabled = signal(false);
+  formAccountEmail = signal(DEFAULT_LOGIN_EMAIL);
+  formAccountPassword = signal(DEFAULT_LOGIN_PASSWORD);
+  showFormAccountPassword = signal(false);
 
   /** Date of the first apply — defaults to today; backfill earlier applications by changing it. */
   appliedDate = signal(this.localTodayStr());
@@ -409,6 +419,20 @@ export class ApplicationCreateComponent implements OnInit {
     return this.companyName().trim().length > 0 && this.positionTitle().trim().length > 0;
   }
 
+  /** Persist extra channel info (form URL + the account used) on the attempt. */
+  private buildChannelMetadataJson(): string | undefined {
+    const meta: Record<string, string> = {};
+    if (this.channel() === 'WEB_FORM') {
+      const url = this.recipientContact().trim();
+      if (url) meta['formUrl'] = url;
+    }
+    if (this.formAccountEnabled() && this.formAccountEmail().trim()) {
+      meta['accountEmail'] = this.formAccountEmail().trim();
+      if (this.formAccountPassword()) meta['accountPassword'] = this.formAccountPassword();
+    }
+    return Object.keys(meta).length ? JSON.stringify(meta) : undefined;
+  }
+
   setStage(stage: 'SAVED' | 'APPLIED') { this.stage.set(stage); }
   dismissDuplicates() { this.duplicateWarning.set(null); }
 
@@ -506,9 +530,7 @@ export class ApplicationCreateComponent implements OnInit {
             recipientName: cfg.recipientName ? (this.recipientName().trim() || undefined) : undefined,
             recipientContact: cfg.recipientContact ? (this.recipientContact().trim() || undefined) : undefined,
             contactId,
-            channelMetadataJson: (this.channel() === 'WEB_FORM' && this.recipientContact().trim())
-              ? JSON.stringify({ formUrl: this.recipientContact().trim() })
-              : undefined,
+            channelMetadataJson: this.buildChannelMetadataJson(),
             sentAt: this.markSent() ? (this.isoFromDate(this.appliedDate()) ?? new Date().toISOString()) : undefined,
           });
         } catch { /* attempt logging failed — app still created */ }

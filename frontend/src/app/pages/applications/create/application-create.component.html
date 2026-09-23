@@ -217,6 +217,42 @@
               </div>
             </div>
 
+            <div class="account-used">
+              <div class="acc-head">
+                <label>Account used</label>
+                <button type="button" class="acc-toggle" [class.on]="formAccountEnabled()"
+                  (click)="formAccountEnabled.set(!formAccountEnabled())">
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                  <span class="toggle-text">{{ formAccountEnabled() ? 'Save account' : 'No account' }}</span>
+                </button>
+              </div>
+              @if (formAccountEnabled()) {
+                <div class="two-col">
+                  <div class="field">
+                    <label>Email</label>
+                    <input type="text" [ngModel]="formAccountEmail()" (ngModelChange)="formAccountEmail.set($event)"
+                      name="formAccEmail" autocomplete="off">
+                  </div>
+                  <div class="field">
+                    <label>Password</label>
+                    <div class="pw-field">
+                      <input [type]="showFormAccountPassword() ? 'text' : 'password'"
+                        [ngModel]="formAccountPassword()" (ngModelChange)="formAccountPassword.set($event)"
+                        name="formAccPassword" autocomplete="off">
+                      <button type="button" class="pw-toggle" tabindex="-1"
+                        [title]="showFormAccountPassword() ? 'Hide password' : 'Show password'"
+                        (click)="showFormAccountPassword.set(!showFormAccountPassword())">
+                        <i [class]="showFormAccountPassword() ? 'ti ti-eye-off' : 'ti ti-eye'"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <p class="webform-hint"><i class="ti ti-lock"></i> The account used for this apply is saved with the attempt so you remember how you applied.</p>
+              } @else {
+                <p class="webform-hint"><i class="ti ti-shield-off"></i> No account will be recorded for this attempt.</p>
+              }
+            </div>
+
             <div class="inline-row">
               <div class="field">
                 <label>Initiated by</label>
@@ -346,8 +382,8 @@
             }
 
             @if (channel() === 'WEB_FORM') {
-              <p class="webform-hint"><i class="ti ti-world"></i> The form URL is saved so you can find it again later.</p>
-            }
+                <p class="webform-hint" style="margin-top:8px"><i class="ti ti-world"></i> The form URL is saved so you can find it again later.</p>
+              }
           </div>
         </div>
       }

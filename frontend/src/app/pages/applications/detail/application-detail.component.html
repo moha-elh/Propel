@@ -65,7 +65,26 @@
                       </span>
                     </button>
                   } @else if (att.recipientName || att.recipientContact) {
-                    <div class="attempt-meta">→ {{ att.recipientName }}@if (att.recipientContact) { · {{ att.recipientContact }}}</div>
+                    <div class="attempt-meta">
+                      → {{ att.recipientName }}
+                      @if (attemptLink(att); as url) {
+                        · <a class="form-link" [href]="url" target="_blank" rel="noopener" [title]="url"><i class="ti ti-world"></i> {{ hostOf(url) }}</a>
+                      } @else if (att.recipientContact) {
+                        · {{ att.recipientContact }}
+                      }
+                    </div>
+                  }
+                  @if (attemptMetadata(att).accountEmail; as accEmail) {
+                    <div class="attempt-account">
+                      <i class="ti ti-user"></i> {{ accEmail }}
+                      @if (attemptMetadata(att).accountPassword; as accPass) {
+                        <button type="button" class="acc-reveal" (click)="toggleReveal(att.id)"
+                          [title]="revealedPass()[att.id] ? 'Hide password' : 'Show password'">
+                          <i class="ti ti-lock"></i><span>{{ revealedPass()[att.id] ? accPass : '••••••••' }}</span>
+                          <i [class]="revealedPass()[att.id] ? 'ti ti-eye-off' : 'ti ti-eye'"></i>
+                        </button>
+                      }
+                    </div>
                   }
                   <div class="tl-date">
                     {{ att.sentAt ? 'Sent ' + formatDateTime(att.sentAt) : 'Created ' + formatDateTime(att.createdAt) }}
@@ -209,15 +228,51 @@
         @if (attemptError()) {
           <div class="attempt-error">{{ attemptError() }}</div>
         }
-        <div class="attempt-grid">
-          <div class="form-group">
+        <div class="form-group">
             <label>Channel</label>
-            <app-select class="form-select" [(ngModel)]="attemptForm().channel" name="channel">
+            <app-select class="form-select" [ngModel]="attemptForm().channel" (ngModelChange)="setAttemptChannel($event)" name="channel">
               @for (c of ALL_CHANNELS; track c) {
                 <option [value]="c">{{ CHANNEL_LABELS[c] }}</option>
               }
             </app-select>
           </div>
+
+          <div class="account-box">
+            <div class="acc-head">
+              <label>Account used</label>
+              <button type="button" class="acc-toggle" [class.on]="attemptAccountEnabled()"
+                (click)="attemptAccountEnabled.set(!attemptAccountEnabled())">
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                <span class="toggle-text">{{ attemptAccountEnabled() ? 'Save account' : 'No account' }}</span>
+              </button>
+            </div>
+            @if (attemptAccountEnabled()) {
+              <div class="attempt-grid">
+                <div class="form-group">
+                  <label>Email</label>
+                  <input class="form-input" [ngModel]="attemptAccountEmail()" (ngModelChange)="attemptAccountEmail.set($event)"
+                    name="accEmail" autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label>Password</label>
+                  <div class="pw-field">
+                    <input class="form-input" [type]="showAttemptAccountPassword() ? 'text' : 'password'"
+                      [ngModel]="attemptAccountPassword()" (ngModelChange)="attemptAccountPassword.set($event)"
+                      name="accPassword" autocomplete="off">
+                    <button type="button" class="pw-toggle" tabindex="-1"
+                      [title]="showAttemptAccountPassword() ? 'Hide password' : 'Show password'"
+                      (click)="showAttemptAccountPassword.set(!showAttemptAccountPassword())">
+                      <i [class]="showAttemptAccountPassword() ? 'ti ti-eye-off' : 'ti ti-eye'"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <p class="acc-hint">Saved with this attempt so you know which account you applied with.</p>
+            } @else {
+              <p class="acc-hint muted">No account will be recorded for this attempt.</p>
+            }
+          </div>
+
           <div class="form-group">
             <label>Initiated by</label>
             <app-select class="form-select" [(ngModel)]="attemptForm().initiatedBy" name="initiatedBy">
@@ -226,10 +281,13 @@
               }
             </app-select>
           </div>
-        </div>
         <div class="attempt-grid">
           <div class="form-group"><label>Recipient name</label><input class="form-input" [(ngModel)]="attemptForm().recipientName" name="recipientName" placeholder="e.g. Jane Doe"></div>
-          <div class="form-group"><label>Recipient contact</label><input class="form-input" [(ngModel)]="attemptForm().recipientContact" name="recipientContact" placeholder="email / phone / profile URL"></div>
+          <div class="form-group">
+            <label>@if (attemptForm().channel === 'WEB_FORM') { Form URL } @else { Recipient contact }</label>
+            <input class="form-input" [(ngModel)]="attemptForm().recipientContact" name="recipientContact"
+              [placeholder]="attemptForm().channel === 'WEB_FORM' ? 'https://jobs.company.com/apply…' : 'email / phone / profile URL'">
+          </div>
         </div>
         <!-- Contact picker -->
         <div class="picker-block">
