@@ -60,6 +60,7 @@ public class AppDbContext : DbContext
     public DbSet<CvTemplate> CvTemplates => Set<CvTemplate>();
     public DbSet<ScheduleTemplate> ScheduleTemplates => Set<ScheduleTemplate>();
     public DbSet<UserImage> UserImages => Set<UserImage>();
+    public DbSet<SavedToolContent> SavedToolContent => Set<SavedToolContent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -100,6 +101,11 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<CoverLetterVersion>(entity =>
         {
             entity.HasIndex(e => e.CoverLetterId);
+        });
+
+        modelBuilder.Entity<SavedToolContent>(entity =>
+        {
+            entity.HasIndex(e => e.UserId);
         });
 
         modelBuilder.Entity<Application>(entity =>

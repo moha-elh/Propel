@@ -6,6 +6,11 @@ export interface ScheduleVariableDefaults {
   my_name?: string;
   my_phone?: string;
   my_email?: string;
+  recipient_name?: string;
+  school?: string;
+  degree?: string;
+  research?: string;
+  offer_phrase?: string;
 }
 
 export interface ScheduleAttachmentRef {

@@ -514,40 +514,6 @@ var contactCoverage = await GetContactCoverageAsync(userId);
         }).ToList();
     }
 
-    private async Task<List<DailyTrendDto>> GetDailyTrendsAsync(Guid userId, int days = 30)
-    {
-        var cutoff = DateTime.UtcNow.AddDays(-days);
-
-        var raw = await _db.Applications
-            .Where(a => a.CandidateId == userId && a.AppliedAt != null && a.AppliedAt >= cutoff)
-            .GroupBy(a => new { a.AppliedAt!.Value.Date })
-            .Select(g => new
-            {
-                Date = g.Key.Date,
-                Status = g.GroupBy(a => a.Status)
-                    .Select(sg => new { Status = sg.Key, Count = sg.Count() })
-                    .ToList()
-            })
-            .OrderBy(x => x.Date)
-            .ToListAsync();
-
-        return raw.Select(r =>
-        {
-            var s = r.Status.ToDictionary(x => x.Status, x => x.Count);
-            return new DailyTrendDto(
-                r.Date,
-                s.GetValueOrDefault(ApplicationStatus.SAVED, 0),
-                s.GetValueOrDefault(ApplicationStatus.APPLIED, 0),
-                s.GetValueOrDefault(ApplicationStatus.SCREENING, 0),
-                s.GetValueOrDefault(ApplicationStatus.INTERVIEW, 0),
-                s.GetValueOrDefault(ApplicationStatus.OFFER, 0),
-                s.GetValueOrDefault(ApplicationStatus.ACCEPTED, 0),
-                s.GetValueOrDefault(ApplicationStatus.REJECTED, 0),
-                s.GetValueOrDefault(ApplicationStatus.WITHDRAWN, 0)
-            );
-        }).ToList();
-    }
-
     private async Task<double?> GetAverageResponseTimeAsync(Guid userId)
     {
         var initialStatuses = new[] { ApplicationStatus.APPLIED, ApplicationStatus.SAVED };

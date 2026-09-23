@@ -78,6 +78,7 @@ export interface CreateAttemptDto {
   contactId?: string;
   channelMetadataJson?: string;
   cvVersionId?: string;
+  coverLetterVersionId?: string | null;
   sentAt?: string;
   failureReason?: string;
 }
@@ -255,6 +256,7 @@ export interface CvPerformanceDto {
   linkedApplications: number;
   interviewCount: number;
   offerCount: number;
+}
 
 export interface FunnelStageDto {
   stage: string;
