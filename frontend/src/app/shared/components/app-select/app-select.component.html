@@ -17,8 +17,12 @@
               [class.selected]="o.value === value"
               [class.disabled]="o.disabled"
               [disabled]="o.disabled"
+              title="{{ o.label }}"
               (click)="pick(o)">
-        {{ o.label }}
+        <span class="as-opt-label">{{ o.label }}</span>
+        @if (o.detail) {
+          <span class="as-detail">{{ o.detail }}</span>
+        }
       </button>
     } @empty {
       <div class="as-empty">No options</div>

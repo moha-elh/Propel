@@ -11,7 +11,7 @@ import { AuthService } from '@app/services/auth.service';
 import { CompanyService } from '@app/services/company.service';
 import { DocumentsService } from '@app/services/documents.service';
 import type { CompanyDto } from '@app/services/company.service';
-import { CvDocumentDto, CvVersionDto } from '@app/models/document.model';
+import { CvVersionDto } from '@app/models/document.model';
 import {
   DuplicateMatchDto,
   ApiResponse,
@@ -58,7 +58,6 @@ export class ApplicationCreateComponent implements OnInit {
     const prefill = this.route.snapshot.queryParamMap.get('companyName');
     if (prefill) this.companyName.set(prefill);
     void this.loadCvDocs();
-    void this.loadCvVersions();
   }
 
   cvVersionLabel(v: CvVersionDto): string {
@@ -69,9 +68,29 @@ export class ApplicationCreateComponent implements OnInit {
   async loadCvDocs() {
     this.cvLoading.set(true);
     try {
-      this.cvDocs.set(await this.docsApi.listUsableCvVersions().catch(() => []));
+      const res = await this.docsApi.listCvs();
+      if (!res.success || !res.data) return;
+      const opts: { id: string; label: string; tags: string }[] = [];
+      for (const cv of res.data) {
+        const versions = [...cv.versions].sort((a, b) => b.versionNumber - a.versionNumber);
+        const tags = cv.tags?.length ? cv.tags.join(', ') : '';
+        versions.forEach((v, i) => {
+          opts.push({
+            id: v.id,
+            label: `${cv.title} · v${v.versionNumber}${i === 0 && cv.isActive ? ' (active)' : ''}${v.label ? ` — ${v.label}` : ''}`,
+            tags,
+          });
+        });
+      }
+      this.cvOptions.set(opts);
+      // Pre-select the active CV's latest version (like the previous sidebar select).
+      const active = res.data.find(c => c.isActive);
+      if (active && active.versions.length) {
+        const latest = [...active.versions].sort((a, b) => b.versionNumber - a.versionNumber)[0];
+        if (latest) this.selectedCvVersionId.set(latest.id);
+      }
     } catch {
-      this.cvDocs.set([]);
+      // non-blocking — attempt still saves without a CV
     } finally {
       this.cvLoading.set(false);
     }
@@ -141,18 +160,9 @@ export class ApplicationCreateComponent implements OnInit {
   stage = signal<'SAVED' | 'APPLIED'>('APPLIED');
 
   // ── CV used (linked to this application) ────────────────────────────────────
-  cvDocs = signal<CvDocumentDto[]>([]);
   cvLoading = signal(false);
   selectedCvVersionId = signal('');
-  cvTiles = computed(() => {
-    const tiles: { id: string; title: string; version: string; tags: string[] }[] = [];
-    for (const cv of this.cvDocs()) {
-      for (const v of cv.versions) {
-        tiles.push({ id: v.id, title: cv.title, version: this.cvVersionLabel(v), tags: cv.tags ?? [] });
-      }
-    }
-    return tiles;
-  });
+  cvOptions = signal<{ id: string; label: string; tags: string }[]>([]);
 
   // ── First attempt (only used when stage === 'APPLIED') ──────────────────────
   channel = signal<AttemptChannel>('EMAIL_GMAIL');
@@ -171,47 +181,6 @@ export class ApplicationCreateComponent implements OnInit {
 
   /** Date of the first apply — defaults to today; backfill earlier applications by changing it. */
   appliedDate = signal(this.localTodayStr());
-
-  // ── CV used for this application (defaults to the single active CV) ───────
-  cvVersions = signal<{ version: CvVersionDto; label: string }[]>([]);
-  cvVersionId = signal<string>('');
-
-  /** Label of the pre-selected active CV (used in the sidebar hint). */
-  activeCvName = computed<string>(() => {
-    const selected = this.cvVersionId();
-    const hit = this.cvVersions().find(o => o.version.id === selected);
-    return hit ? hit.label.replace(' (active)', '') : '';
-  });
-
-  /** Defaults the select to the active CV's latest version. */
-  private async loadCvVersions() {
-    if (this.cvLoading()) return;
-    this.cvLoading.set(true);
-    try {
-      const res = await this.docsApi.listCvs();
-      if (!res.success || !res.data) return;
-      const active = res.data.find(c => c.isActive);
-      const options: { version: CvVersionDto; label: string }[] = [];
-      for (const cv of res.data) {
-        const versions = [...cv.versions].sort((a, b) => b.versionNumber - a.versionNumber);
-        versions.forEach((v, i) => {
-          options.push({
-            version: v,
-            label: `${cv.title} · v${v.versionNumber}${i === 0 && cv.isActive ? ' (active)' : ''}${v.label ? ` — ${v.label}` : ''}`,
-          });
-        });
-      }
-      this.cvVersions.set(options);
-      if (active && active.versions.length) {
-        const latest = [...active.versions].sort((a, b) => b.versionNumber - a.versionNumber)[0];
-        this.cvVersionId.set(latest.id);
-      }
-    } catch {
-      // non-blocking — attempt still saves without a CV
-    } finally {
-      this.cvLoading.set(false);
-    }
-  }
 
   private localTodayStr(): string {
     const d = new Date();
@@ -540,6 +509,24 @@ export class ApplicationCreateComponent implements OnInit {
         this.companyApi.createCompany({ name: this.companyName().trim() }).catch(() => { /* non-blocking */ });
       }
 
+      // Saved-for-later offers may record who to contact — resolve the directory contact first.
+      let contactId = this.pickedContact()?.id;
+      if (this.stage() === 'SAVED' && contactId == null && this.saveRecipientAsContact()) {
+        const savedName = this.recipientName().trim();
+        const savedContact = this.recipientContact().trim();
+        if (savedName && savedContact.includes('@')) {
+          try {
+            const created = await this.contactApi.createContact({
+              name: savedName,
+              email: savedContact,
+              company: this.companyName().trim() || undefined,
+              position: this.positionTitle().trim() || undefined,
+            });
+            if (created.success && created.data) contactId = created.data.id;
+          } catch { /* contact save failed — never block application creation */ }
+        }
+      }
+
       const res = await this.appService.create({
         candidateId: user.userId,
         companyName: this.companyName().trim(),
@@ -551,7 +538,10 @@ export class ApplicationCreateComponent implements OnInit {
         internshipType: this.internshipType().trim() || undefined,
         priority: this.priority(),
         appliedAt: this.stage() === 'APPLIED' ? this.isoFromDate(this.appliedDate()) : undefined,
-        cvVersionId: this.selectedCvVersionId().trim() || this.cvVersionId() || undefined,
+        cvVersionId: this.selectedCvVersionId().trim() || undefined,
+        contactId: this.stage() === 'SAVED' ? contactId ?? undefined : undefined,
+        recipientName: this.stage() === 'SAVED' ? (this.recipientName().trim() || undefined) : undefined,
+        recipientContact: this.stage() === 'SAVED' ? (this.recipientContact().trim() || undefined) : undefined,
       });
 
       if (!res.success || !res.data) {
@@ -594,7 +584,7 @@ export class ApplicationCreateComponent implements OnInit {
             recipientContact: cfg.recipientContact ? (this.recipientContact().trim() || undefined) : undefined,
             contactId,
             channelMetadataJson: this.buildChannelMetadataJson(),
-            cvVersionId: this.selectedCvVersionId().trim() || this.cvVersionId() || undefined,
+            cvVersionId: this.selectedCvVersionId().trim() || undefined,
             sentAt: this.markSent() ? (this.isoFromDate(this.appliedDate()) ?? new Date().toISOString()) : undefined,
           });
         } catch { /* attempt logging failed — app still created */ }

@@ -114,6 +114,9 @@ export interface ApplicationResponseDto {
   linkedEmailMessageId?: string | null;
   history?: StatusHistoryDto[];
   attempts?: AttemptResponseDto[];
+  contactId?: string;
+  recipientName?: string;
+  recipientContact?: string;
 }
 
 export interface CreateApplicationDto {
@@ -130,6 +133,9 @@ export interface CreateApplicationDto {
   internshipType?: string;
   priority?: ApplicationPriority;
   appliedAt?: string;
+  contactId?: string;
+  recipientName?: string;
+  recipientContact?: string;
 }
 
 export interface UpdateStatusDto {
@@ -145,6 +151,9 @@ export interface UpdateApplicationDto {
   internshipType?: string;
   priority?: ApplicationPriority;
   cvVersionId?: string | null;
+  contactId?: string | null;
+  recipientName?: string;
+  recipientContact?: string;
 }
 
 export interface DuplicateCheckRequestDto {

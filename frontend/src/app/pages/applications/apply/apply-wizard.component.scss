@@ -83,7 +83,7 @@
 .card.success h3 { color: #15803d; }
 
 label { display: block; font-size: 12px; font-weight: 600; margin: 14px 0 5px; color: var(--text-3); letter-spacing: 0.01em; }
-textarea, input[type="text"], input[type="email"], select {
+textarea, input[type="text"], input[type="email"], input[type="number"], select {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--border);
@@ -96,7 +96,7 @@ textarea, input[type="text"], input[type="email"], select {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 textarea { resize: vertical; line-height: 1.6; }
-textarea:focus, input[type="text"]:focus, input[type="email"]:focus, select:focus {
+textarea:focus, input[type="text"]:focus, input[type="email"]:focus, input[type="number"]:focus, select:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
@@ -123,7 +123,7 @@ textarea::placeholder, input::placeholder { color: var(--text-4); }
 .btn:hover:not(:disabled) { background: var(--bg-2); }
 .btn:active:not(:disabled) { transform: translateY(1px); }
 .btn.primary { background: var(--dark); color: #fff; border-color: var(--dark); }
-.btn.primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); }
+.btn.primary:hover:not(:disabled) { background: var(--dark); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); }
 .btn:disabled { opacity: 0.55; cursor: default; }
 .btn.ghost { background: transparent; border-color: var(--border); color: var(--text-2); }
 .btn.ghost:hover:not(:disabled) { background: var(--bg-2); }
@@ -136,8 +136,12 @@ textarea::placeholder, input::placeholder { color: var(--text-4); }
 .review-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .review-grid strong { font-size: 0.72rem; color: var(--text-3); display: block; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 3px; }
 .review-grid div div { font-size: 0.9rem; color: var(--text); }
+.hint { margin: 8px 0 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 7px; margin: 16px 0 4px; }
-.chip { background: var(--accent-soft); color: var(--accent); padding: 4px 11px; border-radius: 999px; font-size: 0.78rem; font-weight: 500; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-soft); color: var(--accent); padding: 4px 11px; border-radius: 999px; font-size: 0.78rem; font-weight: 500; }
+.chip-x { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.95rem; line-height: 1; padding: 0; opacity: 0.65; }
+.chip-x:hover { opacity: 1; }
+.skill-input { flex: 1; min-width: 180px; }
 
 .history h3 { font-family: var(--font-display); font-size: 0.9rem; margin: 18px 0 8px; color: var(--text); }
 .history ul { list-style: none; padding: 0; margin: 0; }

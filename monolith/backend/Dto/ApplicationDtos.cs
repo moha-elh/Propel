@@ -17,7 +17,10 @@ public record ApplicationResponseDto(
     string Priority = "MEDIUM",
     List<StatusHistoryDto>? History = null,
     List<AttemptResponseDto>? Attempts = null,
-    Guid? LinkedEmailMessageId = null
+    Guid? LinkedEmailMessageId = null,
+    Guid? ContactId = null,
+    string? RecipientName = null,
+    string? RecipientContact = null
 );
 
 public record StatusHistoryDto(
@@ -42,7 +45,10 @@ public record CreateApplicationDto(
     bool AllowDuplicate = false,
     string? InternshipType = null,
     string Priority = "MEDIUM",
-    DateTime? AppliedAt = null
+    DateTime? AppliedAt = null,
+    Guid? ContactId = null,
+    string? RecipientName = null,
+    string? RecipientContact = null
 );
 
 public record UpdateStatusDto(
@@ -57,7 +63,10 @@ public record UpdateApplicationDto(
     string? Notes,
     string? InternshipType = null,
     string? Priority = null,
-    Guid? CvVersionId = null
+    Guid? CvVersionId = null,
+    Guid? ContactId = null,
+    string? RecipientName = null,
+    string? RecipientContact = null
 );
 
 public record DuplicateCheckRequestDto(

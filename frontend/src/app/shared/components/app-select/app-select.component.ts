@@ -5,7 +5,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
 
-interface Opt { value: string; label: string; disabled: boolean; }
+interface Opt { value: string; label: string; detail: string; disabled: boolean; }
 
 /**
  * Drop-in replacement for a native <select>. Keep the existing <option> markup
@@ -61,6 +61,7 @@ export class AppSelectComponent implements AfterContentInit, OnDestroy, ControlV
     this.options.set(els.map((o) => ({
       value: o.value,
       label: (o.textContent || '').trim(),
+      detail: o.getAttribute('data-detail') || '',
       disabled: o.disabled,
     })));
     this.cdr.markForCheck();

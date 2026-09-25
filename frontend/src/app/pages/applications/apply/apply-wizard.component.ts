@@ -109,6 +109,9 @@ export class ApplyWizardComponent implements OnInit {
   docPickerOpen = signal(false);
   private docsLoaded = false;
 
+  /** Usable CVs backing the "CV used" picker — used to resolve the attachment bytes. */
+  usableCvs = signal<CvDocumentDto[]>([]);
+
   // Step 4 deliver
   deliverMode = signal<'now' | 'schedule'>('now');
   cronExpression = signal<string>(CRON_PRESETS[1].cron);
@@ -141,6 +144,7 @@ export class ApplyWizardComponent implements OnInit {
     this.history.set(await this.extractionSvc.getHistory('job-extractor').catch(() => []));
     this.templates.set((await this.mailboxSvc.getScheduleTemplates().catch(() => ({ success: true, data: [] }) as any)).data ?? []);
     const cvs = await this.docsSvc.listUsableCvVersions().catch(() => [] as CvDocumentDto[]);
+    this.usableCvs.set(cvs);
     const opts: CvOption[] = [];
     for (const cv of cvs as CvDocumentDto[]) {
       for (const v of cv.versions) {
@@ -216,11 +220,39 @@ export class ApplyWizardComponent implements OnInit {
 
   private applyExtraction(output: ExtractorOutput, id: string) {
     this.extraction.set(output);
-    this.companyName = output.enterpriseName || this.companyName;
-    this.positionTitle = output.jobRole || this.positionTitle;
-    this.companyDescription = output.enterpriseDescription || '';
-    this.recipientEmail = output.contactEmail || this.recipientEmail;
+    this.syncComposeFromExtraction();
+  }
+
+  /** Copy the (possibly hand-edited) extraction fields into the compose step. */
+  private syncComposeFromExtraction() {
+    const o = this.extraction();
+    if (!o) return;
+    if (o.enterpriseName) this.companyName = o.enterpriseName;
+    if (o.jobRole) this.positionTitle = o.jobRole;
+    if (o.enterpriseDescription) this.companyDescription = o.enterpriseDescription || '';
+    if (o.contactEmail) this.recipientEmail = o.contactEmail;
     this.prefillCompose();
+  }
+
+  /** Review → Compose; carries any hand edits on the extraction into the compose fields. */
+  goToCompose() {
+    this.syncComposeFromExtraction();
+    this.step.set(3);
+  }
+
+  addSkill(value: string) {
+    const s = value.trim();
+    if (!s) return;
+    const e = this.extraction();
+    if (!e) return;
+    if (e.requiredSkills.includes(s)) return;
+    e.requiredSkills = [...e.requiredSkills, s];
+  }
+
+  removeSkill(value: string) {
+    const e = this.extraction();
+    if (!e) return;
+    e.requiredSkills = e.requiredSkills.filter(s => s !== value);
   }
 
   private prefillCompose() {
@@ -341,6 +373,23 @@ export class ApplyWizardComponent implements OnInit {
     return { ...this.fillValues() };
   }
 
+  /**
+   * Values used to preview the manual subject/body. Merges any template-fill values
+   * with auto-derived defaults (my_name, company_name, ...), so {{my_name}} renders
+   * the real value in the preview exactly like the sent email.
+   */
+  private previewVarValues(): TemplateVarValues {
+    const values: TemplateVarValues = { ...this.fillValues() };
+    const user = this.authSvc.currentUser();
+    const name = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim();
+    for (const token of extractTemplateVars(this.subject, this.body)) {
+      if (values[token]) continue;
+      const [value] = this.autoFillValue(token, {}, null, name);
+      if (value) values[token] = value;
+    }
+    return values;
+  }
+
   fillPreviewSubject(): string {
     const t = this.fillTemplate();
     return t ? resolveTemplateVars(t.subjectTemplate, this.fillVarValues()) : '';
@@ -365,15 +414,29 @@ export class ApplyWizardComponent implements OnInit {
   }
 
   /** Live preview of what the email will actually contain (variables resolved). */
-  previewSubject(): string { return resolveTemplateVars(this.subject, this.fillVarValues()); }
-  previewBody(): string { return resolveTemplateVars(this.body, this.fillVarValues()); }
+  previewSubject(): string { return resolveTemplateVars(this.subject, this.previewVarValues()); }
+  previewBody(): string { return resolveTemplateVars(this.body, this.previewVarValues()); }
+
+  /** File name the selected CV version will be attached under (consistent for preview + send). */
+  private selectedCvAttachmentName(): string {
+    const id = this.selectedCvVersionId();
+    if (!id) return '';
+    for (const cv of this.usableCvs()) {
+      const v = cv.versions.find(x => x.id === id);
+      if (v) return `${cv.title} — ${this.docVersionLabel(v)}.pdf`;
+    }
+    const opt = this.cvOptions().find(o => o.id === id);
+    return opt ? `${opt.label}.pdf` : 'CV.pdf';
+  }
 
   /** Exact list of files that will be attached, so nothing is a surprise at send time. */
   attachmentPreview(): string[] {
     const list: string[] = [];
-    if (this.selectedCvVersionId()) {
-      const opt = this.cvOptions().find(o => o.id === this.selectedCvVersionId());
-      list.push(`CV — ${opt?.label ?? 'selected version'} (attached automatically)`);
+    const cvName = this.selectedCvAttachmentName();
+    if (cvName) {
+      list.push(this.attachmentFiles().some(f => f.name === cvName)
+        ? `${cvName} (already in files)`
+        : `CV — ${cvName} (attached automatically)`);
     }
     for (const f of this.attachmentFiles()) list.push(f.name);
     return list;
@@ -487,6 +550,22 @@ export class ApplyWizardComponent implements OnInit {
     this.submitting.set(true);
     try {
       const attachments: EmailAttachmentPayload[] = [];
+      // Attach the chosen "CV used" version directly, so no manual upload is needed.
+      const cvName = this.selectedCvAttachmentName();
+      const cvId = this.selectedCvVersionId();
+      if (cvId && cvName && !this.attachmentFiles().some(f => f.name === cvName)) {
+        try {
+          const blob = await this.docsSvc.getVersionFileBlob(cvId);
+          const file = new File([blob], cvName, { type: blob.type || 'application/pdf' });
+          attachments.push({
+            fileName: file.name,
+            contentType: file.type || 'application/pdf',
+            contentBase64: await this.fileToBase64(file),
+          });
+        } catch {
+          this.toast.error('Selected CV could not be loaded — upload it manually below.');
+        }
+      }
       for (const f of this.attachmentFiles()) {
         const base64 = await this.fileToBase64(f);
         attachments.push({ fileName: f.name, contentType: f.type || 'application/octet-stream', contentBase64: base64 });

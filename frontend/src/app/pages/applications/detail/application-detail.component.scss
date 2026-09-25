@@ -94,6 +94,32 @@
   padding: 6px 0; i { font-size: 15px; }
 }
 
+/* ── Reach out card ─────────────────────────────────────────────────────────── */
+.reach-row {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 4px;
+  overflow: hidden;
+  .form-link { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+.reach-plain { font-size: 12px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reach-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 6px; }
+.reach-action {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface); color: inherit; text-decoration: none;
+  font-family: var(--font-body); text-align: left;
+  transition: border-color .12s, background .12s;
+  &:hover { border-color: var(--accent); background: oklch(0.6 0.16 250 / 0.05); }
+  i { font-size: 15px; color: oklch(0.55 0.16 250); flex-shrink: 0; }
+}
+.ra-txt {
+  display: flex; flex-direction: column; line-height: 1.2; min-width: 0;
+  strong { font-size: 12px; font-weight: 600; }
+  em {
+    font-style: normal; font-size: 11px; color: var(--text-3);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+}
+
 @media (max-width: 860px) {
   .content-grid { grid-template-columns: 1fr; }
   .det-actions { width: 100%; }

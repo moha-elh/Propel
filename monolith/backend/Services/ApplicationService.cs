@@ -104,7 +104,10 @@ public class ApplicationService : IApplicationService
             Status = initialStatus,
             AppliedAt = initialStatus == ApplicationStatus.SAVED ? null : (dto.AppliedAt ?? DateTime.UtcNow),
             UpdatedAt = DateTime.UtcNow,
-            Notes = dto.Notes
+            Notes = dto.Notes,
+            ContactId = dto.ContactId,
+            RecipientName = string.IsNullOrWhiteSpace(dto.RecipientName) ? null : dto.RecipientName.Trim(),
+            RecipientContact = string.IsNullOrWhiteSpace(dto.RecipientContact) ? null : dto.RecipientContact.Trim()
         };
         app.Fingerprint = FingerprintHelper.ComputeFor(app);
 
@@ -179,6 +182,16 @@ public class ApplicationService : IApplicationService
             if (!cvOwned) throw new ArgumentException("Invalid cvVersionId");
             app.CvVersionId = dto.CvVersionId.Value;
         }
+        if (dto.ContactId.HasValue)
+        {
+            var contactOwned = await _db.Contacts.AnyAsync(c => c.Id == dto.ContactId.Value && c.UserId == userId);
+            if (!contactOwned) throw new ArgumentException("Invalid contactId");
+            app.ContactId = dto.ContactId.Value;
+        }
+        if (dto.RecipientName != null)
+            app.RecipientName = string.IsNullOrWhiteSpace(dto.RecipientName) ? null : dto.RecipientName.Trim();
+        if (dto.RecipientContact != null)
+            app.RecipientContact = string.IsNullOrWhiteSpace(dto.RecipientContact) ? null : dto.RecipientContact.Trim();
 
         app.Fingerprint = FingerprintHelper.ComputeFor(app);
         app.UpdatedAt = DateTime.UtcNow;
@@ -1137,7 +1150,8 @@ var contactCoverage = await GetContactCoverageAsync(userId);
         a.Id, a.CandidateId, a.CvVersionId, a.JobOfferId,
         a.CompanyName, a.PositionTitle, a.OfferSource,
         a.Status.ToString(), a.AppliedAt, a.UpdatedAt, a.Notes, a.Origin.ToString(),
-        a.InternshipType, a.Priority.ToString(), null, null, a.LinkedEmailMessageId
+        a.InternshipType, a.Priority.ToString(), null, null, a.LinkedEmailMessageId,
+        a.ContactId, a.RecipientName, a.RecipientContact
     );
 
     private static ApplicationResponseDto MapToDtoWithHistory(Application a) => new(
@@ -1150,7 +1164,8 @@ var contactCoverage = await GetContactCoverageAsync(userId);
             h.ChangedAt, h.ChangedBy, h.Comment
         )).ToList(),
         a.Attempts?.Select(MapAttemptToDto).ToList(),
-        a.LinkedEmailMessageId
+        a.LinkedEmailMessageId,
+        a.ContactId, a.RecipientName, a.RecipientContact
     );
 
     private static AttemptResponseDto MapAttemptToDto(ApplicationAttempt t) => new(

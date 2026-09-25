@@ -170,42 +170,99 @@
         </div>
       </div>
 
-      <!-- ── CV used (conditional) ── -->
-      @if (stage() === 'APPLIED') {
+      <!-- ── Contact to reach out to (conditional: saved for later) ── -->
+      @if (stage() === 'SAVED') {
         <div class="section attempt-section">
-          <div class="section-header"><i class="ti ti-file-cv"></i> CV used</div>
+          <div class="section-header"><i class="ti ti-user-heart"></i> Contact to reach out to</div>
           <div class="section-body">
             <div class="field">
-              <label>Which CV did you attach?</label>
-              @if (cvLoading() && !cvTiles().length) {
-                <p class="field-hint">Loading CVs…</p>
-              } @else if (!cvTiles().length) {
-                <p class="field-hint">No CV with an available PDF yet — add one from CV &gt; Generate before applying.</p>
-              } @else {
-                <div class="cv-grid">
-                  @for (t of cvTiles(); track t.id) {
-                    <button
-                      type="button"
-                      class="cv-tile"
-                      [class.active]="selectedCvVersionId() === t.id"
-                      (click)="selectedCvVersionId.set(selectedCvVersionId() === t.id ? '' : t.id)"
-                    >
-                      <i class="ti ti-file-text"></i>
-                      <span class="cv-title">{{ t.title }}</span>
-                      <span class="cv-version">{{ t.version }}</span>
-                      @if (t.tags.length) {
-                        <span class="cv-tags">
-                          @for (tag of t.tags; track tag) {
-                            <em>{{ tag }}</em>
-                          }
-                        </span>
-                      }
-                    </button>
-                  }
+              <label>Link a contact</label>
+              @if (pickedContact(); as pc) {
+                <div class="picked-contact">
+                  <span class="chip-avatar">{{ pc.name.charAt(0) }}</span>
+                  <span class="chip-text">
+                    <strong>{{ pc.name }}</strong>
+                    <em>{{ pc.email }}@if (pc.company) { · {{ pc.company }}}</em>
+                  </span>
+                  <button type="button" class="chip-x" (click)="clearPickedContact()" title="Unlink">&times;</button>
                 </div>
-                <p class="field-hint">Only CV versions whose PDF is available are listed — you can also link one later from the application detail page.</p>
+              } @else if (newContactMode()) {
+                <div class="new-contact-form">
+                  <div class="two-col">
+                    <div class="field">
+                      <label>Name <span class="req">*</span></label>
+                      <input type="text" placeholder="e.g. Jane Doe" [(ngModel)]="newContactName" name="ncNameSaved">
+                    </div>
+                    <div class="field">
+                      <label>Email <span class="req">*</span></label>
+                      <input type="email" placeholder="jane@example.com" [(ngModel)]="newContactEmail" name="ncEmailSaved">
+                    </div>
+                  </div>
+                  <div class="two-col">
+                    <div class="field">
+                      <label>Company</label>
+                      <input type="text" placeholder="Company name" [(ngModel)]="newContactCompany" name="ncCompanySaved">
+                    </div>
+                    <div class="field">
+                      <label>Position</label>
+                      <input type="text" placeholder="e.g. Recruiter" [(ngModel)]="newContactPosition" name="ncPositionSaved">
+                    </div>
+                  </div>
+                  @if (newContactError()) {
+                    <div class="nc-error"><i class="ti ti-alert-circle"></i> {{ newContactError() }}</div>
+                  }
+                  <div class="nc-actions">
+                    <button type="button" class="ghost-btn" (click)="closeNewContact()">Cancel</button>
+                    <button type="button" class="create-btn" (click)="saveNewContact()" [disabled]="creatingContact()">
+                      {{ creatingContact() ? 'Saving…' : 'Save contact' }}
+                    </button>
+                  </div>
+                </div>
+              } @else {
+                <div class="contact-search-row">
+                  <input type="text" placeholder="Search contacts by name, email or company…" [(ngModel)]="contactSearch"
+                    name="contactSearchSaved" (ngModelChange)="searchContacts()">
+                  <button type="button" class="add-contact-btn" title="Add a new contact" (click)="openNewContact()">
+                    <i class="ti ti-user-plus"></i>
+                  </button>
+                </div>
+                @if (contactResults().length > 0) {
+                  <div class="contact-results">
+                    @for (c of contactResults(); track c.id) {
+                      <button type="button" class="result-row" (click)="pickContact(c)">
+                        <strong>{{ c.name }}</strong><em>{{ c.email }}</em>@if (c.company) { <span>{{ c.company }}</span> }
+                      </button>
+                    }
+                  </div>
+                } @else if (contactSearch().trim().length >= 2 && !searchingContacts()) {
+                  <div class="no-results">No contact found —
+                    <button type="button" class="link-btn" (click)="openNewContact()">add "{{ contactSearch().trim() }}"</button>
+                  </div>
+                }
+                <small>Optional — pick an existing contact or add a new one.</small>
               }
             </div>
+
+            <div class="two-col">
+              <div class="field">
+                <label>Recipient name</label>
+                <input type="text" placeholder="e.g. Jane Doe" [(ngModel)]="recipientName" name="savedRecipientName">
+              </div>
+              <div class="field">
+                <label>Contact (email / phone / profile link)</label>
+                <input type="text" placeholder="jane@example.com, +212 6… or linkedin.com/in/…"
+                  [(ngModel)]="recipientContact" name="savedRecipientContact">
+              </div>
+            </div>
+
+            @if (!pickedContact() && recipientName().trim()) {
+              <label class="save-recipient">
+                <input type="checkbox" [checked]="saveRecipientAsContact()"
+                  (change)="saveRecipientAsContact.set($any($event.target).checked)" />
+                <span>Save this recipient as a contact</span>
+              </label>
+            }
+            <small>Who you'll contact when you apply — saved with the application so it's ready when you reach out.</small>
           </div>
         </div>
       }
@@ -443,20 +500,19 @@
         </div>
 
         <div class="cv-select-field">
-          <label for="appliedCv">CV sent</label>
-          <select id="appliedCv" [ngModel]="cvVersionId()" name="appliedCv"
-            (ngModelChange)="cvVersionId.set($event)">
+          <label>CV used</label>
+          <app-select [(ngModel)]="selectedCvVersionId" placeholder="None (no CV attached)" name="appliedCv">
             <option value="">None (no CV attached)</option>
-            @for (cv of cvVersions(); track cv.version.id) {
-              <option [value]="cv.version.id">{{ cv.label }}</option>
+            @for (cv of cvOptions(); track cv.id) {
+              <option [value]="cv.id" [attr.data-detail]="cv.tags">{{ cv.label }}</option>
             }
-          </select>
+          </app-select>
           @if (cvLoading()) {
             <small><i class="ti ti-loader"></i> Loading your CVs…</small>
-          } @else if (cvVersions().length === 0) {
+          } @else if (cvOptions().length === 0) {
             <small>No CVs yet — upload one on the Documents page.</small>
           } @else {
-            <small>The active CV (<strong>{{ activeCvName() }}</strong>) is pre-selected.</small>
+            <small>The active CV is pre-selected — used for this application and saved with the attempt.</small>
           }
         </div>
       }

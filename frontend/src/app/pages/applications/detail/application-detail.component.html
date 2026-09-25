@@ -158,6 +158,53 @@
       </div>
 
       <div class="card">
+        <div class="card-title">Reach out</div>
+        @if (reachLoading()) {
+          <div class="empty-inline"><i class="ti ti-loader"></i> Loading contact info…</div>
+        } @else {
+          @if (reachContact(); as rc) {
+            <button type="button" class="contact-chip" style="margin-bottom:8px" (click)="openContactPanelById(rc.id)"
+              title="View contact details & email history">
+              <span class="chip-avatar">{{ rc.name.charAt(0) }}</span>
+              <span class="chip-text">
+                <strong>{{ rc.name }}</strong>
+                @if (rc.company) { <em>{{ rc.company }}</em> }
+              </span>
+            </button>
+            <div class="reach-row">
+              <a class="form-link" [href]="'mailto:' + rc.email" [title]="'Email ' + rc.email"><i class="ti ti-mail"></i> {{ rc.email }}</a>
+            </div>
+          } @else if (app.recipientName || app.recipientContact) {
+            <div class="reach-row" style="align-items:baseline;gap:8px">
+              @if (app.recipientName) { <strong style="font-size:12.5px">{{ app.recipientName }}</strong> }
+              @if (app.recipientContact?.includes('@')) {
+                <a class="form-link" [href]="'mailto:' + app.recipientContact" [title]="'Email ' + app.recipientContact"><i class="ti ti-mail"></i> {{ app.recipientContact }}</a>
+              } @else if (app.recipientContact) {
+                <span class="reach-plain">{{ app.recipientContact }}</span>
+              }
+            </div>
+            @if (reachActions().length === 0) {
+              <div class="empty-inline">Reach out when you're ready to apply.</div>
+            }
+          } @else if (reachActions().length > 0) {
+            <div class="empty-inline">No contact on file — quick links below.</div>
+          } @else {
+            <div class="empty-inline">No contact info yet.</div>
+          }
+          @if (reachActions().length > 0) {
+            <div class="reach-grid">
+              @for (a of reachActions(); track a.href) {
+                <a class="reach-action" [href]="a.href" target="_blank" rel="noopener" [title]="a.sub">
+                  <i [class]="'ti ' + a.icon"></i>
+                  <span class="ra-txt"><strong>{{ a.label }}</strong>@if (a.sub) { <em>{{ a.sub }}</em> }</span>
+                </a>
+              }
+            </div>
+          }
+        }
+      </div>
+
+      <div class="card">
         <div class="card-title">Overview</div>
         <dl class="meta-list">
           <div><dt>Priority</dt><dd class="prio" [style.color]="priorityColor(app.priority)">● {{ PRIORITY_LABELS[app.priority || 'MEDIUM'] }}</dd></div>

@@ -48,16 +48,26 @@
   @if (step() === 2 && extraction()) {
     <section class="card">
       <div class="review-grid">
-        <div><strong>Company</strong><div>{{ extraction()!.enterpriseName || '—' }}</div></div>
-        <div><strong>Role</strong><div>{{ extraction()!.jobRole || '—' }}</div></div>
-        <div><strong>Contact email</strong><div>{{ extraction()!.contactEmail || '—' }}</div></div>
-        <div><strong>Location</strong><div>{{ extraction()!.location || '—' }}</div></div>
-        <div><strong>Experience</strong><div>{{ extraction()!.requiredExperienceYears ?? '—' }} yrs</div></div>
-        <div><strong>Employment</strong><div>{{ extraction()!.employmentType || '—' }}</div></div>
+        <div><strong>Company</strong><input type="text" [(ngModel)]="extraction()!.enterpriseName" /></div>
+        <div><strong>Role</strong><input type="text" [(ngModel)]="extraction()!.jobRole" /></div>
+        <div><strong>Contact email</strong><input type="text" [(ngModel)]="extraction()!.contactEmail" /></div>
+        <div><strong>Location</strong><input type="text" [(ngModel)]="extraction()!.location" /></div>
+        <div><strong>Experience</strong><input type="number" min="0" [(ngModel)]="extraction()!.requiredExperienceYears" /></div>
+        <div><strong>Employment</strong><input type="text" [(ngModel)]="extraction()!.employmentType" /></div>
       </div>
+      <p class="hint muted">Edits only affect this application.</p>
 
       <div class="chips">
-        @for (s of extraction()!.requiredSkills; track s) { <span class="chip">{{ s }}</span> }
+        @for (s of extraction()!.requiredSkills; track s) {
+          <span class="chip">
+            {{ s }}
+            <button type="button" class="chip-x" (click)="removeSkill(s)" [attr.aria-label]="'Remove ' + s">×</button>
+          </span>
+        }
+      </div>
+      <div class="row" style="gap:8px; margin-top:8px">
+        <input class="skill-input" type="text" #skillAdd placeholder="Add a required skill…" (keydown.enter)="addSkill(skillAdd.value); skillAdd.value = ''" />
+        <button type="button" class="btn" (click)="addSkill(skillAdd.value); skillAdd.value = ''">Add skill</button>
       </div>
 
       <div class="row between">
@@ -69,7 +79,7 @@
           <button class="btn" (click)="saveContact()" [disabled]="savingContact() || contactSaved()">
             {{ contactSaved() ? 'Contact saved ✓' : (savingContact() ? 'Saving…' : 'Save contact') }}
           </button>
-          <button class="btn primary" (click)="step.set(3)">Continue to compose</button>
+          <button class="btn primary" (click)="goToCompose()">Continue to compose</button>
         </div>
       </div>
     </section>

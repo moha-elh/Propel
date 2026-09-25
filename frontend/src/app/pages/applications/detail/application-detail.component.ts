@@ -27,6 +27,7 @@ import {
 import { ContactDto, EmailMessageDto } from '@app/models/mailbox.model';
 import { CvDocumentDto, CvVersionDto } from '@app/models/document.model';
 import { DocumentsService } from '@app/services/documents.service';
+import { CompanyService, CompanyDto } from '@app/services/company.service';
 import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
 import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
 
@@ -62,6 +63,7 @@ export class ApplicationDetailComponent implements OnInit {
   private appService = inject(ApplicationService);
   private contactApi = inject(ContactService);
   private docsApi = inject(DocumentsService);
+  private companyApi = inject(CompanyService);
   private toast = inject(ToastService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -122,6 +124,31 @@ export class ApplicationDetailComponent implements OnInit {
   panelContact = signal<ContactDto | null>(null);
   panelEmails = signal<EmailMessageDto[]>([]);
   panelApplications = signal<ApplicationResponseDto[]>([]);
+
+  // "Reach out" card — company contact + quick links to get in touch (any status).
+  reachLoading = signal(false);
+  reachContact = signal<ContactSummaryDto | null>(null);
+  reachCompany = signal<CompanyDto | null>(null);
+
+  /** Quick reach-out links built from the company directory + the offer source. */
+  protected readonly reachActions = computed(() => {
+    const actions: { href: string; icon: string; label: string; sub: string }[] = [];
+    const co = this.reachCompany();
+    const seen = new Set<string>();
+    const add = (href: string | null | undefined, icon: string, label: string, sub: string) => {
+      if (!href || seen.has(href)) return;
+      seen.add(href);
+      actions.push({ href, icon, label, sub });
+    };
+    if (co?.websiteUrl) add(co.websiteUrl, 'ti-world', 'Website', this.hostOf(co.websiteUrl));
+    if (co?.linkedinUrl) add(co.linkedinUrl, 'ti-brand-linkedin', 'LinkedIn', this.hostOf(co.linkedinUrl));
+    if (co?.locationUrl) add(co.locationUrl, 'ti-map-pin', 'Location', this.hostOf(co.locationUrl));
+    for (const p of co?.phones ?? []) add(p.startsWith('+') ? `tel:${p}` : `tel:+${p.replace(/\D/g, '')}`, 'ti-phone', 'Call', p);
+    const source = this.application()?.offerSource;
+    const src = source ? this.toUrl(source) : null;
+    if (src) add(src, 'ti-external-link', 'Offer link', this.hostOf(src));
+    return actions;
+  });
 
   // Linked-CV support (which CV version was used in the attachments)
   cvDocs = signal<CvDocumentDto[]>([]);
@@ -197,6 +224,26 @@ export class ApplicationDetailComponent implements OnInit {
     return v.label ? `${base} · ${v.label}` : base;
   }
 
+  /** Fills the "Reach out" card: matching company contact + directory links. */
+  private async loadReachOut(app: ApplicationResponseDto) {
+    this.reachLoading.set(true);
+    try {
+      const [contactsRes, coRes] = await Promise.all([
+        this.appService.getSuggestedContacts(app.id).catch(() => null),
+        this.companyApi.getCompanies({ search: app.companyName, pageSize: 5 }).catch(() => null),
+      ]);
+      this.reachContact.set(contactsRes?.success && contactsRes.data?.length ? contactsRes.data[0] : null);
+      const items = coRes?.success ? coRes.data?.items ?? [] : [];
+      const exact = items.find(c => c.name.toLowerCase() === app.companyName.trim().toLowerCase());
+      this.reachCompany.set(items.length ? (exact ?? items[0]) : null);
+    } catch {
+      this.reachContact.set(null);
+      this.reachCompany.set(null);
+    } finally {
+      this.reachLoading.set(false);
+    }
+  }
+
   async loadApplication(id: string) {
     this.loading.set(true);
     try {
@@ -204,6 +251,7 @@ export class ApplicationDetailComponent implements OnInit {
       if (res.success && res.data) {
         this.application.set(res.data);
         this.resetEditForm(res.data);
+        void this.loadReachOut(res.data);
       } else {
         this.error.set(res.message || 'Failed to load');
       }
@@ -400,6 +448,10 @@ export class ApplicationDetailComponent implements OnInit {
 
   async openContactPanel(attempt: AttemptResponseDto) {
     if (!attempt.contactId) return;
+    await this.openContactPanelById(attempt.contactId);
+  }
+
+  async openContactPanelById(contactId: string) {
     this.panelOpen.set(true);
     this.panelLoading.set(true);
     this.panelContact.set(null);
@@ -407,8 +459,8 @@ export class ApplicationDetailComponent implements OnInit {
     this.panelApplications.set([]);
     try {
       const [histRes, appsRes] = await Promise.all([
-        this.contactApi.getContactHistory(attempt.contactId),
-        this.appService.getApplicationsForContact(attempt.contactId).catch(() => null),
+        this.contactApi.getContactHistory(contactId),
+        this.appService.getApplicationsForContact(contactId).catch(() => null),
       ]);
       if (histRes.success && histRes.data) {
         this.panelContact.set(histRes.data.contact);

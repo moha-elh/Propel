@@ -59,6 +59,17 @@ public class Application
 
     public string? Notes { get; set; }
 
+    /// <summary>Linked directory contact the candidate plans to reach out to (esp. saved-for-later offers).</summary>
+    public Guid? ContactId { get; set; }
+
+    /// <summary>Contact person name recorded while saving an offer for later.</summary>
+    [MaxLength(100)]
+    public string? RecipientName { get; set; }
+
+    /// <summary>Contact email / phone / profile link recorded while saving an offer for later.</summary>
+    [MaxLength(300)]
+    public string? RecipientContact { get; set; }
+
     /// <summary>Id of the mailbox email (EmailMessages) used to send this application (with attachments). Null = none linked.</summary>
     public Guid? LinkedEmailMessageId { get; set; }
 
