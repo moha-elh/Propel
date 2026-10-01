@@ -75,7 +75,7 @@
           >
             <div class="day-num" [class.today-num]="cell.isToday">{{ cell.day }}</div>
             @if (appCountForDay(cell.day, cell.month, cell.year) > 0) {
-              <span class="app-count" [title]="appCountForDay(cell.day, cell.month, cell.year) + ' application(s)'">
+              <span class="app-count" [title]="appCountForDay(cell.day, cell.month, cell.year) + ' offer(s) added'">
                 {{ appCountForDay(cell.day, cell.month, cell.year) }}
               </span>
             }

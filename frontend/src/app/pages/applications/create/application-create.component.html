@@ -73,13 +73,24 @@
         <div class="section-header"><i class="ti ti-building"></i> Company &amp; position</div>
         <div class="section-body">
           <div class="identity-row">
-            <div class="logo-chip">
-              @if (companyLogoUrl(); as logo) {
-                <img class="logo-img" [src]="logo" alt="" (error)="pickedCompany.set(null)" />
+            <label class="logo-chip logo-drop" [class.drag]="logoDragOver()"
+              title="Drag an image here, or click to add a company logo"
+              (dragover)="$event.preventDefault(); logoDragOver.set(true)"
+              (dragleave)="logoDragOver.set(false)"
+              (drop)="onLogoDrop($event)">
+              <input type="file" accept="image/*" hidden (change)="onLogoSelected($event)" />
+              @if (logoUploading()) {
+                <i class="ti ti-loader"></i>
+              } @else if (companyLogoUrl(); as logo) {
+                <img class="logo-img" [src]="logo" alt="" (error)="uploadedLogoUrl.set(''); pickedCompany.set(null)" />
+                @if (uploadedLogoUrl()) {
+                  <button type="button" class="logo-x" (click)="$event.preventDefault(); removeUploadedLogo()" title="Remove logo">&times;</button>
+                }
               } @else {
-                {{ (companyName().trim()[0] || '?') | uppercase }}
+                <span class="logo-initial">{{ (companyName().trim()[0] || '?') | uppercase }}</span>
+                <i class="ti ti-camera logo-add-hint"></i>
               }
-            </div>
+            </label>
             <div class="field grow company-field">
               <label>Company name <span class="req">*</span></label>
               <input type="text" placeholder="e.g. Stripe" [ngModel]="companyName()"
@@ -113,6 +124,27 @@
                     <em>— you can complete its details later</em></span>
                 </label>
               }
+            </div>
+          </div>
+          <div class="two-col">
+            <div class="field">
+              <label>Company country</label>
+              <app-select [(ngModel)]="companyCountry" name="companyCountry">
+                @for (c of COUNTRIES; track c) {
+                  <option [value]="c">{{ c }}</option>
+                }
+              </app-select>
+            </div>
+            <div class="field">
+              <label>Company city</label>
+              <input type="text" placeholder="e.g. Casablanca"
+                [ngModel]="companyLocation()" (ngModelChange)="companyLocation.set($event)"
+                name="companyCity" [attr.list]="'create-city-suggestions'" autocomplete="off">
+              <datalist id="create-city-suggestions">
+                @for (city of citySuggestions(); track city) {
+                  <option [value]="city"></option>
+                }
+              </datalist>
             </div>
           </div>
           <div class="two-col">
@@ -277,7 +309,7 @@
               <div class="channel-grid">
                 @for (c of channels; track c.value) {
                   <button type="button" class="channel-tile" [class.active]="channel() === c.value" (click)="channel.set(c.value)">
-                    <i class="{{ c.icon }}"></i>
+                    <i class="ti {{ c.icon }}"></i>
                     <span>{{ c.label }}</span>
                   </button>
                 }

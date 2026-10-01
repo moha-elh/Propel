@@ -449,6 +449,7 @@ public class ImportsController : BaseApiController
         "saved" or "to apply" or "should i apply again" or "yes" => ApplicationStatus.SAVED,
         "applied" or "application sent" or "sent" => ApplicationStatus.APPLIED,
         "screening" or "hr screen" or "phone screen" => ApplicationStatus.SCREENING,
+        "assessment" or "online assessment" or "oa" or "coding challenge" or "coding test" or "take-home" => ApplicationStatus.ASSESSMENT,
         "interview" or "interviewing" => ApplicationStatus.INTERVIEW,
         "offer" => ApplicationStatus.OFFER,
         "accepted" or "hired" => ApplicationStatus.ACCEPTED,

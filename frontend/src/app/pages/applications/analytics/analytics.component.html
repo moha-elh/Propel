@@ -283,40 +283,6 @@
         </div>
       </section>
 
-      <!-- Career inventory -->
-      <section class="card">
-        <div class="card-head"><h2>Career inventory</h2></div>
-        @if (careerKpis().length === 0) {
-          <div class="muted">No career content yet.</div>
-        } @else {
-          <div class="kpi-grid">
-            @for (k of careerKpis(); track k.name) {
-              <div class="kpi-chip">
-                <div class="kpi-chip-value">{{ k.value }}</div>
-                <div class="kpi-chip-label">{{ k.name }}</div>
-              </div>
-            }
-          </div>
-        }
-      </section>
-
-      <!-- Tooling usage -->
-      <section class="card">
-        <div class="card-head"><h2>Tooling usage</h2></div>
-        @if (toolingKpis().length === 0) {
-          <div class="muted">No tooling data yet.</div>
-        } @else {
-          <div class="kpi-grid">
-            @for (k of toolingKpis(); track k.name) {
-              <div class="kpi-chip">
-                <div class="kpi-chip-value">{{ k.value }}</div>
-                <div class="kpi-chip-label">{{ k.name }}</div>
-              </div>
-            }
-          </div>
-        }
-      </section>
-
       <!-- Response time histogram -->
       <section class="card">
         <div class="card-head">

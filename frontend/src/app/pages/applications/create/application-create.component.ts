@@ -10,6 +10,8 @@ import { ContactService } from '@app/services/contact.service';
 import { AuthService } from '@app/services/auth.service';
 import { CompanyService } from '@app/services/company.service';
 import { DocumentsService } from '@app/services/documents.service';
+import { ImageService } from '@app/services/image.service';
+import { COUNTRIES, MOROCCO_CITIES } from '@app/shared/data/geo-data';
 import type { CompanyDto } from '@app/services/company.service';
 import { CvVersionDto } from '@app/models/document.model';
 import {
@@ -49,6 +51,7 @@ export class ApplicationCreateComponent implements OnInit {
   private contactApi = inject(ContactService);
   private companyApi = inject(CompanyService);
   private docsApi = inject(DocumentsService);
+  private imagesApi = inject(ImageService);
   private authService = inject(AuthService);
   protected router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -224,8 +227,51 @@ export class ApplicationCreateComponent implements OnInit {
   saveCompanyInfo = signal(true);
   private companyTimer: ReturnType<typeof setTimeout> | null = null;
 
-  /** Logo URL when the current company name resolves to a saved company that has one. */
-  companyLogoUrl = computed<string | null>(() => this.pickedCompany()?.logoUrl ?? null);
+  // ── New-company extras: location + a drag-dropped logo (saved to the directory) ──
+  readonly COUNTRIES = COUNTRIES;
+  companyCountry = signal('Morocco');
+  companyLocation = signal('');
+  citySuggestions = computed(() => (this.companyCountry() === 'Morocco' ? MOROCCO_CITIES : []));
+
+  /** Logo the user uploaded here (drag-drop / picker) for a brand-new company. */
+  uploadedLogoUrl = signal('');
+  uploadedLogoImageId = signal('');
+  logoUploading = signal(false);
+  logoDragOver = signal(false);
+
+  /** Logo shown in the chip: an upload here wins, else the matched saved company's logo. */
+  companyLogoUrl = computed<string | null>(() => this.uploadedLogoUrl() || this.pickedCompany()?.logoUrl || null);
+
+  async onLogoSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (file) await this.uploadLogoFile(file);
+  }
+
+  async onLogoDrop(event: DragEvent) {
+    event.preventDefault();
+    this.logoDragOver.set(false);
+    const file = event.dataTransfer?.files?.[0];
+    if (file && file.type.startsWith('image/')) await this.uploadLogoFile(file);
+  }
+
+  private async uploadLogoFile(file: File) {
+    this.logoUploading.set(true);
+    try {
+      const res = await this.imagesApi.upload(file, file.name);
+      if (res.data) {
+        this.uploadedLogoUrl.set(res.data.url);
+        this.uploadedLogoImageId.set(res.data.id);
+      }
+    } catch { /* non-blocking — company still saves without a logo */ }
+    finally { this.logoUploading.set(false); }
+  }
+
+  removeUploadedLogo() {
+    this.uploadedLogoUrl.set('');
+    this.uploadedLogoImageId.set('');
+  }
 
   pickCompany(c: CompanyDto) {
     if (this.companyTimer) { clearTimeout(this.companyTimer); this.companyTimer = null; }
@@ -233,16 +279,27 @@ export class ApplicationCreateComponent implements OnInit {
     this.companyIsNew.set(false);
     this.companySuggestOpen.set(false);
     this.companyMatches.set([]);
+    this.applyPickedCompany(c);
+  }
+
+  /** Prefill the editable location from a resolved existing company. */
+  private applyPickedCompany(c: CompanyDto) {
     this.pickedCompany.set(c);
+    this.companyCountry.set(c.country || 'Morocco');
+    this.companyLocation.set(c.location ?? '');
   }
 
   onCompanyInput(v: string) {
     this.companyName.set(v);
     const trimmed = v.trim();
     this.companyIsNew.set(trimmed.length > 0);
-    // A live edit breaks the logo match — clear it until a suggestion is re-picked.
+    // A live edit breaks the logo match — clear it (and the prefilled location) until re-picked.
     const picked = this.pickedCompany();
-    if (picked && picked.name.toLowerCase() !== trimmed.toLowerCase()) this.pickedCompany.set(null);
+    if (picked && picked.name.toLowerCase() !== trimmed.toLowerCase()) {
+      this.pickedCompany.set(null);
+      this.companyCountry.set('Morocco');
+      this.companyLocation.set('');
+    }
     if (!trimmed) {
       this.companyMatches.set([]);
       this.companySuggestOpen.set(false);
@@ -273,9 +330,9 @@ export class ApplicationCreateComponent implements OnInit {
         this.companyMatches.set(items);
         const cur = this.companyName().trim().toLowerCase();
         this.companyIsNew.set(cur.length > 0 && !items.some(c => c.name.toLowerCase() === cur));
-        // Auto-resolve the logo when the typed name is an exact match.
+        // Auto-resolve the logo + location when the typed name is an exact match.
         const exact = items.find(c => c.name.toLowerCase() === cur);
-        if (exact) this.pickedCompany.set(exact);
+        if (exact) this.applyPickedCompany(exact);
       })
       .catch(() => {
         this.companyMatches.set([]);
@@ -504,9 +561,23 @@ export class ApplicationCreateComponent implements OnInit {
         } catch { /* check failed — let create decide */ }
       }
 
-      // If the company name is brand new and the user opted in, save it to the directory.
+      // Persist company info (non-blocking): create a brand-new company the user opted to save,
+      // or update an existing one when its location / logo changed here.
+      const picked = this.pickedCompany();
       if (this.companyIsNew() && this.saveCompanyInfo()) {
-        this.companyApi.createCompany({ name: this.companyName().trim() }).catch(() => { /* non-blocking */ });
+        this.companyApi.createCompany({
+          name: this.companyName().trim(),
+          country: this.companyCountry() || undefined,
+          location: this.companyLocation().trim() || undefined,
+          logoUrl: this.uploadedLogoUrl() || undefined,
+          logoImageId: this.uploadedLogoImageId() || undefined,
+        }).catch(() => { /* non-blocking */ });
+      } else if (picked) {
+        const update: { country?: string; location?: string; logoUrl?: string; logoImageId?: string } = {};
+        if (this.companyCountry() && this.companyCountry() !== (picked.country ?? '')) update.country = this.companyCountry();
+        if (this.companyLocation().trim() !== (picked.location ?? '')) update.location = this.companyLocation().trim();
+        if (this.uploadedLogoImageId()) { update.logoImageId = this.uploadedLogoImageId(); update.logoUrl = this.uploadedLogoUrl(); }
+        if (Object.keys(update).length) this.companyApi.updateCompany(picked.id, update).catch(() => { /* non-blocking */ });
       }
 
       // Saved-for-later offers may record who to contact — resolve the directory contact first.

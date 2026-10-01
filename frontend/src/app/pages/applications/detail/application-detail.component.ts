@@ -179,7 +179,7 @@ export class ApplicationDetailComponent implements OnInit {
 
   // Happy-path pipeline for the status stepper; REJECTED / WITHDRAWN are off-track.
   protected readonly PIPELINE: ApplicationStatus[] =
-    ['SAVED', 'APPLIED', 'SCREENING', 'INTERVIEW', 'OFFER', 'ACCEPTED'];
+    ['SAVED', 'APPLIED', 'SCREENING', 'ASSESSMENT', 'INTERVIEW', 'OFFER', 'ACCEPTED'];
   currentStepIndex = computed(() =>
     this.PIPELINE.indexOf((this.application()?.status as ApplicationStatus) ?? 'SAVED'));
   isOffTrack = computed(() => {

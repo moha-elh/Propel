@@ -35,6 +35,7 @@ public class ApplicationsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] string? statuses = null,
+        [FromQuery] string? priorities = null,
         [FromQuery] string? search = null,
         [FromQuery] DateTime? appliedFrom = null,
         [FromQuery] DateTime? appliedTo = null,
@@ -51,7 +52,11 @@ public class ApplicationsController : ControllerBase
             ? statuses.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             : null;
 
-        var result = await _service.GetAllAsync(UserId.Value, page, pageSize, statusArr, search,
+        var priorityArr = !string.IsNullOrWhiteSpace(priorities)
+            ? priorities.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            : null;
+
+        var result = await _service.GetAllAsync(UserId.Value, page, pageSize, statusArr, priorityArr, search,
             appliedFrom, appliedTo, updatedFrom, updatedTo, sortBy, sortDir);
         return Ok(ApiResponse<ApplicationListDto>.Ok(result));
     }

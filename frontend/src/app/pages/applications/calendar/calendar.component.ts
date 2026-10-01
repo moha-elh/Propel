@@ -38,7 +38,7 @@ const MAX_VISIBLE_EVENTS = 3;
 const STATUS_OPTIONS = STATUS_ORDER;
 
 /** Fallback statuses so application events appear even before the user opens the config filter. */
-const DEFAULT_APP_STATUSES = ['SAVED', 'APPLIED', 'SCREENING', 'INTERVIEW', 'OFFER', 'ACCEPTED', 'REJECTED', 'WITHDRAWN'];
+const DEFAULT_APP_STATUSES = ['SAVED', 'APPLIED', 'SCREENING', 'ASSESSMENT', 'INTERVIEW', 'OFFER', 'ACCEPTED', 'REJECTED', 'WITHDRAWN'];
 
 @Component({
   selector: 'app-calendar',
@@ -220,9 +220,11 @@ export class CalendarComponent implements OnInit {
     }
   }
 
-  /** Number of application events (applies) on a given day — drives the per-day count badge. */
+  /** Number of offers added (applied) on a given day — drives the per-day count badge.
+   *  Counts only "applied" events, not status changes like rejections/withdrawals. */
   appCountForDay(day: number, month?: number, year?: number): number {
-    return this.eventsForDay(day, month, year).filter(ev => ev.source === 'application').length;
+    return this.eventsForDay(day, month, year)
+      .filter(ev => ev.source === 'application' && ev.type === 'applied').length;
   }
 
   private defaultConfig(): CalendarConfigurationDto {

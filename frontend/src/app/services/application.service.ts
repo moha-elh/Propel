@@ -31,6 +31,7 @@ export class ApplicationService {
     page?: number;
     pageSize?: number;
     statuses?: string[];
+    priorities?: string[];
     search?: string;
     appliedFrom?: string;
     appliedTo?: string;
@@ -44,6 +45,7 @@ export class ApplicationService {
     if (params?.page) qs.set('page', String(params.page));
     if (params?.pageSize) qs.set('pageSize', String(params.pageSize));
     if (params?.statuses?.length) qs.set('statuses', params.statuses.join(','));
+    if (params?.priorities?.length) qs.set('priorities', params.priorities.join(','));
     if (params?.search) qs.set('search', params.search);
     if (params?.appliedFrom) qs.set('appliedFrom', params.appliedFrom);
     if (params?.appliedTo) qs.set('appliedTo', params.appliedTo);

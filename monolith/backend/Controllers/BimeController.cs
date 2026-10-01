@@ -47,7 +47,9 @@ public class BimeController : ControllerBase
             provider = request.Provider ?? bimeLlm.Provider ?? settings?.Provider,
             model = request.Model ?? bimeLlm.Model ?? settings?.Model,
         };
-        var httpReq = new HttpRequestMessage(HttpMethod.Post, "http://localhost:8000/api/bime/chat")
+        // Relative URI so the configured "agents" BaseAddress (AGENTS_URL) is used —
+        // an absolute localhost URL here breaks inside Docker, where agents is a separate service.
+        var httpReq = new HttpRequestMessage(HttpMethod.Post, "api/bime/chat")
         {
             Content = new StringContent(
                 System.Text.Json.JsonSerializer.Serialize(payload, new System.Text.Json.JsonSerializerOptions

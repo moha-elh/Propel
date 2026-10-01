@@ -2,6 +2,7 @@ export type ApplicationStatus =
   | 'SAVED'
   | 'APPLIED'
   | 'SCREENING'
+  | 'ASSESSMENT'
   | 'INTERVIEW'
   | 'OFFER'
   | 'ACCEPTED'
@@ -183,6 +184,7 @@ export interface ApplicationStatisticsDto {
   saved: number;
   applied: number;
   screening: number;
+  assessment: number;
   interview: number;
   offer: number;
   accepted: number;
@@ -196,6 +198,7 @@ export interface MonthlyTrendDto {
   saved: number;
   applied: number;
   screening: number;
+  assessment: number;
   interview: number;
   offer: number;
   accepted: number;
@@ -209,6 +212,7 @@ export interface WeeklyTrendDto {
   saved: number;
   applied: number;
   screening: number;
+  assessment: number;
   interview: number;
   offer: number;
   accepted: number;
@@ -221,6 +225,7 @@ export interface DailyTrendDto {
   saved: number;
   applied: number;
   screening: number;
+  assessment: number;
   interview: number;
   offer: number;
   accepted: number;
@@ -387,6 +392,7 @@ export const STATUS_ORDER: readonly ApplicationStatus[] = [
   'SAVED',
   'APPLIED',
   'SCREENING',
+  'ASSESSMENT',
   'INTERVIEW',
   'OFFER',
   'ACCEPTED',
@@ -398,6 +404,7 @@ export const STATUS_LABELS: Record<ApplicationStatus, string> = {
   SAVED: 'Saved',
   APPLIED: 'Applied',
   SCREENING: 'Seen',
+  ASSESSMENT: 'Assessment',
   INTERVIEW: 'Interview',
   OFFER: 'Offer',
   ACCEPTED: 'Accepted',
@@ -410,6 +417,7 @@ export const STATUS_COLORS: Record<ApplicationStatus, string> = {
   SAVED: 'oklch(0.65 0.01 80)',
   APPLIED: 'oklch(0.6 0.16 250)',
   SCREENING: 'oklch(0.6 0.13 200)',
+  ASSESSMENT: 'oklch(0.58 0.14 180)',
   INTERVIEW: 'oklch(0.55 0.16 160)',
   OFFER: 'oklch(0.55 0.13 130)',
   ACCEPTED: 'oklch(0.62 0.15 155)',
@@ -420,8 +428,9 @@ export const STATUS_COLORS: Record<ApplicationStatus, string> = {
 /** Allowed forward transitions used by status pickers. */
 export const NEXT_STATUSES: Record<ApplicationStatus, ApplicationStatus[]> = {
   SAVED: ['APPLIED', 'WITHDRAWN'],
-  APPLIED: ['SCREENING', 'INTERVIEW', 'REJECTED', 'SAVED', 'WITHDRAWN'],
-  SCREENING: ['INTERVIEW', 'REJECTED', 'WITHDRAWN'],
+  APPLIED: ['SCREENING', 'ASSESSMENT', 'INTERVIEW', 'REJECTED', 'SAVED', 'WITHDRAWN'],
+  SCREENING: ['ASSESSMENT', 'INTERVIEW', 'REJECTED', 'WITHDRAWN'],
+  ASSESSMENT: ['INTERVIEW', 'REJECTED', 'WITHDRAWN'],
   INTERVIEW: ['OFFER', 'REJECTED', 'WITHDRAWN'],
   OFFER: ['ACCEPTED', 'REJECTED', 'WITHDRAWN'],
   ACCEPTED: [],

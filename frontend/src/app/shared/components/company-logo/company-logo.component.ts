@@ -22,10 +22,28 @@ function identityTokens(name: string): string[] {
   return raw.slice(0, 3);
 }
 
-function domainFor(name: string): string | null {
+function domainFromName(name: string): string | null {
   const tokens = identityTokens(name);
   if (!tokens.length) return null;
   return `${tokens.join('')}.com`;
+}
+
+/** Pull a bare host (no protocol, no www, no path) from a stored website URL. */
+export function hostFromUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  try {
+    const u = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+    return u.hostname.replace(/^www\./i, '') || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Best-effort logo domain: a real website if we have one, else guessed from the name. */
+export function logoDomain(website: string | null | undefined, name: string): string | null {
+  return hostFromUrl(website) ?? (name ? domainFromName(name) : null);
 }
 
 @Component({
@@ -61,8 +79,8 @@ function domainFor(name: string): string | null {
         border-radius: var(--cl-r);
         border: 1px solid oklch(0 0 0 / 0.08);
         background: var(--surface, #fff);
-        object-fit: contain;
-        padding: 3px;
+        object-fit: cover;
+        padding: 0;
       }
       .cl-fallback {
         width: var(--cl-w);
@@ -83,6 +101,8 @@ function domainFor(name: string): string | null {
 export class CompanyLogoComponent {
   @Input() companyName = '';
   @Input() logoUrl: string | null = null;
+  /** The company's real website, when known — gives an accurate logo domain. */
+  @Input() website: string | null = null;
   @Input() size: 'sm' | 'md' | 'lg' = 'md';
 
   private logoFailed = signal(false);
@@ -91,9 +111,11 @@ export class CompanyLogoComponent {
 
   imgSrc = computed<string | null>(() => {
     if (this.logoUrl && !this.logoFailed()) return this.logoUrl;
-    const d = this.companyName ? domainFor(this.companyName) : null;
+    const d = logoDomain(this.website, this.companyName);
     if (d && !this.favFailed()) {
-      return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(d)}&sz=128`;
+      // unavatar aggregates real brand logos; fallback=false returns 404 on a
+      // miss so our initials chip shows instead of a generic placeholder image.
+      return `https://unavatar.io/${encodeURIComponent(d)}?fallback=false`;
     }
     return null;
   });

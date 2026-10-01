@@ -164,7 +164,21 @@
   .muted { font-size: 11px; }
 }
 
-.email-pie { display: flex; justify-content: center; }
+/* ── "How you applied" channel funnel ─────────────────────────────────────── */
+.funnel { display: flex; flex-direction: column; gap: 12px; }
+.funnel-row { display: flex; flex-direction: column; gap: 6px; }
+.funnel-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+}
+.funnel-label { font-size: 13px; color: var(--text-2); }
+.funnel-count { font-size: 12px; font-weight: 600; color: var(--text-3); white-space: nowrap; }
+.funnel-track {
+  height: 10px; border-radius: 999px;
+  background: var(--bg-2, oklch(0.95 0.005 80)); overflow: hidden;
+}
+.funnel-bar { height: 100%; border-radius: 999px; min-width: 3px; transition: width 0.3s ease; }
+
+.email-pie { display: flex; justify-content: center; margin-top: 16px; }
 .channel-breakdown { margin-top: 10px; }
 
 .origin-block {

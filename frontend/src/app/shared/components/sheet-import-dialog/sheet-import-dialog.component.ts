@@ -78,7 +78,7 @@ const CATALOGS: Record<string, FieldDef[]> = {
     { field: 'company', label: 'Company', required: true, hint: 'Company this application targets.', aliases: ['company', 'societe', 'entreprise'] },
     { field: 'position', label: 'Position', hint: 'Job / internship title.', aliases: ['position', 'role', 'job', 'poste', 'title', 'intitulé'] },
     { field: 'internshipType', label: 'Internship type', hint: 'e.g. PFE, Summer, Observation.', aliases: ['internshiptype', 'internship', 'stage', 'type'] },
-    { field: 'status', label: 'Status', hint: 'SAVED, APPLIED, SCREENING, INTERVIEW, OFFER, ACCEPTED, REJECTED, WITHDRAWN (also French/plain text).', aliases: ['status', 'currentstatus', 'etat', 'state'] },
+    { field: 'status', label: 'Status', hint: 'SAVED, APPLIED, SCREENING, ASSESSMENT, INTERVIEW, OFFER, ACCEPTED, REJECTED, WITHDRAWN (also French/plain text).', aliases: ['status', 'currentstatus', 'etat', 'state'] },
     { field: 'priority', label: 'Priority', hint: 'LOW, MEDIUM, HIGH (plain text ok).', aliases: ['priority', 'priorite', 'priorité'] },
     { field: 'applyDate', label: 'Application date', hint: 'Day-first DD/MM/YYYY or ISO.', aliases: ['applydate', 'date', 'applied', 'applydateshh'] },
     { field: 'sourceType', label: 'Source type', hint: 'How the offer was found (REDDIT/LINKEDIN/…).', aliases: ['sourcetype', 'source'] },

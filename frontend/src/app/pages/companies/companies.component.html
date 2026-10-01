@@ -85,7 +85,7 @@
             <tr class="row-link" (click)="openDetail(c)">
               <td>
                 <div class="co-cell">
-                  <app-company-logo [companyName]="c.name" [logoUrl]="c.logoUrl ?? null" size="md" />
+                  <app-company-logo [companyName]="c.name" [logoUrl]="c.logoUrl ?? null" [website]="c.websiteUrl ?? null" size="md" />
                   @if (c.websiteUrl) {
                     <a class="co-name co-link" [href]="c.websiteUrl" target="_blank" rel="noopener" [title]="c.websiteUrl" (click)="$event.stopPropagation()">
                       {{ c.name }}

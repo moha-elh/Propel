@@ -18,9 +18,9 @@ public class ApplicationService : IApplicationService
         _logger = logger;
     }
 
-    public async Task<ApplicationListDto> GetAllAsync(Guid userId, int page, int pageSize, string[]? statuses = null, string? search = null, DateTime? appliedFrom = null, DateTime? appliedTo = null, DateTime? updatedFrom = null, DateTime? updatedTo = null, string? sortBy = null, string? sortDir = null)
+    public async Task<ApplicationListDto> GetAllAsync(Guid userId, int page, int pageSize, string[]? statuses = null, string[]? priorities = null, string? search = null, DateTime? appliedFrom = null, DateTime? appliedTo = null, DateTime? updatedFrom = null, DateTime? updatedTo = null, string? sortBy = null, string? sortDir = null)
     {
-        var query = BuildFilteredQuery(userId, statuses, search, appliedFrom, appliedTo, updatedFrom, updatedTo);
+        var query = BuildFilteredQuery(userId, statuses, priorities, search, appliedFrom, appliedTo, updatedFrom, updatedTo);
         var total = await query.CountAsync();
 
         var apps = await ApplySorting(query, sortBy, sortDir)
@@ -274,6 +274,7 @@ public class ApplicationService : IApplicationService
             stats.GetValueOrDefault(ApplicationStatus.SAVED, 0),
             stats.GetValueOrDefault(ApplicationStatus.APPLIED, 0),
             stats.GetValueOrDefault(ApplicationStatus.SCREENING, 0),
+            stats.GetValueOrDefault(ApplicationStatus.ASSESSMENT, 0),
             stats.GetValueOrDefault(ApplicationStatus.INTERVIEW, 0),
             stats.GetValueOrDefault(ApplicationStatus.OFFER, 0),
             stats.GetValueOrDefault(ApplicationStatus.ACCEPTED, 0),
@@ -320,6 +321,7 @@ public class ApplicationService : IApplicationService
             new("SAVED", stats.Saved),
             new("APPLIED", stats.Applied),
             new("SCREENING", stats.Screening),
+            new("ASSESSMENT", stats.Assessment),
             new("INTERVIEW", stats.Interview),
             new("OFFER", stats.Offer),
             new("ACCEPTED", stats.Accepted),
@@ -429,6 +431,7 @@ var contactCoverage = await GetContactCoverageAsync(userId);
                 s.GetValueOrDefault(ApplicationStatus.SAVED, 0),
                 s.GetValueOrDefault(ApplicationStatus.APPLIED, 0),
                 s.GetValueOrDefault(ApplicationStatus.SCREENING, 0),
+                s.GetValueOrDefault(ApplicationStatus.ASSESSMENT, 0),
                 s.GetValueOrDefault(ApplicationStatus.INTERVIEW, 0),
                 s.GetValueOrDefault(ApplicationStatus.OFFER, 0),
                 s.GetValueOrDefault(ApplicationStatus.ACCEPTED, 0),
@@ -463,6 +466,7 @@ var contactCoverage = await GetContactCoverageAsync(userId);
                 s.GetValueOrDefault(ApplicationStatus.SAVED, 0),
                 s.GetValueOrDefault(ApplicationStatus.APPLIED, 0),
                 s.GetValueOrDefault(ApplicationStatus.SCREENING, 0),
+                s.GetValueOrDefault(ApplicationStatus.ASSESSMENT, 0),
                 s.GetValueOrDefault(ApplicationStatus.INTERVIEW, 0),
                 s.GetValueOrDefault(ApplicationStatus.OFFER, 0),
                 s.GetValueOrDefault(ApplicationStatus.ACCEPTED, 0),
@@ -518,6 +522,7 @@ var contactCoverage = await GetContactCoverageAsync(userId);
                 s.GetValueOrDefault(ApplicationStatus.SAVED, 0),
                 s.GetValueOrDefault(ApplicationStatus.APPLIED, 0),
                 s.GetValueOrDefault(ApplicationStatus.SCREENING, 0),
+                s.GetValueOrDefault(ApplicationStatus.ASSESSMENT, 0),
                 s.GetValueOrDefault(ApplicationStatus.INTERVIEW, 0),
                 s.GetValueOrDefault(ApplicationStatus.OFFER, 0),
                 s.GetValueOrDefault(ApplicationStatus.ACCEPTED, 0),
@@ -1016,7 +1021,7 @@ var contactCoverage = await GetContactCoverageAsync(userId);
 
     // ── Helpers ─────────────────────────────────────────────────────────────────
 
-    private IQueryable<Application> BuildFilteredQuery(Guid userId, string[]? statuses, string? search, DateTime? appliedFrom, DateTime? appliedTo, DateTime? updatedFrom, DateTime? updatedTo)
+    private IQueryable<Application> BuildFilteredQuery(Guid userId, string[]? statuses, string[]? priorities, string? search, DateTime? appliedFrom, DateTime? appliedTo, DateTime? updatedFrom, DateTime? updatedTo)
     {
         var query = _db.Applications.Where(a => a.CandidateId == userId && !a.IsDeleted);
 
@@ -1029,6 +1034,17 @@ var contactCoverage = await GetContactCoverageAsync(userId);
                 .ToList();
             if (parsed.Count > 0)
                 query = query.Where(a => parsed.Contains(a.Status));
+        }
+
+        if (priorities is { Length: > 0 })
+        {
+            var parsed = priorities
+                .Select(p => Enum.TryParse<ApplicationPriority>(p, true, out var pr) ? pr : (ApplicationPriority?)null)
+                .Where(p => p.HasValue)
+                .Select(p => p!.Value)
+                .ToList();
+            if (parsed.Count > 0)
+                query = query.Where(a => parsed.Contains(a.Priority));
         }
 
         if (!string.IsNullOrWhiteSpace(search))

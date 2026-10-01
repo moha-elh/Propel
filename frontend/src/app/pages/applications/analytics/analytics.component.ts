@@ -73,7 +73,7 @@ setGranularity(g: Granularity) { this.granularity.set(g); }
   }
 
   stats = computed(() => this.summary()?.statistics ?? {
-    total: 0, saved: 0, applied: 0, screening: 0, interview: 0, offer: 0, accepted: 0, rejected: 0, withdrawn: 0,
+    total: 0, saved: 0, applied: 0, screening: 0, assessment: 0, interview: 0, offer: 0, accepted: 0, rejected: 0, withdrawn: 0,
   });
   avgTime = computed(() => this.summary()?.averageResponseTimeDays ?? null);
 
@@ -81,7 +81,7 @@ setGranularity(g: Granularity) { this.granularity.set(g); }
 
   kpis = computed<KpiCard[]>(() => {
     const s = this.stats();
-    const responded = s.screening + s.interview + s.offer + s.accepted + s.rejected;
+    const responded = s.screening + s.assessment + s.interview + s.offer + s.accepted + s.rejected;
     const inPipeline = s.total - s.rejected - s.withdrawn - s.accepted;
     const companies = this.summary()?.distinctCompanies ?? 0;
     const avg = this.avgTime();
@@ -252,34 +252,6 @@ overTimeData = computed(() => {
   companyDist = computed(() => this.summary()?.companyDistribution ?? null);
 
   // ── Career inventory ────────────────────────────────────────────────────────
-  careerInventory = computed(() => this.summary()?.careerInventory ?? null);
-  careerKpis = computed<NameValue[]>(() => {
-    const c = this.careerInventory();
-    if (!c) return [];
-    const items: [string, number][] = [
-      ['Experiences', c.experiences], ['Projects', c.projects], ['Skills', c.skills],
-      ['Educations', c.educations], ['Certifications', c.certifications], ['Hackathons', c.hackathons],
-      ['Languages', c.languages], ['Interests', c.interests], ['Academic activities', c.academicActivities],
-      ['Distinct tags', c.distinctTags],
-    ];
-    return items.map(([name, value]) => ({ name, value }));
-  });
-
-  // ── Tooling usage ───────────────────────────────────────────────────────────
-  toolingUsage = computed(() => this.summary()?.toolingUsage ?? null);
-  toolingKpis = computed<NameValue[]>(() => {
-    const t = this.toolingUsage();
-    if (!t) return [];
-    const items: [string, number][] = [
-      ['Job extractions', t.jobExtractions], ['Template renders', t.templateRenders],
-      ['CV generations', t.cvGenerations], ['Saved tool items', t.savedToolItems],
-      ['CVs', t.cvs], ['CV versions', t.cvVersions], ['CV templates', t.cvTemplates],
-      ['Cover letters', t.coverLetters], ['Cover letter versions', t.coverLetterVersions],
-      ['User images', t.userImages], ['Schedules active', t.schedulesActive], ['Schedules total', t.schedulesTotal],
-    ];
-    return items.map(([name, value]) => ({ name, value }));
-  });
-
   // ── Response histogram ───────────────────────────────────────────────────────
   responseHistogram = computed<NameValue[]>(() =>
     (this.summary()?.responseTimeHistogram ?? []).map(b => ({ name: b.bucket, value: b.count }))

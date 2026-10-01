@@ -36,7 +36,17 @@
               <div class="fp-chips">
                 @for (s of ALL_STATUSES; track s) {
                   <button class="fp-chip" [class.active]="selectedStatuses().has(s)" (click)="toggleStatus(s)">
-                    {{ STATUS_LABELS[s] }}
+                    <span class="fp-dot" [style.background]="STATUS_COLORS[s]"></span>{{ STATUS_LABELS[s] }}
+                  </button>
+                }
+              </div>
+            </div>
+            <div class="fp-section">
+              <div class="fp-label">Priority</div>
+              <div class="fp-chips">
+                @for (p of ALL_PRIORITIES; track p) {
+                  <button class="fp-chip" [class.active]="selectedPriorities().has(p)" (click)="togglePriority(p)">
+                    <span class="fp-dot" [style.background]="PRIORITY_COLORS[p]"></span>{{ PRIORITY_LABELS[p] }}
                   </button>
                 }
               </div>

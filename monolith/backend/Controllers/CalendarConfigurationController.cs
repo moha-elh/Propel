@@ -17,7 +17,7 @@ public class CalendarConfigurationController : ControllerBase
     private readonly AppDbContext _db;
     private readonly ICurrentUserService _currentUser;
     private static readonly string[] AllStatuses =
-        ["SAVED", "APPLIED", "SCREENING", "INTERVIEW", "OFFER", "ACCEPTED", "REJECTED", "WITHDRAWN"];
+        ["SAVED", "APPLIED", "SCREENING", "ASSESSMENT", "INTERVIEW", "OFFER", "ACCEPTED", "REJECTED", "WITHDRAWN"];
 
     public CalendarConfigurationController(AppDbContext db, ICurrentUserService currentUser)
     {

@@ -42,6 +42,7 @@ public record WeeklyTrendDto(
     int Saved,
     int Applied,
     int Screening,
+    int Assessment,
     int Interview,
     int Offer,
     int Accepted,

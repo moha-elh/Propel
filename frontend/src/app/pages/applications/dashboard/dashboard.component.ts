@@ -61,7 +61,7 @@ export class DashboardComponent implements OnInit {
   onRefresh() { this.refreshing.set(true); this.loadTrends(); }
 
   firstName = computed(() => this.authService.currentUser()?.firstName ?? 'there');
-  s = computed(() => this.trends()?.current ?? { total: 0, saved: 0, applied: 0, screening: 0, interview: 0, offer: 0, accepted: 0, rejected: 0, withdrawn: 0 });
+  s = computed(() => this.trends()?.current ?? { total: 0, saved: 0, applied: 0, screening: 0, assessment: 0, interview: 0, offer: 0, accepted: 0, rejected: 0, withdrawn: 0 });
 
   private _monthlyValues = computed<{ total: number[]; interview: number[]; accepted: number[]; responseRate: number[] }>(() => {
     const data = this.trends()?.monthlyTrends ?? [];
@@ -71,11 +71,11 @@ export class DashboardComponent implements OnInit {
     const responseRate: number[] = [];
 
     data.forEach(m => {
-      const t = m.saved + m.applied + m.screening + m.interview + m.offer + m.accepted + m.rejected + m.withdrawn;
+      const t = m.saved + m.applied + m.screening + m.assessment + m.interview + m.offer + m.accepted + m.rejected + m.withdrawn;
       total.push(t);
       interview.push(m.interview);
       accepted.push(m.accepted);
-      responseRate.push(t > 0 ? Math.round(((m.screening + m.interview + m.offer + m.accepted + m.rejected) / t) * 100) : 0);
+      responseRate.push(t > 0 ? Math.round(((m.screening + m.assessment + m.interview + m.offer + m.accepted + m.rejected) / t) * 100) : 0);
     });
 
     return { total, interview, accepted, responseRate };
@@ -162,7 +162,7 @@ export class DashboardComponent implements OnInit {
       },
       {
         label: 'Response rate',
-        displayValue: pct(s.total, s.screening + s.interview + s.offer + s.accepted + s.rejected) + '%',
+        displayValue: pct(s.total, s.screening + s.assessment + s.interview + s.offer + s.accepted + s.rejected) + '%',
         sub: 'industry avg 23%',
         change: this._monthOverMonthChange(mv.responseRate),
         dotColor: 'oklch(0.62 0.18 25)',
@@ -176,7 +176,7 @@ export class DashboardComponent implements OnInit {
     const apps = this.applications();
     if (apps.length === 0) return [];
 
-    const awaiting = apps.filter(a => a.status === 'APPLIED' || a.status === 'SCREENING');
+    const awaiting = apps.filter(a => a.status === 'APPLIED' || a.status === 'SCREENING' || a.status === 'ASSESSMENT');
     if (awaiting.length === 0) return [];
 
     return awaiting.slice(0, 5).map(a => ({

@@ -224,6 +224,7 @@
   &[data-col="saved"]     { background: oklch(0.65 0.01 80); }
   &[data-col="applied"]   { background: oklch(0.6 0.16 250); }
   &[data-col="screening"] { background: oklch(0.6 0.13 200); }
+  &[data-col="assessment"] { background: oklch(0.58 0.14 180); }
   &[data-col="interview"] { background: oklch(0.55 0.16 160); }
   &[data-col="offer"]     { background: oklch(0.55 0.13 130); }
   &[data-col="accepted"]  { background: oklch(0.62 0.15 155); }
@@ -450,6 +451,7 @@
   &[data-status="SAVED"]     { background: oklch(0.94 0.004 80);   color: var(--text-3); }
   &[data-status="APPLIED"]   { background: var(--st-applied-bg);   color: var(--st-applied-text); }
   &[data-status="SCREENING"] { background: oklch(0.93 0.04 200);   color: oklch(0.35 0.1 200); }
+  &[data-status="ASSESSMENT"] { background: oklch(0.93 0.045 180); color: oklch(0.35 0.11 180); }
   &[data-status="INTERVIEW"] { background: var(--st-interview-bg); color: var(--st-interview-text); }
   &[data-status="OFFER"]     { background: var(--st-offer-bg);     color: var(--st-offer-text); }
   &[data-status="ACCEPTED"]  { background: oklch(0.93 0.06 155);   color: oklch(0.35 0.09 155); }
@@ -564,6 +566,7 @@
   &[data-status="SAVED"]     { color: var(--text-3); }
   &[data-status="APPLIED"]   { color: var(--st-applied-text); }
   &[data-status="SCREENING"] { color: oklch(0.35 0.1 200); }
+  &[data-status="ASSESSMENT"] { color: oklch(0.35 0.11 180); }
   &[data-status="INTERVIEW"] { color: var(--st-interview-text); }
   &[data-status="OFFER"]     { color: var(--st-offer-text); }
   &[data-status="ACCEPTED"]  { color: oklch(0.35 0.09 155); }

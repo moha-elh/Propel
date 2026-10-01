@@ -11,7 +11,9 @@ import {
   ApplicationPriority,
   STATUS_LABELS,
   STATUS_ORDER,
+  STATUS_COLORS,
   PRIORITY_LABELS,
+  PRIORITY_ORDER,
   PRIORITY_COLORS,
 } from '@app/models/application.model';
 import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
@@ -33,7 +35,7 @@ export class ApplicationsListComponent implements OnInit {
   protected router = inject(Router);
 
   applications = signal<ApplicationResponseDto[]>([]);
-  statistics = signal<ApplicationStatisticsDto>({ total: 0, saved: 0, applied: 0, screening: 0, interview: 0, offer: 0, accepted: 0, rejected: 0, withdrawn: 0 });
+  statistics = signal<ApplicationStatisticsDto>({ total: 0, saved: 0, applied: 0, screening: 0, assessment: 0, interview: 0, offer: 0, accepted: 0, rejected: 0, withdrawn: 0 });
   loading = signal(true);
   page = signal(1);
   pageSize = signal(15);
@@ -41,6 +43,7 @@ export class ApplicationsListComponent implements OnInit {
   searchQuery = signal('');
 
   selectedStatuses = signal<Set<ApplicationStatus>>(new Set());
+  selectedPriorities = signal<Set<ApplicationPriority>>(new Set());
   appliedFrom = signal('');
   appliedTo = signal('');
   updatedFrom = signal('');
@@ -82,7 +85,7 @@ export class ApplicationsListComponent implements OnInit {
   });
 
   activeFilterCount = computed(() => {
-    let count = this.selectedStatuses().size;
+    let count = this.selectedStatuses().size + this.selectedPriorities().size;
     if (this.appliedFrom()) count++;
     if (this.appliedTo()) count++;
     if (this.updatedFrom()) count++;
@@ -96,9 +99,18 @@ export class ApplicationsListComponent implements OnInit {
     return next;
   });
 
+  togglePriority = (p: ApplicationPriority) => this.selectedPriorities.update(set => {
+    const next = new Set(set);
+    if (next.has(p)) next.delete(p); else next.add(p);
+    return next;
+  });
+
   protected readonly STATUS_LABELS = STATUS_LABELS;
+  protected readonly STATUS_COLORS = STATUS_COLORS;
   protected readonly PRIORITY_LABELS = PRIORITY_LABELS;
+  protected readonly PRIORITY_COLORS = PRIORITY_COLORS;
   protected readonly ALL_STATUSES = STATUS_ORDER;
+  protected readonly ALL_PRIORITIES = PRIORITY_ORDER;
   protected readonly Math = Math;
 
   ngOnInit() { this.loadData(); }
@@ -107,10 +119,12 @@ export class ApplicationsListComponent implements OnInit {
     this.loading.set(true);
     try {
       const statusArr = this.selectedStatuses().size > 0 ? [...this.selectedStatuses()] : undefined;
+      const priorityArr = this.selectedPriorities().size > 0 ? [...this.selectedPriorities()] : undefined;
       const [listRes, statsRes] = await Promise.all([
         this.appService.getAll({
           page: this.page(), pageSize: this.pageSize(),
           statuses: statusArr,
+          priorities: priorityArr,
           search: this.searchQuery() || undefined,
           appliedFrom: this.appliedFrom() || undefined,
           appliedTo: this.appliedTo() || undefined,
@@ -149,6 +163,7 @@ export class ApplicationsListComponent implements OnInit {
 
   clearFilters() {
     this.selectedStatuses.set(new Set());
+    this.selectedPriorities.set(new Set());
     this.appliedFrom.set('');
     this.appliedTo.set('');
     this.updatedFrom.set('');
