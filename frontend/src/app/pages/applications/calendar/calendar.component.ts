@@ -16,6 +16,8 @@ import { CalendarEventDto } from '@app/models/calendar-event.model';
 import { CalendarConfigurationDto } from '@app/models/calendar-configuration.model';
 import { STATUS_LABELS, STATUS_ORDER } from '@app/models/application.model';
 import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
+import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
+import { RouterLink } from '@angular/router';
 
 interface CalendarEvent {
   id: string;
@@ -23,6 +25,8 @@ interface CalendarEvent {
   type: string;
   title: string;
   subtitle?: string;
+  companyName?: string;
+  positionTitle?: string;
   source: 'reminder' | 'application';
 }
 
@@ -43,7 +47,7 @@ const DEFAULT_APP_STATUSES = ['SAVED', 'APPLIED', 'SCREENING', 'ASSESSMENT', 'IN
 @Component({
   selector: 'app-calendar',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSelectComponent, RefreshButtonComponent],
+  imports: [CommonModule, FormsModule, AppSelectComponent, RefreshButtonComponent, RouterLink, CompanyLogoComponent],
   templateUrl: './calendar.component.html',
   styleUrl: './calendar.component.scss',
 })
@@ -115,6 +119,8 @@ export class CalendarComponent implements OnInit {
           type: e.type,
           title: e.title,
           subtitle: `${e.companyName} - ${e.positionTitle}`,
+          companyName: e.companyName,
+          positionTitle: e.positionTitle,
           source: 'application',
         });
       }
@@ -149,6 +155,10 @@ export class CalendarComponent implements OnInit {
   showDayPopover(day: number, month?: number, year?: number) {
     const d = this.currentMonth();
     this.popoverDay.set({ day, month: month ?? d.getMonth(), year: year ?? d.getFullYear(), isCurrentMonth: true, isToday: false });
+  }
+
+  statusLabel(type: string): string {
+    return STATUS_LABELS[type.toUpperCase() as keyof typeof STATUS_LABELS] ?? type;
   }
 
   closeDayPopover() {

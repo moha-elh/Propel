@@ -198,7 +198,7 @@
 .cal-day {
   background: var(--surface);
   padding: 4px 3px 3px;
-  height: 90px;
+  height: 104px;
   cursor: pointer;
   transition: background 0.1s;
   display: flex;
@@ -261,13 +261,26 @@
   max-width: 100%;
   padding: 1px 4px;
   border-radius: 3px;
-  font-size: 9px;
-  margin-bottom: 1px;
+  font-size: 12px;
+  margin-bottom: 2px;
   font-weight: 500;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  line-height: 1.4;
+  line-height: 16px;
+  text-decoration: none;
+  box-sizing: border-box;
+
+  &.has-logo {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-left: 2px;
+    &:hover { filter: brightness(0.96); }
+  }
+
+  app-company-logo { --cl-w: 14px; --cl-h: 14px; --cl-r: 3px; --cl-fs: 7px; }
+  .pill-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
   &.ev-interview  { background: oklch(0.94 0.04 250); color: oklch(0.42 0.16 250); }
   &.ev-follow-up  { background: oklch(0.93 0.04 155); color: oklch(0.38 0.12 155); }
@@ -646,3 +659,6 @@
   white-space: nowrap;
   margin-top: 1px;
 }
+
+/* Company logo in place of the date chip, sized to match it */
+.upcoming-logo { --cl-w: 38px; --cl-h: 38px; --cl-r: 8px; --cl-fs: 13px; }

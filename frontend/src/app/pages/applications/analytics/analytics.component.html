@@ -10,13 +10,16 @@
   @if (loading()) {
     <div class="state muted">Loading analytics…</div>
   } @else if (!hasData()) {
-    <div class="state muted">No applications yet. Once you add or apply to roles, your analytics will appear here.</div>
+    <div class="state">
+      <p>No applications yet.</p>
+      <p class="muted">Add or apply to a role and your numbers will start showing up here.</p>
+      <a class="state-link" routerLink="/applications/new">Add your first application</a>
+    </div>
   } @else {
-    <!-- KPI row -->
-    <section class="kpi-row">
+    <!-- KPI strip -->
+    <section class="kpi-strip">
       @for (k of kpis(); track k.label) {
-        <div class="kpi-card">
-          <span class="kpi-dot" [style.background]="k.color"></span>
+        <div class="kpi">
           <div class="kpi-value">{{ k.value }}</div>
           <div class="kpi-label">{{ k.label }}</div>
           <div class="kpi-sub muted">{{ k.sub }}</div>
@@ -24,285 +27,316 @@
       }
     </section>
 
-    <div class="grid">
-      <!-- Status distribution -->
-      <section class="card">
-        <h2>Status distribution</h2>
-        <div class="donut-wrap">
-          <ngx-charts-pie-chart
-            [view]="[220, 220]"
-            [results]="statusPie()"
+    <!-- Over-time trend -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Applications over time</h2>
+        <div class="period-toggle">
+          <div class="seg" role="group" aria-label="Time granularity">
+            <button [class.active]="granularity() === 'day'" (click)="setGranularity('day')">Day</button>
+            <button [class.active]="granularity() === 'week'" (click)="setGranularity('week')">Week</button>
+            <button [class.active]="granularity() === 'month'" (click)="setGranularity('month')">Month</button>
+          </div>
+          <div class="seg" role="group" aria-label="Period">
+            @for (p of periodOptions(); track p.value) {
+              <button [class.active]="currentPeriod() === p.value" (click)="setPeriod(p.value)">{{ p.label }}</button>
+            }
+          </div>
+        </div>
+      </div>
+      @if (overTimeData().length === 0) {
+        <div class="muted">No applications in this period. Try a longer range.</div>
+      } @else {
+        <div class="chart-box">
+          <ngx-charts-bar-vertical-stacked
+            [results]="overTimeData()"
             [customColors]="statusColors()"
-            [doughnut]="true"
-            [labels]="false"
+            [xAxis]="true"
+            [yAxis]="true"
             [legend]="false"
+            [barPadding]="6"
             [animations]="false">
-          </ngx-charts-pie-chart>
+          </ngx-charts-bar-vertical-stacked>
+        </div>
+        <ul class="inline-legend">
+          @for (s of statusPie(); track s.name) {
+            <li><span class="legend-dot" [style.background]="s.color"></span>{{ s.name }}</li>
+          }
+        </ul>
+      }
+    </section>
+
+    <div class="cols">
+      <!-- Pipeline -->
+      <section class="panel">
+        <h2>Where your applications stand</h2>
+        <div class="donut-wrap">
+          <div class="donut">
+            <ngx-charts-pie-chart
+              [view]="[180, 180]"
+              [results]="statusPie()"
+              [customColors]="statusColors()"
+              [doughnut]="true"
+              [arcWidth]="0.28"
+              [labels]="false"
+              [legend]="false"
+              [animations]="false">
+            </ngx-charts-pie-chart>
+            <div class="donut-center">
+              <span class="donut-num">{{ stats().total }}</span>
+              <span class="muted">total</span>
+            </div>
+          </div>
           <ul class="legend">
             @for (s of statusPie(); track s.name) {
               <li>
                 <span class="legend-dot" [style.background]="s.color"></span>
                 <span class="legend-name">{{ s.name }}</span>
                 <span class="legend-val">{{ s.value }}</span>
+                <span class="legend-pct muted">{{ pctOf(s.value) }}%</span>
               </li>
             }
           </ul>
         </div>
-      </section>
-
-      <!-- Applications by priority -->
-      <section class="card">
-        <h2>Applications by priority</h2>
-        @if (priorityBars().length === 0) {
-          <div class="muted">No applications yet.</div>
-        } @else {
-          <div class="coverage-list">
-            @for (b of priorityBars(); track b.label) {
-              <div class="coverage-row">
-                <span class="coverage-label">{{ b.label }}</span>
-                <div class="coverage-track">
-                  <div class="coverage-bar" [style.width.%]="b.pct" [style.background]="b.color"></div>
-                </div>
-                <span class="coverage-pct">{{ b.count }} · {{ b.pct }}%</span>
-              </div>
-            }
+        @if (priorityBars().length > 0) {
+          <div class="sub-block">
+            <h3>By priority</h3>
+            <div class="stack-bar">
+              @for (b of priorityBars(); track b.label) {
+                <div class="stack-seg" [style.flex]="b.count" [style.background]="b.color" [title]="b.label + ': ' + b.count"></div>
+              }
+            </div>
+            <div class="stack-legend">
+              @for (b of priorityBars(); track b.label) {
+                <span><span class="legend-dot" [style.background]="b.color"></span>{{ b.label }} <b>{{ b.count }}</b></span>
+              }
+            </div>
           </div>
-        }
-      </section>
-
-      <!-- Top companies -->
-      <section class="card">
-        <h2>Top companies</h2>
-        @if (topCompanies().length === 0) {
-          <div class="muted">No companies yet.</div>
-        } @else {
-          <ngx-charts-bar-horizontal
-            [view]="topCompanyView()"
-            [results]="topCompanies()"
-            [customColors]="topCompanyColors()"
-            [xAxis]="true"
-            [yAxis]="true"
-            [gradient]="false"
-            [roundEdges]="true"
-            [animations]="false">
-          </ngx-charts-bar-horizontal>
-          <ul class="company-list">
-            @for (c of topCompanyList(); track c.name) {
-              <li>
-                <span class="company-name">{{ c.name }}</span>
-                <span class="muted">{{ c.count }} applied</span>
-                <span class="muted">{{ c.lastAppliedAt ? ('last ' + (c.lastAppliedAt | date: 'mediumDate')) : 'no send yet' }}</span>
-              </li>
-            }
-          </ul>
         }
       </section>
 
       <!-- How you applied -->
-      <section class="card">
+      <section class="panel">
         <h2>How you applied</h2>
         @if (channelBreakdown().length === 0) {
-          <div class="muted">No sent applications yet. When you apply through a channel, it shows up here.</div>
+          <p class="muted">Nothing sent yet. Once you apply by email, LinkedIn or a web form, the channels show up here.</p>
         } @else {
-          <div class="funnel">
+          <div class="bars">
             @for (c of channelBreakdown(); track c.name) {
-              <div class="funnel-row">
-                <div class="funnel-head">
-                  <span class="funnel-label">{{ c.name }}</span>
-                  <span class="funnel-count">{{ c.value }} · {{ channelPct(c.value) }}%</span>
-                </div>
-                <div class="funnel-track">
-                  <div class="funnel-bar" [style.width.%]="channelPct(c.value)" [style.background]="channelColor(c.key)"></div>
-                </div>
+              <div class="bar-row">
+                <span class="bar-label">{{ c.name }}</span>
+                <div class="bar-track"><div class="bar-fill" [style.width.%]="channelPct(c.value)" [style.background]="channelColor(c.key)"></div></div>
+                <span class="bar-val">{{ c.value }} <span class="muted">· {{ channelPct(c.value) }}%</span></span>
               </div>
             }
           </div>
-@if (channelBreakdown().length > 0) {
-            <div class="email-pie">
-              <ngx-charts-pie-chart
-                [view]="[180, 180]"
-                [results]="channelBreakdown()"
-                [customColors]="channelColors()"
-                [doughnut]="true"
-                [labels]="false"
-                [legend]="false"
-                [animations]="false">
-              </ngx-charts-pie-chart>
-              <ul class="legend">
-                @for (c of channelBreakdown(); track c.name) {
-                  <li>
-                    <span class="legend-dot" [style.background]="channelColorsColorFor(c.name)"></span>
-                    <span class="legend-name">{{ c.name }}</span>
-                    <span class="legend-val">{{ c.value }}</span>
-                  </li>
-                }
-              </ul>
+        }
+        @if (originBars().length > 0) {
+          <div class="sub-block">
+            <h3>Where the application came from</h3>
+            <div class="bars">
+              @for (b of originBars(); track b.label) {
+                <div class="bar-row">
+                  <span class="bar-label">{{ b.label }}</span>
+                  <div class="bar-track"><div class="bar-fill" [style.width.%]="b.pct" [style.background]="b.color"></div></div>
+                  <span class="bar-val">{{ b.count }} <span class="muted">· {{ b.pct }}%</span></span>
+                </div>
+              }
             </div>
-            @if (originBars().length > 0) {
-              <div class="origin-block">
-                <h3>Applications by origin</h3>
-                <div class="coverage-list">
-                  @for (b of originBars(); track b.label) {
-                    <div class="coverage-row">
-                      <span class="coverage-label">{{ b.label }}</span>
-                      <div class="coverage-track">
-                        <div class="coverage-bar" [style.width.%]="b.pct" [style.background]="b.color"></div>
-                      </div>
-                      <span class="coverage-pct">{{ b.count }} · {{ b.pct }}%</span>
+          </div>
+        }
+      </section>
+    </div>
+
+    <!-- Geography -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Where you're applying</h2>
+        @if (geo().length > 0) {
+          <span class="muted">{{ companyDist()!.total }} companies · {{ geo().length }} {{ geo().length === 1 ? 'country' : 'countries' }}</span>
+        }
+      </div>
+      @if (geo().length === 0) {
+        <p class="muted">None of your companies have a country yet. <a routerLink="/companies">Add locations on the Companies page</a> to see where you're applying.</p>
+      } @else {
+        <p class="geo-summary">{{ geoSummary() }}</p>
+        <div class="geo-list">
+          @for (g of geo(); track g.country) {
+            <div class="geo-row">
+              <div class="geo-head">
+                <span class="geo-country">{{ g.country }}</span>
+                <span class="geo-count">{{ g.count }} <span class="muted">· {{ g.pct }}%</span></span>
+              </div>
+              <div class="bar-track"><div class="bar-fill" [style.width.%]="g.pct"></div></div>
+              <div class="geo-cities">
+                @for (c of g.cities; track c.name) {
+                  <span class="city">{{ c.name }} <b>{{ c.value }}</b></span>
+                }
+                @if (g.withoutCity > 0) {
+                  <span class="city none">{{ g.withoutCity }} without a city</span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+        @if (sectorTop().length > 0) {
+          <div class="sub-block">
+            <h3>Sectors</h3>
+            <div class="geo-cities">
+              @for (s of sectorTop(); track s.name) {
+                <span class="city">{{ s.name }} <b>{{ s.value }}</b></span>
+              }
+            </div>
+          </div>
+        }
+      }
+    </section>
+
+    <!-- CV performance -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Which CV works best</h2>
+        @if (cvPerformance().length > 1) {
+          <span class="muted">Sorted by interview rate</span>
+        }
+      </div>
+      @if (cvPerformance().length === 0) {
+        <p class="muted">No CV sends tracked yet. Send a CV from the mailbox or the apply wizard and you'll see how each version converts.</p>
+      } @else {
+        <div class="table-scroll">
+          <table class="cv-table">
+            <thead>
+              <tr>
+                <th>CV version</th>
+                <th class="num">Sent</th>
+                <th class="num">Applications</th>
+                <th>Interview rate</th>
+                <th>Offer rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (p of cvRows(); track p.versionId; let first = $first) {
+                <tr class="cv-row" tabindex="0" (click)="openCvPreview(p)" (keydown.enter)="openCvPreview(p)" [title]="'Preview ' + p.cvTitle">
+                  <td>
+                    <div class="cv-cell">
+                    <div class="cv-thumb">
+                      @if (!failedThumbs().has(p.versionId)) {
+                        <img [src]="thumbUrl(p.versionId)" [alt]="p.cvTitle + ' preview'" loading="lazy" (error)="onThumbError(p.versionId)">
+                      } @else {
+                        <span>PDF</span>
+                      }
                     </div>
-                  }
-                </div>
-              </div>
-            }
-          }
-        }
-      </section>
-
-<!-- CV performance -->
-      <section class="card span-2">
-        <h2>CV performance</h2>
-        @if (cvPerformance().length === 0) {
-          <div class="muted">No CV sends tracked yet. When you send a CV from the mailbox or an apply, its performance shows up here.</div>
-        } @else {
-          <div class="cv-perf-list">
-            @for (p of cvPerformance(); track p.versionId) {
-              <div class="cv-perf-row">
-                <div class="cv-perf-head">
-                  <span class="cv-perf-title">{{ p.cvTitle }}</span>
-                  <span class="cv-perf-version">v{{ p.versionNumber }}{{ p.versionLabel ? ' · ' + p.versionLabel : '' }}</span>
-                </div>
-                @if (p.tags.length > 0) {
-                  <div class="cv-perf-tags">
-                    @for (t of p.tags; track t) {
-                      <span class="perf-chip">{{ t }}</span>
+                    <div class="cv-text">
+                    <div class="cv-name">
+                      <span class="cv-title" [title]="p.cvTitle">{{ p.cvTitle }}</span>
+                      <span class="cv-ver">v{{ p.versionNumber }}</span>
+                      @if (first && cvRows().length > 1 && p.interviewPct > 0) {
+                        <span class="cv-best">Best</span>
+                      }
+                    </div>
+                    @if (p.versionLabel || p.tags.length > 0) {
+                      <div class="cv-meta muted">{{ p.versionLabel }}{{ p.versionLabel && p.tags.length ? ' · ' : '' }}{{ p.tags.join(', ') }}</div>
                     }
-                  </div>
-                }
-                <div class="cv-perf-metrics">
-                  <span class="perf-met"><b>{{ p.sentCount }}</b> sent</span>
-                  <span class="perf-met"><b>{{ p.linkedApplications }}</b> linked</span>
-                  <span class="perf-conv muted">{{ cvInterviewPct(p) }}% interviews · {{ cvOfferPct(p) }}% offers</span>
-                </div>
-              </div>
-            }
-          </div>
-        }
-      </section>
+                    </div>
+                    </div>
+                  </td>
+                  <td class="num">{{ p.sentCount }}</td>
+                  <td class="num">{{ p.linkedApplications }}</td>
+                  <td>
+                    <div class="rate">
+                      <div class="bar-track"><div class="bar-fill interview" [style.width.%]="p.interviewPct"></div></div>
+                      <span>{{ p.interviewPct }}%</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="rate">
+                      <div class="bar-track"><div class="bar-fill offer" [style.width.%]="p.offerPct"></div></div>
+                      <span>{{ p.offerPct }}%</span>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
 
-      <!-- Over-time trend -->
-      <section class="card span-2">
-        <div class="card-head">
-          <h2>Applications over time</h2>
-          <div class="period-toggle">
-            <div class="granularity-toggle" role="group" aria-label="Time granularity">
-              <button class="chip" [class.active]="granularity() === 'day'" (click)="setGranularity('day')">Day</button>
-              <button class="chip" [class.active]="granularity() === 'week'" (click)="setGranularity('week')">Week</button>
-              <button class="chip" [class.active]="granularity() === 'month'" (click)="setGranularity('month')">Month</button>
+    @if (previewCv(); as pv) {
+      <div class="cv-modal-backdrop" (click)="closeCvPreview()" (keydown.escape)="closeCvPreview()">
+        <div class="cv-modal" role="dialog" aria-modal="true" [attr.aria-label]="pv.cvTitle + ' preview'" (click)="$event.stopPropagation()">
+          <div class="cv-modal-head">
+            <div class="cv-modal-title">
+              <span class="cv-title">{{ pv.cvTitle }}</span>
+              <span class="cv-ver">v{{ pv.versionNumber }}{{ pv.versionLabel ? ' · ' + pv.versionLabel : '' }}</span>
             </div>
-            @if (granularity() === 'day') {
-              @for (p of [7, 14, 30]; track p) {
-                <button class="chip" [class.active]="periodDays() === p" (click)="setPeriod(p)">{{ p }}d</button>
-              }
-              <button class="chip" [class.active]="periodDays() === 0" (click)="setPeriod(0)">All</button>
-            } @else if (granularity() === 'week') {
-              @for (p of [4, 8, 16]; track p) {
-                <button class="chip" [class.active]="periodWeeks() === p" (click)="setPeriod(p)">{{ p }}w</button>
-              }
-              <button class="chip" [class.active]="periodWeeks() === 0" (click)="setPeriod(0)">All</button>
+            <a class="cv-modal-btn" [href]="fileUrl(pv.versionId)" target="_blank" rel="noopener">Open in new tab</a>
+            <a class="cv-modal-btn" [href]="fileUrl(pv.versionId, true)">Download</a>
+            <button class="cv-modal-close" (click)="closeCvPreview()" aria-label="Close preview">✕</button>
+          </div>
+          <div class="cv-modal-body">
+            @if (previewError()) {
+              <p class="muted">This CV version has no PDF file to preview.</p>
+            } @else if (!previewSrc()) {
+              <p class="muted">Loading PDF…</p>
             } @else {
-              @for (p of [3, 6, 12]; track p) {
-                <button class="chip" [class.active]="periodMonths() === p" (click)="setPeriod(p)">{{ p }}m</button>
-              }
-              <button class="chip" [class.active]="periodMonths() === 0" (click)="setPeriod(0)">All</button>
+              <iframe [src]="previewSrc()" title="CV PDF preview"></iframe>
             }
           </div>
         </div>
-        @if (overTimeData().length === 0) {
-          <div class="muted">No data yet for this period.</div>
-        } @else {
-          <ngx-charts-bar-vertical-stacked
-            [view]="[640, 280]"
-            [results]="overTimeData()"
-            [customColors]="statusColors()"
-            [xAxis]="true"
-            [yAxis]="true"
-            [legend]="true"
-            [animations]="false">
-          </ngx-charts-bar-vertical-stacked>
-        }
+      </div>
+    }
+
+    <div class="cols">
+      <!-- Top companies -->
+      <section class="panel">
+        <h2>Companies you applied to most</h2>
+        <ul class="company-list">
+          @for (c of topCompanyList(); track c.name) {
+            <li>
+              <app-company-logo [companyName]="c.name" size="sm" />
+              <span class="company-name" [title]="c.name">{{ c.name }}</span>
+              <span class="muted">{{ c.lastAppliedAt ? (c.lastAppliedAt | date: 'MMM d') : 'not sent' }}</span>
+              <span class="company-count">{{ c.count }}</span>
+            </li>
+          }
+        </ul>
       </section>
 
-      <!-- Contact coverage -->
-      <section class="card">
-        <div class="card-head">
-          <h2>Contact coverage</h2>
-          @if (contactCoverageTotal() > 0) {
-            <span class="muted">{{ contactCoverageTotal() }} contacts</span>
+      <!-- Response time -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2>How fast companies reply</h2>
+          @if (avgTime() != null) {
+            <span class="muted">avg {{ avgTime()!.toFixed(1) }} days</span>
           }
         </div>
-        @if (contactBars().length === 0) {
-          <div class="muted">No contacts yet.</div>
+        @if (responseHistogramTotal() === 0) {
+          <p class="muted">No replies recorded yet. This fills in once an application moves past "Applied".</p>
         } @else {
-          <div class="coverage-list">
-            @for (b of contactBars(); track b.label) {
-              <div class="coverage-row">
-                <span class="coverage-label">{{ b.label }}</span>
-                <div class="coverage-track">
-                  <div class="coverage-bar" [style.width.%]="b.pct" [style.background]="b.color"></div>
-                </div>
-                <span class="coverage-pct">{{ b.pct }}%</span>
+          <div class="bars">
+            @for (b of responseHistogram(); track b.name) {
+              <div class="bar-row">
+                <span class="bar-label">{{ b.name }}</span>
+                <div class="bar-track"><div class="bar-fill" [style.width.%]="histPct(b.value)"></div></div>
+                <span class="bar-val">{{ b.value }}</span>
               </div>
             }
           </div>
         }
-      </section>
-
-      <!-- Company distribution -->
-      <section class="card">
-        <div class="card-head">
-          <h2>Company distribution</h2>
-          @if (companyDist()?.total) {
-            <span class="muted">{{ companyDist()!.total }} companies</span>
-          }
-        </div>
-        <div class="dist-grid">
-          @for (g of [{ title: 'Sectors', rows: sectorTop() }, { title: 'Countries', rows: countryTop() }, { title: 'Cities', rows: cityTop() }]; track g.title) {
-            <div class="dist-col">
-              <h3>{{ g.title }}</h3>
-              @if (g.rows.length === 0) {
-                <div class="muted">—</div>
-              } @else {
-                <ul class="dist-list">
-                  @for (r of g.rows; track r.name) {
-                    <li><span>{{ r.name }}</span><span class="muted">{{ r.value }}</span></li>
-                  }
-                </ul>
+        @if (contactBars().length > 0) {
+          <div class="sub-block">
+            <h3>Contact details on file ({{ contactCoverageTotal() }} contacts)</h3>
+            <div class="bars">
+              @for (b of contactBars(); track b.label) {
+                <div class="bar-row">
+                  <span class="bar-label">{{ b.label }}</span>
+                  <div class="bar-track"><div class="bar-fill" [style.width.%]="b.pct" [style.background]="b.color"></div></div>
+                  <span class="bar-val">{{ b.pct }}%</span>
+                </div>
               }
             </div>
-          }
-        </div>
-      </section>
-
-      <!-- Response time histogram -->
-      <section class="card">
-        <div class="card-head">
-          <h2>Response time</h2>
-          @if (responseHistogramTotal() > 0) {
-            <span class="muted">{{ responseHistogramTotal() }} responses</span>
-          }
-        </div>
-        @if (responseHistogram().length === 0) {
-          <div class="muted">No response-time data yet.</div>
-        } @else {
-          <ngx-charts-bar-vertical
-            [view]="responseHistogramView()"
-            [results]="responseHistogram()"
-            [xAxis]="true"
-            [yAxis]="true"
-            [showDataLabel]="false"
-            [gradient]="false"
-            [animations]="false">
-          </ngx-charts-bar-vertical>
+          </div>
         }
       </section>
     </div>

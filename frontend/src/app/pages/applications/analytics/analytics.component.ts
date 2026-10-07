@@ -1,4 +1,6 @@
-import { Component, signal, inject, OnInit, computed } from '@angular/core';
+import { Component, signal, inject, OnInit, OnDestroy, computed } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { DocumentsService } from '@app/services/documents.service';
 import { CommonModule } from '@angular/common';
 import { NgxChartsModule } from '@swimlane/ngx-charts';
 import { ApplicationService } from '@app/services/application.service';
@@ -9,7 +11,9 @@ ATTEMPT_CHANNEL_LABELS, CvPerformanceDto, AttemptChannel,
   PRIORITY_ORDER, PRIORITY_LABELS, PRIORITY_COLORS,
   ORIGIN_ORDER, ORIGIN_LABELS, ORIGIN_COLORS,
 } from '@app/models/application.model';
+import { RouterLink } from '@angular/router';
 import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
+import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -40,17 +44,56 @@ interface ContactBar { label: string; pct: number; color: string; }
 @Component({
   selector: 'app-analytics',
   standalone: true,
-  imports: [CommonModule, NgxChartsModule, RefreshButtonComponent],
+  imports: [CommonModule, NgxChartsModule, RefreshButtonComponent, RouterLink, CompanyLogoComponent],
   templateUrl: './analytics.component.html',
   styleUrl: './analytics.component.scss',
 })
-export class AnalyticsComponent implements OnInit {
+export class AnalyticsComponent implements OnInit, OnDestroy {
   private appService = inject(ApplicationService);
+  private docs = inject(DocumentsService);
+  private sanitizer = inject(DomSanitizer);
+
+  // ── CV preview modal ────────────────────────────────────────────────────────
+  previewCv = signal<CvPerformanceDto | null>(null);
+  previewBlobUrl = signal<string | null>(null);
+  previewError = signal(false);
+  previewSrc = computed<SafeResourceUrl | null>(() => {
+    const u = this.previewBlobUrl();
+    return u ? this.sanitizer.bypassSecurityTrustResourceUrl(u) : null;
+  });
+  failedThumbs = signal<Set<string>>(new Set());
+
+  thumbUrl(versionId: string) { return this.docs.versionThumbnailUrl(versionId); }
+  fileUrl(versionId: string, download = false) { return this.docs.versionFileUrl(versionId, download); }
+  onThumbError(id: string) { this.failedThumbs.update(s => new Set(s).add(id)); }
+
+  async openCvPreview(p: CvPerformanceDto) {
+    this.closeCvPreview();
+    this.previewCv.set(p);
+    try {
+      const blob = await this.docs.getVersionFileBlob(p.versionId);
+      if (this.previewCv()?.versionId !== p.versionId) return;
+      this.previewBlobUrl.set(URL.createObjectURL(blob));
+    } catch {
+      this.previewError.set(true);
+    }
+  }
+
+  closeCvPreview() {
+    const u = this.previewBlobUrl();
+    if (u) URL.revokeObjectURL(u);
+    this.previewBlobUrl.set(null);
+    this.previewError.set(false);
+    this.previewCv.set(null);
+  }
+
+  ngOnDestroy() { this.closeCvPreview(); }
+
 
   summary = signal<AnalyticsSummaryDto | null>(null);
   loading = signal(true);
   refreshing = signal(false);
-granularity = signal<Granularity>('day');
+  granularity = signal<Granularity>('day');
   periodDays = signal(7);
   periodWeeks = signal(8);
   periodMonths = signal(6);
@@ -65,7 +108,7 @@ granularity = signal<Granularity>('day');
   }
 
   onRefresh() { this.refreshing.set(true); this.load(); }
-setGranularity(g: Granularity) { this.granularity.set(g); }
+  setGranularity(g: Granularity) { this.granularity.set(g); }
   setPeriod(n: number) {
     if (this.granularity() === 'week') this.periodWeeks.set(n);
     else if (this.granularity() === 'month') this.periodMonths.set(n);
@@ -105,13 +148,7 @@ setGranularity(g: Granularity) { this.granularity.set(g); }
   );
   statusColors = computed(() => this.statusPie().map(d => ({ name: d.name, value: d.color })));
 
-  topCompanies = computed<NameValue[]>(() =>
-    (this.summary()?.topCompanies ?? []).map(c => ({ name: c.name, value: c.count }))
-  );
   topCompanyList = computed(() => this.summary()?.topCompanies ?? []);
-  topCompanyColors = computed(() => this.topCompanies().map(c => ({ name: c.name, value: 'oklch(0.6 0.16 250)' })));
-  topCompanyView = computed<[number, number]>(() => [320, Math.max(120, this.topCompanies().length * 34 + 30)]);
-
   channelBreakdown = computed<ChannelRow[]>(() => {
     const c = this.summary()?.channelCounts ?? {};
     return Object.keys(c)
@@ -123,27 +160,6 @@ setGranularity(g: Granularity) { this.granularity.set(g); }
       .filter(d => d.value > 0)
       .sort((a, b) => b.value - a.value);
   });
-  channelColors = computed<{ name: string; value: string }[]>(() => {
-    const base: Record<string, string> = {
-      EMAIL_GMAIL: 'oklch(0.62 0.15 250)',
-      EMAIL_SMTP: 'oklch(0.6 0.14 215)',
-      WHATSAPP: 'oklch(0.62 0.16 160)',
-      LINKEDIN_MESSAGE: 'oklch(0.62 0.14 285)',
-      LINKEDIN_CONNECTION: 'oklch(0.6 0.12 285)',
-      WEB_FORM: 'oklch(0.6 0.14 35)',
-      IN_PERSON: 'oklch(0.6 0.14 75)',
-      OTHER: 'oklch(0.6 0.1 80)',
-    };
-    return this.channelBreakdown().map(d => ({
-      name: d.name,
-      value: base[Object.keys(this.summary()?.channelCounts ?? {}).find(k => (ATTEMPT_CHANNEL_LABELS[k as keyof typeof ATTEMPT_CHANNEL_LABELS] ?? k) === d.name) as string] ?? 'oklch(0.6 0.12 40)',
-    }));
-  });
-
-  channelColorsColorFor(name: string): string {
-    return this.channelColors().find(c => c.name === name)?.value ?? 'oklch(0.6 0.12 40)';
-  }
-
   // ── Priority / origin breakdown ──────────────────────────────────────────────
   private barRows(counts: Record<string, number>, order: readonly string[], labelOf: (k: string) => string, colorOf: (k: string) => string): BarRow[] {
     const total = this.stats().total;
@@ -213,7 +229,7 @@ setGranularity(g: Granularity) { this.granularity.set(g); }
     }));
   });
 
-overTimeData = computed(() => {
+  overTimeData = computed(() => {
     if (this.granularity() === 'week') return this.weeklyStacked();
     if (this.granularity() === 'month') return this.monthlyStacked();
     return this.dailyStacked();
@@ -247,9 +263,38 @@ overTimeData = computed(() => {
   }
 
   sectorTop = computed(() => this.topOf(this.companyDistribution()?.sectorCounts, 8));
-  countryTop = computed(() => this.topOf(this.companyDistribution()?.countryCounts, 8));
-  cityTop = computed(() => this.topOf(this.companyDistribution()?.cityCounts, 8));
   companyDist = computed(() => this.summary()?.companyDistribution ?? null);
+
+  geo = computed(() => {
+    const locs = this.companyDistribution()?.locations ?? [];
+    const total = locs.reduce((s, l) => s + l.count, 0);
+    return locs.map(l => ({
+      country: l.country,
+      count: l.count,
+      pct: total > 0 ? Math.round((l.count / total) * 100) : 0,
+      cities: this.topOf(l.cities, 12),
+      withoutCity: l.withoutCity,
+    }));
+  });
+
+  /** One-sentence plain-language read of the geography data. */
+  geoSummary = computed(() => {
+    const g = this.geo();
+    if (g.length === 0) return '';
+    const [first, second] = g;
+    let text = g.length === 1
+      ? `All your companies are in ${first.country}.`
+      : `Most of your companies are in ${first.country} (${first.pct}%), followed by ${second.country} (${second.pct}%)`
+        + (g.length > 2 ? ` and ${g.length - 2} more ${g.length - 2 === 1 ? 'country' : 'countries'}.` : '.');
+    const withCity = g.reduce((s, c) => s + c.count - c.withoutCity, 0);
+    const total = g.reduce((s, c) => s + c.count, 0);
+    if (withCity === 0) text += ' No company has a city set yet.';
+    else if (withCity < total) {
+      const top = g.flatMap(c => c.cities).sort((a, b) => b.value - a.value)[0];
+      text += ` ${withCity} of ${total} have a city; ${top.name} leads with ${top.value}.`;
+    }
+    return text;
+  });
 
   // ── Career inventory ────────────────────────────────────────────────────────
   // ── Response histogram ───────────────────────────────────────────────────────
@@ -257,20 +302,32 @@ overTimeData = computed(() => {
     (this.summary()?.responseTimeHistogram ?? []).map(b => ({ name: b.bucket, value: b.count }))
   );
   responseHistogramTotal = computed(() => this.responseHistogram().reduce((a, b) => a + b.value, 0));
-  responseHistogramView = computed<[number, number]>(() => [
-    Math.max(320, this.responseHistogram().length * 42 + 40),
-    220,
-  ]);
+  histPct(v: number): number {
+    const max = Math.max(...this.responseHistogram().map(b => b.value), 0);
+    return max > 0 ? Math.round((v / max) * 100) : 0;
+  }
 
   hasData = computed(() => this.stats().total > 0);
 
   cvPerformance = computed<CvPerformanceDto[]>(() => this.summary()?.cvPerformance ?? []);
 
-  cvInterviewPct(p: CvPerformanceDto): number {
-    return p.linkedApplications > 0 ? Math.round((p.interviewCount / p.linkedApplications) * 100) : 0;
-  }
+  private rate(n: number, of: number): number { return of > 0 ? Math.round((n / of) * 100) : 0; }
 
-  cvOfferPct(p: CvPerformanceDto): number {
-    return p.linkedApplications > 0 ? Math.round((p.offerCount / p.linkedApplications) * 100) : 0;
-  }
+  /** CV versions ranked by interview rate, then volume. */
+  cvRows = computed(() =>
+    this.cvPerformance()
+      .map(p => ({ ...p, interviewPct: this.rate(p.interviewCount, p.linkedApplications), offerPct: this.rate(p.offerCount, p.linkedApplications) }))
+      .sort((a, b) => b.interviewPct - a.interviewPct || b.sentCount - a.sentCount)
+  );
+
+  pctOf(v: number): number { return this.rate(v, this.stats().total); }
+
+  periodOptions = computed(() => {
+    const g = this.granularity();
+    const [vals, unit] = g === 'day' ? [[7, 14, 30], 'd'] : g === 'week' ? [[4, 8, 16], 'w'] : [[3, 6, 12], 'm'];
+    return [...(vals as number[]).map(v => ({ value: v, label: v + unit })), { value: 0, label: 'All' }];
+  });
+
+  currentPeriod = computed(() =>
+    this.granularity() === 'week' ? this.periodWeeks() : this.granularity() === 'month' ? this.periodMonths() : this.periodDays());
 }

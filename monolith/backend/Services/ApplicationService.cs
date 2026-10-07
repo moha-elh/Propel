@@ -23,7 +23,7 @@ public class ApplicationService : IApplicationService
         var query = BuildFilteredQuery(userId, statuses, priorities, search, appliedFrom, appliedTo, updatedFrom, updatedTo);
         var total = await query.CountAsync();
 
-        var apps = await ApplySorting(query, sortBy, sortDir)
+        var apps = await ApplySorting(query, sortBy, sortDir, search)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -31,19 +31,30 @@ public class ApplicationService : IApplicationService
         return new ApplicationListDto(apps.Select(MapToDto).ToList(), total, page, pageSize);
     }
 
-    private static IQueryable<Application> ApplySorting(IQueryable<Application> query, string? sortBy, string? sortDir)
+    private static IQueryable<Application> ApplySorting(IQueryable<Application> query, string? sortBy, string? sortDir, string? search = null)
     {
         var desc = string.Equals(sortDir, "desc", StringComparison.OrdinalIgnoreCase);
+        // While searching, companies whose name starts with the query come first.
+        IOrderedQueryable<Application>? ordered = null;
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var prefix = search.Trim() + "%";
+            ordered = query.OrderByDescending(a => EF.Functions.ILike(a.CompanyName, prefix));
+        }
+
+        IOrderedQueryable<Application> By<TKey>(System.Linq.Expressions.Expression<Func<Application, TKey>> key, bool d) =>
+            ordered == null
+                ? (d ? query.OrderByDescending(key) : query.OrderBy(key))
+                : (d ? ordered.ThenByDescending(key) : ordered.ThenBy(key));
+
         return sortBy?.ToLowerInvariant() switch
         {
-            "updated" => desc ? query.OrderByDescending(a => a.UpdatedAt) : query.OrderBy(a => a.UpdatedAt),
-            "company" => desc ? query.OrderByDescending(a => a.CompanyName) : query.OrderBy(a => a.CompanyName),
-            "priority" => desc
-                ? query.OrderByDescending(a => a.Priority)
-                : query.OrderBy(a => a.Priority),
+            "updated" => By(a => a.UpdatedAt, desc),
+            "company" => By(a => a.CompanyName, desc),
+            "priority" => By(a => a.Priority, desc),
             _ => desc
-                ? query.OrderBy(a => a.AppliedAt == null).ThenByDescending(a => a.AppliedAt)
-                : query.OrderBy(a => a.AppliedAt == null).ThenBy(a => a.AppliedAt),
+                ? By(a => a.AppliedAt == null, false).ThenByDescending(a => a.AppliedAt)
+                : By(a => a.AppliedAt == null, false).ThenBy(a => a.AppliedAt),
         };
     }
 
@@ -594,7 +605,17 @@ var contactCoverage = await GetContactCoverageAsync(userId);
             companies.Count(c => !string.IsNullOrWhiteSpace(c.Country)),
             Counts(companies.Select(c => c.Location)),
             Counts(companies.Select(c => c.Country)),
-            Counts(companies.Select(c => c.Sector)));
+            Counts(companies.Select(c => c.Sector)),
+            companies
+                .Where(c => !string.IsNullOrWhiteSpace(c.Country))
+                .GroupBy(c => c.Country.Trim())
+                .Select(g => new CountryLocationDto(
+                    g.Key,
+                    g.Count(),
+                    Counts(g.Select(c => c.Location)),
+                    g.Count(c => string.IsNullOrWhiteSpace(c.Location))))
+                .OrderByDescending(l => l.Count)
+                .ToList());
     }
 
     private async Task<CareerInventoryDto> GetCareerInventoryAsync(Guid userId)

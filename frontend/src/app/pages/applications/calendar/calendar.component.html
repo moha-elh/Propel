@@ -81,7 +81,15 @@
             }
             <div class="day-events">
               @for (ev of visibleEventsForDay(cell.day, cell.month, cell.year); track ev.id + ev.type) {
-                <div class="event-pill" [ngClass]="'ev-' + ev.type" [title]="ev.subtitle">{{ ev.title }}</div>
+                @if (ev.companyName) {
+                  <a class="event-pill has-logo" [ngClass]="'ev-' + ev.type" [routerLink]="['/applications', ev.id]"
+                     [title]="ev.title + ' · ' + ev.subtitle">
+                    <app-company-logo [companyName]="ev.companyName" size="sm" />
+                    <span class="pill-text">{{ ev.companyName }}</span>
+                  </a>
+                } @else {
+                  <div class="event-pill" [ngClass]="'ev-' + ev.type" [title]="ev.subtitle">{{ ev.title }}</div>
+                }
               }
               @if (hiddenCountForDay(cell.day, cell.month, cell.year) > 0) {
                 <div class="more-link" (click)="showDayPopover(cell.day, cell.month, cell.year)">
@@ -111,13 +119,20 @@
         }
         @for (ev of calendarEvents().slice(0, 20); track ev.id + ev.type) {
           <div class="upcoming-item">
-            <div class="date-chip">
-              <span class="chip-month">{{ ev.date | date:'MMM' | uppercase }}</span>
-              <span class="chip-day">{{ ev.date | date:'d' }}</span>
-            </div>
+            @if (ev.companyName) {
+              <app-company-logo class="upcoming-logo" [companyName]="ev.companyName" size="lg" />
+            } @else {
+              <div class="date-chip">
+                <span class="chip-month">{{ ev.date | date:'MMM' | uppercase }}</span>
+                <span class="chip-day">{{ ev.date | date:'d' }}</span>
+              </div>
+            }
             <div class="item-body">
-              <div class="item-type">{{ ev.title }}</div>
-              @if (ev.subtitle) {
+              <div class="item-type">{{ ev.companyName || ev.title }}</div>
+              <div class="item-meta">
+                {{ ev.date | date:'MMM d' }}@if (ev.companyName) { · {{ statusLabel(ev.type) }} · {{ ev.positionTitle }} }
+              </div>
+              @if (ev.subtitle && !ev.companyName) {
                 <div class="item-meta">{{ ev.subtitle }}</div>
               }
             </div>
@@ -146,7 +161,11 @@
         <div class="popover-body">
           @for (ev of eventsForDay(dayInfo.day, dayInfo.month, dayInfo.year); track ev.id + ev.type) {
             <div class="popover-event">
-              <span class="popover-dot" [ngClass]="'ev-' + ev.type"></span>
+              @if (ev.companyName) {
+                <app-company-logo [companyName]="ev.companyName" size="md" />
+              } @else {
+                <span class="popover-dot" [ngClass]="'ev-' + ev.type"></span>
+              }
               <div class="popover-info">
                 <div class="popover-title">{{ ev.title }}</div>
                 @if (ev.subtitle) {

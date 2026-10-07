@@ -70,12 +70,30 @@
 
   <app-sheet-import-dialog [type]="'applications'" [(open)]="importOpen" (imported)="loadApps()" />
 
+  @if (view() === 'board' && !loading()) {
+    <div class="kb-search-row">
+      <div class="kb-search">
+        <svg class="kb-search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="6" cy="6" r="4.5"/><line x1="9.5" y1="9.5" x2="13" y2="13"/>
+        </svg>
+        <input type="search" placeholder="Find a company on the board…" [value]="boardQuery()"
+               (input)="boardQuery.set($any($event.target).value)" (keydown.escape)="boardQuery.set('')">
+      </div>
+      @if (boardQuery().trim()) {
+        <span class="kb-search-count">
+          @if (boardMatches() === 0) { No company matches "{{ boardQuery().trim() }}" }
+          @else { {{ boardMatches() }} {{ boardMatches() === 1 ? 'match' : 'matches' }} }
+        </span>
+      }
+    </div>
+  }
+
   @if (loading()) {
     <div class="kb-loading">Loading your applications…</div>
   } @else if (view() === 'board') {
     <div class="board" #boardEl (dragover)="onBoardDragOver($event)">
-      @for (col of columns(); track col.status) {
-        <div class="col" (dragover)="onDragOver($event)" (drop)="onDrop($event, col.status)">
+      @for (col of visibleColumns(); track col.status) {
+        <div class="col" [class.col-dim]="boardQuery().trim() && col.items.length === 0" (dragover)="onDragOver($event)" (drop)="onDrop($event, col.status)">
           <div class="col-header">
             <div class="col-dot" [attr.data-col]="col.colorVar"></div>
             <span class="col-label">{{ col.label }}</span>
@@ -111,7 +129,7 @@
                 </div>
               </div>
             } @empty {
-              <div class="col-empty">Drop here</div>
+              <div class="col-empty">{{ boardQuery().trim() ? 'No match here' : 'Drop here' }}</div>
             }
           </div>
         </div>

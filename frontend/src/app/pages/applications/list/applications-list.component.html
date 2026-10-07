@@ -17,25 +17,24 @@
         <svg class="search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
           <circle cx="6" cy="6" r="4.5"/><line x1="9.5" y1="9.5" x2="13" y2="13"/>
         </svg>
-        <input class="search-input" placeholder="Search company or position…" [(ngModel)]="searchQuery" (keyup.enter)="onSearch()">
+        <input class="search-input" type="search" placeholder="Search company or position…"
+               [value]="searchQuery()" (input)="onSearchInput($any($event.target).value)">
       </div>
       <div class="filter-btn-wrap">
-        <button class="filter-btn" (click)="sortOpen.set(false); filterOpen.set(!filterOpen())">
-          <svg viewBox="0 0 14 14" fill="none" width="13" height="13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-            <line x1="1" y1="4" x2="13" y2="4"/><line x1="3" y1="7" x2="11" y2="7"/><line x1="5" y1="10" x2="9" y2="10"/>
-          </svg>
-          Filter
+        <button class="filter-btn" [class.has-active]="activeFilterCount() > 0" (click)="filterOpen.set(!filterOpen())">
+          Filters
           @if (activeFilterCount() > 0) {
             <span class="filter-badge">{{ activeFilterCount() }}</span>
           }
         </button>
         @if (filterOpen()) {
-          <div class="filter-panel" (click)="$event.stopPropagation()">
+          <div class="filter-backdrop" (click)="filterOpen.set(false)"></div>
+          <div class="filter-panel">
             <div class="fp-section">
               <div class="fp-label">Status</div>
               <div class="fp-chips">
                 @for (s of ALL_STATUSES; track s) {
-                  <button class="fp-chip" [class.active]="selectedStatuses().has(s)" (click)="toggleStatus(s)">
+                  <button class="fp-chip" [class.active]="selectedStatuses().has(s)" (click)="toggleStatus(s); reload()">
                     <span class="fp-dot" [style.background]="STATUS_COLORS[s]"></span>{{ STATUS_LABELS[s] }}
                   </button>
                 }
@@ -45,70 +44,58 @@
               <div class="fp-label">Priority</div>
               <div class="fp-chips">
                 @for (p of ALL_PRIORITIES; track p) {
-                  <button class="fp-chip" [class.active]="selectedPriorities().has(p)" (click)="togglePriority(p)">
+                  <button class="fp-chip" [class.active]="selectedPriorities().has(p)" (click)="togglePriority(p); reload()">
                     <span class="fp-dot" [style.background]="PRIORITY_COLORS[p]"></span>{{ PRIORITY_LABELS[p] }}
                   </button>
                 }
               </div>
             </div>
             <div class="fp-section">
-              <div class="fp-label">Applied</div>
+              <div class="fp-label">Applied between</div>
               <div class="fp-date-row">
-                <input type="date" class="fp-date" [(ngModel)]="appliedFrom" (ngModelChange)="0" placeholder="From">
-                <span class="fp-date-sep">→</span>
-                <input type="date" class="fp-date" [(ngModel)]="appliedTo" (ngModelChange)="0" placeholder="To">
+                <input type="date" class="fp-date" [ngModel]="appliedFrom()" (ngModelChange)="appliedFrom.set($event); reload()" aria-label="Applied from">
+                <span class="fp-date-sep">and</span>
+                <input type="date" class="fp-date" [ngModel]="appliedTo()" (ngModelChange)="appliedTo.set($event); reload()" aria-label="Applied to">
               </div>
             </div>
             <div class="fp-section">
-              <div class="fp-label">Updated</div>
+              <div class="fp-label">Last updated between</div>
               <div class="fp-date-row">
-                <input type="date" class="fp-date" [(ngModel)]="updatedFrom" (ngModelChange)="0" placeholder="From">
-                <span class="fp-date-sep">→</span>
-                <input type="date" class="fp-date" [(ngModel)]="updatedTo" (ngModelChange)="0" placeholder="To">
+                <input type="date" class="fp-date" [ngModel]="updatedFrom()" (ngModelChange)="updatedFrom.set($event); reload()" aria-label="Updated from">
+                <span class="fp-date-sep">and</span>
+                <input type="date" class="fp-date" [ngModel]="updatedTo()" (ngModelChange)="updatedTo.set($event); reload()" aria-label="Updated to">
               </div>
             </div>
             <div class="fp-actions">
-              <button class="fp-apply" (click)="applyFilters()">Apply</button>
-              <button class="fp-clear" (click)="clearFilters()">Clear all</button>
-            </div>
-          </div>
-        }
-      </div>
-      <div class="filter-btn-wrap sort-group">
-        <button class="filter-btn sort-dir-btn" [attr.title]="sortTitle()" aria-label="Toggle sort direction"
-                [class.active]="sortDir() === 'desc'" (click)="toggleSortDir()">
-          @if (sortDir() === 'desc') {
-            <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="8" y1="1.5" x2="8" y2="9" stroke-width="2.1"/>
-              <path d="M3 6 8 11l5-5" stroke-width="2.3"/>
-            </svg>
-          } @else {
-            <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="8" y1="14.5" x2="8" y2="7" stroke-width="2.1"/>
-              <path d="M3 10 8 5l5 5" stroke-width="2.3"/>
-            </svg>
-          }
-        </button>
-        <button class="filter-btn sort-field-btn" (click)="filterOpen.set(false); sortOpen.set(!sortOpen())">
-          <svg viewBox="0 0 14 14" fill="none" width="13" height="13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-            <path d="M3 4h8M5 7h4M6.5 10h1"/>
-          </svg>
-          Sort · {{ sortLabel() }}
-        </button>
-        @if (sortOpen()) {
-          <div class="filter-panel sort-panel" (click)="$event.stopPropagation()">
-            <div class="fp-label">Sort by</div>
-            <div class="sort-list">
-              @for (opt of SORT_OPTIONS; track opt.key) {
-                <button class="sort-item" [class.active]="sortKey() === opt.key" (click)="setSort(opt.key)">
-                  {{ opt.label }}
-                </button>
+              <span class="fp-result">{{ totalItems() }} matching</span>
+              @if (activeFilterCount() > 0) {
+                <button class="fp-clear" (click)="clearFilters()">Clear all</button>
               }
             </div>
           </div>
         }
       </div>
+      <div class="sort-wrap">
+        <span class="sort-label">Sort by</span>
+        <app-select class="sort-sel" [value]="sortValue()" (valueChange)="setSort($event)">
+          @for (opt of SORT_OPTIONS; track opt.value) {
+            <option [value]="opt.value">{{ opt.label }}</option>
+          }
+        </app-select>
+      </div>
     </div>
+    @if (activeChips().length > 0) {
+      <div class="active-chips">
+        <span class="ac-count">{{ totalItems() }} of {{ statistics().total }} shown</span>
+        @for (c of activeChips(); track c.label) {
+          <button class="ac-chip" (click)="c.clear()" [title]="'Remove ' + c.label">
+            {{ c.label }}
+            <svg viewBox="0 0 10 10" width="8" height="8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 2l6 6M8 2l-6 6"/></svg>
+          </button>
+        }
+        <button class="ac-clear" (click)="clearFilters()">Clear all</button>
+      </div>
+    }
   </div>
 
   @if (loading()) {
@@ -118,7 +105,12 @@
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" style="color:var(--text-3);margin-bottom:12px">
         <rect x="2" y="3" width="20" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="12" y2="13"/>
       </svg>
-      <p>No applications yet.</p>
+      @if (searchQuery() || activeFilterCount() > 0) {
+        <p>Nothing matches{{ searchQuery() ? ' "' + searchQuery() + '"' : '' }}{{ activeFilterCount() > 0 ? ' with these filters' : '' }}.</p>
+        <button class="fp-clear" (click)="onSearchInput(''); clearFilters()">Reset search and filters</button>
+      } @else {
+        <p>No applications yet.</p>
+      }
     </div>
   } @else {
     <div class="table-wrap">

@@ -298,6 +298,14 @@ export interface CompanyDistributionDto {
   cityCounts: Record<string, number>;
   countryCounts: Record<string, number>;
   sectorCounts: Record<string, number>;
+  locations: CountryLocationDto[];
+}
+
+export interface CountryLocationDto {
+  country: string;
+  count: number;
+  cities: Record<string, number>;
+  withoutCity: number;
 }
 
 export interface CareerInventoryDto {

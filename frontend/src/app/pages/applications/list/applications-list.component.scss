@@ -78,25 +78,6 @@
 /* Filter button */
 .filter-btn-wrap { position: relative; }
 
-.sort-group { display: flex; gap: 6px; }
-
-.sort-dir-btn {
-  width: 34px;
-  justify-content: center;
-  padding: 7px 0;
-  color: var(--text-2);
-
-  svg { display: block; }
-
-  &.active {
-    background: var(--accent-soft);
-    border-color: oklch(0.82 0.09 250);
-    color: var(--accent-text);
-
-    &:hover { background: var(--accent-soft); }
-  }
-}
-
 .filter-btn {
   display: inline-flex;
   align-items: center;
@@ -113,7 +94,72 @@
   transition: background 0.12s, border-color 0.12s;
 
   &:hover { background: var(--bg-2); border-color: var(--border-2); }
+  &.has-active { border-color: oklch(0.82 0.09 250); color: var(--accent-text); }
 }
+
+.filter-backdrop { position: fixed; inset: 0; z-index: 49; }
+
+.sort-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.sort-label { font-size: 12px; color: var(--text-3); white-space: nowrap; }
+
+.sort-sel {
+  min-width: 210px;
+  font-size: 13px;
+}
+
+.active-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ac-count {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-right: 4px;
+}
+
+.ac-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 260px;
+  padding: 3px 10px;
+  border: 1px solid oklch(0.85 0.08 250);
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-family: var(--font-body);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  svg { flex-shrink: 0; opacity: 0.7; }
+  &:hover svg { opacity: 1; }
+}
+
+.ac-clear {
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 12px;
+  font-family: var(--font-body);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  &:hover { color: var(--text); }
+}
+
+.fp-result { font-size: 12px; color: var(--text-3); margin-right: auto; }
 
 .filter-badge {
   display: inline-flex;
@@ -134,7 +180,7 @@
 .filter-panel {
   position: absolute;
   top: calc(100% + 6px);
-  right: 0;
+  left: 0;
   width: 340px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -147,42 +193,12 @@
   z-index: 50;
 }
 
-.sort-panel {
-  width: 220px;
-  gap: 8px;
-}
-
-.sort-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.sort-item {
-  text-align: left;
-  padding: 7px 10px;
-  border: none;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--text-2);
-  font-size: 12.5px;
-  font-weight: 500;
-  cursor: pointer;
-  font-family: var(--font-body);
-  transition: background 0.12s, color 0.12s;
-
-  &:hover { background: var(--bg-2); color: var(--text); }
-  &.active { background: var(--accent-soft); color: var(--accent-text); font-weight: 600; }
-}
-
 .fp-section { display: flex; flex-direction: column; gap: 8px; }
 
 .fp-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: var(--text-2);
 }
 
 .fp-chips {
@@ -306,11 +322,9 @@ thead tr {
 th {
   padding: 9px 14px;
   text-align: left;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   white-space: nowrap;
 }
 

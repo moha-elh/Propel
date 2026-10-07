@@ -76,8 +76,12 @@ public record CompanyDistributionDto(
     int WithCountry,
     Dictionary<string, int> CityCounts,
     Dictionary<string, int> CountryCounts,
-    Dictionary<string, int> SectorCounts
+    Dictionary<string, int> SectorCounts,
+    List<CountryLocationDto> Locations
 );
+
+/// <summary>Companies in one country, with their city breakdown.</summary>
+public record CountryLocationDto(string Country, int Count, Dictionary<string, int> Cities, int WithoutCity);
 
 public record CareerInventoryDto(
     int Experiences,

@@ -57,6 +57,24 @@ export class KanbanComponent implements OnInit {
 
   totalApps = computed(() => this.columns().reduce((s, c) => s + c.items.length, 0));
 
+  /** Board search: narrows every column to matching cards so you can see which stage a company sits in. */
+  boardQuery = signal('');
+
+  visibleColumns = computed(() => {
+    const q = this.boardQuery().trim().toLowerCase();
+    if (!q) return this.columns();
+    // Company-name prefix matches first, then anything containing the query.
+    const rank = (a: ApplicationResponseDto) => a.companyName.toLowerCase().startsWith(q) ? 0 : 1;
+    return this.columns().map(c => ({
+      ...c,
+      items: c.items
+        .filter(a => a.companyName.toLowerCase().includes(q) || a.positionTitle.toLowerCase().includes(q))
+        .sort((a, b) => rank(a) - rank(b)),
+    }));
+  });
+
+  boardMatches = computed(() => this.visibleColumns().reduce((s, c) => s + c.items.length, 0));
+
   savedApps = computed(() =>
     this.columns().flatMap(c => c.items).filter(a => a.status === 'SAVED')
   );

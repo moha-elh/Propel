@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject, OnInit } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, WritableSignal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
@@ -21,7 +21,7 @@ import { CompanyLogoComponent } from '@app/shared/components/company-logo/compan
 export type SortKey = 'applied' | 'updated' | 'company' | 'priority';
 export type SortDir = 'asc' | 'desc';
 
-interface SortOption { key: SortKey; label: string; }
+interface SortOption { value: string; label: string; }
 
 @Component({
   selector: 'app-applications-list',
@@ -50,22 +50,40 @@ export class ApplicationsListComponent implements OnInit {
   updatedTo = signal('');
 
   filterOpen = signal(false);
-  sortOpen = signal(false);
   sortKey = signal<SortKey>('applied');
   sortDir = signal<SortDir>('desc');
 
+  /** Each sort option spells out field + direction so nothing is ambiguous. */
   readonly SORT_OPTIONS: SortOption[] = [
-    { key: 'applied', label: 'Applied date' },
-    { key: 'updated', label: 'Updated date' },
-    { key: 'company', label: 'Company' },
-    { key: 'priority', label: 'Priority' },
+    { value: 'applied:desc',  label: 'Applied: newest first' },
+    { value: 'applied:asc',   label: 'Applied: oldest first' },
+    { value: 'updated:desc',  label: 'Last updated: recent first' },
+    { value: 'updated:asc',   label: 'Last updated: oldest first' },
+    { value: 'company:asc',   label: 'Company name: A → Z' },
+    { value: 'company:desc',  label: 'Company name: Z → A' },
+    { value: 'priority:desc', label: 'Priority: high → low' },
+    { value: 'priority:asc',  label: 'Priority: low → high' },
   ];
 
-  sortLabel = computed(() =>
-    this.SORT_OPTIONS.find(o => o.key === this.sortKey())?.label ?? 'Applied date');
+  sortValue = computed(() => `${this.sortKey()}:${this.sortDir()}`);
 
-  sortTitle = computed(() =>
-    this.sortDir() === 'desc' ? 'Descending (features ↓)' : 'Ascending (features ↑)');
+  /** Active filters rendered as removable chips under the toolbar. */
+  activeChips = computed(() => {
+    const chips: { label: string; clear: () => void }[] = [];
+    for (const s of this.selectedStatuses())
+      chips.push({ label: `Status: ${STATUS_LABELS[s]}`, clear: () => { this.toggleStatus(s); this.reload(); } });
+    for (const p of this.selectedPriorities())
+      chips.push({ label: `Priority: ${PRIORITY_LABELS[p]}`, clear: () => { this.togglePriority(p); this.reload(); } });
+    const range = (label: string, from: WritableSignal<string>, to: WritableSignal<string>) => {
+      if (!from() && !to()) return;
+      const txt = from() && to() ? `${this.formatDate(from())} – ${this.formatDate(to())}`
+        : from() ? `after ${this.formatDate(from())}` : `before ${this.formatDate(to())}`;
+      chips.push({ label: `${label} ${txt}`, clear: () => { from.set(''); to.set(''); this.reload(); } });
+    };
+    range('Applied', this.appliedFrom, this.appliedTo);
+    range('Updated', this.updatedFrom, this.updatedTo);
+    return chips;
+  });
 
   totalPages = computed(() => Math.max(1, Math.ceil(this.totalItems() / this.pageSize())));
   visiblePages = computed(() => {
@@ -84,14 +102,7 @@ export class ApplicationsListComponent implements OnInit {
     return `${from}–${to} of ${total}`;
   });
 
-  activeFilterCount = computed(() => {
-    let count = this.selectedStatuses().size + this.selectedPriorities().size;
-    if (this.appliedFrom()) count++;
-    if (this.appliedTo()) count++;
-    if (this.updatedFrom()) count++;
-    if (this.updatedTo()) count++;
-    return count;
-  });
+  activeFilterCount = computed(() => this.activeChips().length);
 
   toggleStatus = (s: ApplicationStatus) => this.selectedStatuses.update(set => {
     const next = new Set(set);
@@ -115,8 +126,12 @@ export class ApplicationsListComponent implements OnInit {
 
   ngOnInit() { this.loadData(); }
 
+  private requestSeq = 0;
+
   async loadData() {
-    this.loading.set(true);
+    const seq = ++this.requestSeq;
+    // Keep current rows visible while refetching so typing doesn't flash the table.
+    if (this.applications().length === 0) this.loading.set(true);
     try {
       const statusArr = this.selectedStatuses().size > 0 ? [...this.selectedStatuses()] : undefined;
       const priorityArr = this.selectedPriorities().size > 0 ? [...this.selectedPriorities()] : undefined;
@@ -135,6 +150,7 @@ export class ApplicationsListComponent implements OnInit {
         }),
         this.appService.getStatistics(),
       ]);
+      if (seq !== this.requestSeq) return; // a newer request superseded this one
       if (listRes.success && listRes.data) {
         this.applications.set(listRes.data.items);
         this.totalItems.set(listRes.data.total);
@@ -144,21 +160,23 @@ export class ApplicationsListComponent implements OnInit {
     finally { this.loading.set(false); }
   }
 
-  onSearch() { this.page.set(1); this.loadData(); this.filterOpen.set(false); }
+  private searchTimer?: ReturnType<typeof setTimeout>;
 
-  applyFilters() { this.page.set(1); this.loadData(); this.filterOpen.set(false); }
-
-  setSort(key: SortKey) {
-    this.sortKey.set(key);
-    this.sortOpen.set(false);
-    this.page.set(1);
-    this.loadData();
+  /** Live search: refetch shortly after the user stops typing. */
+  onSearchInput(value: string) {
+    this.searchQuery.set(value);
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.reload(), 200);
   }
 
-  toggleSortDir() {
-    this.sortDir.update(d => (d === 'desc' ? 'asc' : 'desc'));
-    this.page.set(1);
-    this.loadData();
+  /** Filters apply instantly; no separate Apply step. */
+  reload() { this.page.set(1); this.loadData(); }
+
+  setSort(value: string) {
+    const [key, dir] = value.split(':') as [SortKey, SortDir];
+    this.sortKey.set(key);
+    this.sortDir.set(dir);
+    this.reload();
   }
 
   clearFilters() {
@@ -168,9 +186,7 @@ export class ApplicationsListComponent implements OnInit {
     this.appliedTo.set('');
     this.updatedFrom.set('');
     this.updatedTo.set('');
-    this.page.set(1);
-    this.loadData();
-    this.filterOpen.set(false);
+    this.reload();
   }
 
   changePage(p: number) { if (p >= 1 && p <= this.totalPages()) { this.page.set(p); this.loadData(); } }
