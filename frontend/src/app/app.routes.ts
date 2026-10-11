@@ -9,6 +9,7 @@ import { ApplicationsListComponent } from './pages/applications/list/application
 import { KanbanComponent } from './pages/applications/kanban/kanban.component';
 import { AnalyticsComponent } from './pages/applications/analytics/analytics.component';
 import { CalendarComponent } from './pages/applications/calendar/calendar.component';
+import { FollowUpsComponent } from './pages/applications/follow-ups/follow-ups.component';
 import { ResumesComponent } from './pages/applications/resumes/resumes.component';
 import { ApplicationDetailComponent } from './pages/applications/detail/application-detail.component';
 import { ApplicationCreateComponent } from './pages/applications/create/application-create.component';
@@ -55,6 +56,7 @@ export const routes: Routes = [
       { path: 'kanban', component: KanbanComponent },
       { path: 'analytics', component: AnalyticsComponent },
       { path: 'calendar', component: CalendarComponent },
+      { path: 'follow-ups', component: FollowUpsComponent },
       { path: 'resumes', component: ResumesComponent },
     ],
   },

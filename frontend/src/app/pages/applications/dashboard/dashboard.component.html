@@ -18,7 +18,7 @@
       </div>
     </div>
     <p class="greeting-sub">
-      You have <strong>{{ pendingFollowUps() }} follow-ups</strong> this week and <strong>{{ activeOffers() }} active offers</strong>. Let's keep moving.
+      You have <strong class="link" (click)="goToFollowUps()">{{ pendingFollowUps() }} applications to follow up on</strong> and <strong>{{ activeOffers() }} active offers</strong>. Let's keep moving.
     </p>
   </div>
 
@@ -92,12 +92,12 @@
     <div class="card followups-card">
       <div class="card-head">
         <span class="card-title">Follow-ups</span>
-        <a class="see-link" (click)="goToCalendar()">See calendar →</a>
+        <a class="see-link" (click)="goToFollowUps()">See all →</a>
       </div>
-      <p class="card-sub">What's next this week</p>
+      <p class="card-sub">Quiet for 7+ days, oldest first</p>
       <div class="followup-list">
         @for (item of followUpItems(); track item.id) {
-          <div class="followup-row">
+          <div class="followup-row" (click)="goToFollowUps()">
             <app-company-logo [companyName]="item.company" size="sm" />
             <div class="followup-body">
               <div class="followup-company">{{ item.company }}</div>
@@ -106,7 +106,7 @@
             <span class="followup-time">{{ item.timeAgo }}</span>
           </div>
         } @empty {
-          <div class="followup-empty">No follow-ups scheduled this week.</div>
+          <div class="followup-empty">Nothing has been quiet for a week. You're caught up.</div>
         }
       </div>
     </div>

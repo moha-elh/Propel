@@ -408,6 +408,15 @@ export const STATUS_ORDER: readonly ApplicationStatus[] = [
   'WITHDRAWN',
 ] as const;
 
+/** Statuses still waiting on the company, so candidates for a follow-up nudge. */
+export const AWAITING_STATUSES: ApplicationStatus[] = ['APPLIED', 'SCREENING', 'ASSESSMENT', 'INTERVIEW'];
+
+/** Whole days since the application last moved (status change, sent attempt, logged follow-up).
+ *  ponytail: uses updatedAt, so a notes/priority edit also resets the clock; add a lastActivityAt column if that bites. */
+export function daysQuiet(a: { updatedAt: string }): number {
+  return Math.floor((Date.now() - new Date(a.updatedAt).getTime()) / 86_400_000);
+}
+
 export const STATUS_LABELS: Record<ApplicationStatus, string> = {
   SAVED: 'Saved',
   APPLIED: 'Applied',

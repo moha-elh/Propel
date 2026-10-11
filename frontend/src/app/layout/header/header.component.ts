@@ -39,6 +39,7 @@ export class HeaderComponent {
     '/applications/list':      'Applications',
     '/applications/analytics': 'Analytics',
     '/applications/calendar':  'Calendar',
+    '/applications/follow-ups': 'Follow-ups',
     '/my-career':              'My Career',
     '/companies':              'Companies',
     '/companies/:id':          'Company Details',

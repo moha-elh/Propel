@@ -1,0 +1,71 @@
+<div class="fu-shell">
+  <header class="fu-head">
+    <div>
+      <h1>Follow-ups</h1>
+      <p class="fu-sub">
+        @if (loading()) { Checking your pipeline… }
+        @else if (due().length) { <strong>{{ due().length }}</strong> {{ due().length === 1 ? 'application has' : 'applications have' }} been quiet for {{ threshold() }}+ days. Nudge them or close them out. }
+        @else { Nothing has been quiet for {{ threshold() }}+ days. }
+      </p>
+    </div>
+    <div class="fu-thresh" role="group" aria-label="Quiet for at least">
+      <span>Quiet for</span>
+      @for (t of THRESHOLDS; track t) {
+        <button [class.on]="threshold() === t" (click)="threshold.set(t)">{{ t }}+ days</button>
+      }
+    </div>
+  </header>
+
+  <div class="fu-body">
+    @if (!loading()) {
+      @if (due().length) {
+        <ul class="fu-list">
+          @for (a of due(); track a.id) {
+            <ng-container *ngTemplateOutlet="row; context: { $implicit: a }" />
+          }
+        </ul>
+      } @else {
+        <div class="fu-clear">
+          <p class="fu-clear-title">You're caught up.</p>
+          <p>Every application waiting on a reply moved in the last {{ threshold() }} days.
+            @if (soon().length) { {{ soon().length }} will come due soon, listed below. }</p>
+        </div>
+      }
+
+      @if (soon().length) {
+        <h2 class="fu-section">Coming up <span>{{ soon().length }}</span></h2>
+        <ul class="fu-list muted">
+          @for (a of soon(); track a.id) {
+            <ng-container *ngTemplateOutlet="row; context: { $implicit: a }" />
+          }
+        </ul>
+      }
+    }
+  </div>
+</div>
+
+<ng-template #row let-a>
+  <li class="fu-row">
+    <a class="fu-main" [routerLink]="['/applications', a.id]">
+      <app-company-logo [companyName]="a.companyName" size="md" />
+      <div class="fu-text">
+        <div class="fu-co">{{ a.companyName }}</div>
+        <div class="fu-role">{{ a.positionTitle }}</div>
+      </div>
+    </a>
+    <div class="fu-meta">
+      <span class="fu-status"><i [style.background]="statusColors[a.status]"></i>{{ statusLabels[a.status] }}</span>
+      <span class="fu-applied">Applied {{ formatDate(a.appliedAt) }}</span>
+    </div>
+    <div class="fu-contact" [title]="a.recipientContact || ''">
+      @if (a.recipientName || a.recipientContact) { {{ a.recipientName || a.recipientContact }} }
+      @else { <span class="none">No contact saved</span> }
+    </div>
+    <div class="fu-quiet" [attr.data-u]="urgency(a)">{{ daysQuiet(a) }}d quiet</div>
+    <div class="fu-actions">
+      <a class="btn primary" [routerLink]="['/mailbox']" [queryParams]="{ followUp: a.id }">Write follow-up</a>
+      <button class="btn" [disabled]="busy() === a.id" (click)="markFollowedUp(a)" title="You followed up another way (LinkedIn, phone…). Resets the clock.">Mark done</button>
+      <button class="btn ghost" [disabled]="busy() === a.id" (click)="markGhosted(a)" title="No answer, move to Rejected">Ghosted</button>
+    </div>
+  </li>
+</ng-template>

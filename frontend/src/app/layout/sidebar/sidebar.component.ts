@@ -119,6 +119,7 @@ export class SidebarComponent {
     { label: 'Apply',        route: '/applications/apply',      icon: 'send',      exact: false, accent: true, group: 'main' },
     { label: 'Analytics',    route: '/applications/analytics', icon: 'analytics', exact: false, group: 'main' },
     { label: 'Calendar',     route: '/applications/calendar',  icon: 'calendar',  exact: false, group: 'main' },
+    { label: 'Follow-ups',   route: '/applications/follow-ups', icon: 'followup', exact: false, group: 'main' },
   ];
 
   navLibrary: NavItem[] = [

@@ -79,11 +79,17 @@ export class AppSelectComponent implements AfterContentInit, OnDestroy, ControlV
 
   openPanel(): void {
     const rect = this.host.nativeElement.getBoundingClientRect();
+    // Open upward when there isn't room below (e.g. selects in a footer bar).
+    const below = window.innerHeight - rect.bottom - 8;
+    const above = rect.top - 8;
+    const up = below < 200 && above > below;
+    const maxH = Math.min(280, Math.max(up ? above : below, 120));
     this.panelStyle.set({
       position: 'fixed',
-      top: `${rect.bottom + 4}px`,
+      ...(up ? { bottom: `${window.innerHeight - rect.top + 4}px` } : { top: `${rect.bottom + 4}px` }),
       left: `${rect.left}px`,
-      width: `${rect.width}px`,
+      'min-width': `${rect.width}px`,
+      'max-height': `${maxH}px`,
       'z-index': '5000',
     });
     this.open.set(true);

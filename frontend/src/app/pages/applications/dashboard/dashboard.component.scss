@@ -346,6 +346,7 @@
 }
 
 .followup-row {
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -405,3 +406,5 @@
   .stats-row { grid-template-columns: repeat(2, 1fr); }
   .bottom-grid { grid-template-columns: 1fr; }
 }
+
+.link { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border-2); }

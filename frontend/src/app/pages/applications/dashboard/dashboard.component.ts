@@ -4,7 +4,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { ApplicationService } from '@app/services/application.service';
 import { AuthService } from '@app/services/auth.service';
-import { StatisticsTrendsDto, MonthlyTrendDto, ApplicationResponseDto } from '@app/models/application.model';
+import { StatisticsTrendsDto, MonthlyTrendDto, ApplicationResponseDto, AWAITING_STATUSES, daysQuiet } from '@app/models/application.model';
 import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
 import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
 
@@ -51,7 +51,7 @@ export class DashboardComponent implements OnInit {
     try {
       const [trendsRes, appsRes] = await Promise.all([
         this.appService.getTrends(),
-        this.appService.getAll({ page: 1, pageSize: 50 }),
+        this.appService.getAll({ page: 1, pageSize: 500 }),
       ]);
       if (trendsRes.success && trendsRes.data) this.trends.set(trendsRes.data);
       if (appsRes.success && appsRes.data) this.applications.set(appsRes.data.items);
@@ -108,7 +108,10 @@ export class DashboardComponent implements OnInit {
     return `${days[d.getDay()]} · ${months[d.getMonth()]} ${d.getDate()}`;
   });
 
-  pendingFollowUps = computed(() => this.s().applied);
+  private dueFollowUps = computed(() => this.applications()
+    .filter(a => AWAITING_STATUSES.includes(a.status) && daysQuiet(a) >= 7)
+    .sort((a, b) => daysQuiet(b) - daysQuiet(a)));
+  pendingFollowUps = computed(() => this.dueFollowUps().length);
   activeOffers = computed(() => this.s().offer);
 
   monthApplied = computed(() => {
@@ -172,28 +175,12 @@ export class DashboardComponent implements OnInit {
     ];
   });
 
-  followUpItems = computed<FollowUpItem[]>(() => {
-    const apps = this.applications();
-    if (apps.length === 0) return [];
-
-    const awaiting = apps.filter(a => a.status === 'APPLIED' || a.status === 'SCREENING' || a.status === 'ASSESSMENT');
-    if (awaiting.length === 0) return [];
-
-    return awaiting.slice(0, 5).map(a => ({
-      id: a.id,
-      company: a.companyName,
-      role: a.positionTitle,
-      timeAgo: this.relativeTime(a.updatedAt),
-    }));
-  });
-
-  private relativeTime(dateStr: string): string {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const days = Math.floor(diff / 86400000);
-    if (days === 0) return 'today';
-    if (days === 1) return '1d ago';
-    return `${days}d ago`;
-  }
+  followUpItems = computed<FollowUpItem[]>(() => this.dueFollowUps().slice(0, 5).map(a => ({
+    id: a.id,
+    company: a.companyName,
+    role: a.positionTitle,
+    timeAgo: `${daysQuiet(a)}d quiet`,
+  })));
 
   hasPipelineData = computed(() => this.s().total > 0);
 
@@ -248,5 +235,5 @@ export class DashboardComponent implements OnInit {
 
   goToGenerate() { this.router.navigate(['/applications/generate']); }
   addApplication() { this.router.navigate(['/applications/new']); }
-  goToCalendar() { this.router.navigate(['/applications/calendar']); }
+  goToFollowUps() { this.router.navigate(['/applications/follow-ups']); }
 }

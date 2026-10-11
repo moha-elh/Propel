@@ -32,6 +32,14 @@ import {
 const DEFAULT_LOGIN_EMAIL = 'mouhssineelhaouary@gmail.com';
 const DEFAULT_LOGIN_PASSWORD = 'Stage2027';
 
+/** Case- and accent-insensitive lookup of `value` in `list`; returns the list's spelling. */
+function matchName(list: string[], value?: string): string | undefined {
+  const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  if (!value?.trim()) return undefined;
+  const key = norm(value);
+  return list.find(c => norm(c) === key);
+}
+
 interface ChannelTile {
   value: AttemptChannel;
   label: string;
@@ -120,7 +128,9 @@ export class ApplicationCreateComponent implements OnInit {
           'Extract job-application fields from the text. Reply with ONLY a JSON object, no markdown, ' +
           'using these keys (empty string when unknown): companyName, positionTitle, offerSource ' +
           '(e.g. LinkedIn, company site, referral), internshipType (e.g. PFE, summer, "" if not an internship), ' +
-          'recipientName (contact person), recipientEmail, notes (short 1-2 sentence summary).',
+          'recipientName (contact person), recipientEmail, notes (short 1-2 sentence summary), ' +
+          'city (the job location city only, full official name, e.g. "Casablanca" not "Casa"; "" if remote or not stated), ' +
+          'country (English country name of the job location, e.g. "Morocco"; infer it from the city when only the city is given).',
         user: text,
         temperature: 0,
       });
@@ -142,6 +152,11 @@ export class ApplicationCreateComponent implements OnInit {
       set(this.recipientName, d['recipientName']);
       set(this.recipientContact, d['recipientEmail']);
       if (d['companyName']?.trim()) this.companyIsNew.set(true);
+      // Snap the AI's spelling onto our lists ("kenitra" → "Kénitra") so the dropdowns match.
+      const country = matchName(COUNTRIES, d['country']);
+      if (country) this.companyCountry.set(country);
+      const city = d['city']?.trim();
+      if (city) this.companyLocation.set(matchName(this.citySuggestions(), city) ?? city);
       this.pasteOpen.set(false);
       this.pasteText.set('');
     } catch {

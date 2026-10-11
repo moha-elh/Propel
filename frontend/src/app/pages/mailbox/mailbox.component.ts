@@ -17,6 +17,7 @@ import { ToastService } from '@app/services/toast.service';
 import { DocumentsService } from '@app/services/documents.service';
 import { AuthService } from '@app/services/auth.service';
 import { CompanyService } from '@app/services/company.service';
+import { ApplicationService } from '@app/services/application.service';
 import {
   resolveTemplateVars,
   recipientGreeting,
@@ -205,6 +206,9 @@ export class MailboxComponent implements OnInit {
   private readonly directAi = inject(DirectAiService);
   private readonly authSvc = inject(AuthService);
   private readonly companySvc = inject(CompanyService);
+  private readonly appSvc = inject(ApplicationService);
+  /** Application opened via ?followUp=<id>; stays a log-attempt candidate whoever the recipient is. */
+  private followUpApp: ApplicationResponseDto | null = null;
 
   view = signal<MailboxView>((localStorage.getItem('mailbox-view') as MailboxView) || 'compose');
 
@@ -668,6 +672,37 @@ export class MailboxComponent implements OnInit {
       this.contactFormPosition.set('');
       this.contactFormAvatar.set(null);
     }
+    const followUp = params.get('followUp');
+    if (followUp) void this.prefillFollowUp(followUp);
+  }
+
+  /** /mailbox?followUp=<applicationId>: Follow-up template filled for that application, logged on send. */
+  private async prefillFollowUp(appId: string) {
+    const app = (await this.appSvc.getById(appId).catch(() => null))?.data;
+    if (!app) return;
+    this.followUpApp = app;
+    this.view.set('compose');
+    const t = EMAIL_TEMPLATES.find(x => x.name === (app.status === 'INTERVIEW' ? 'Post-Interview Follow-up' : 'Follow-up'))!;
+    const user = this.authSvc.currentUser();
+    const vars: Record<string, string> = {
+      '[Position]': app.positionTitle,
+      '[Company]': app.companyName,
+      '[Recruiter Name]': app.recipientName || 'Hiring Team',
+      '[Your Name]': `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || '[Your Name]',
+    };
+    const fill = (s: string) => Object.entries(vars).reduce((acc, [k, v]) => acc.split(k).join(v), s);
+    this.composeSubject.set(fill(t.subject));
+    this.composeBody.set(fill(t.body));
+    this.activeTemplate.set(t.name);
+
+    const contact = app.contactId
+      ? (await this.contactApi.getContact(app.contactId).catch(() => null))?.data
+      : app.recipientContact
+        ? (await this.contactApi.getContacts({ search: app.recipientContact, pageSize: 5 }).catch(() => null))?.data?.items
+            ?.find(c => c.email?.toLowerCase() === app.recipientContact!.toLowerCase())
+        : undefined;
+    if (contact) this.composeRecipients.set([contact]);
+    await this.refreshAttemptCandidates();
   }
 
   async loadGmailStatus() {
@@ -942,6 +977,7 @@ export class MailboxComponent implements OnInit {
         this.composeRecipients.set([]);
         this.composeSubject.set('');
         this.composeBody.set('');
+        this.followUpApp = null;
         this.attemptCandidates.set([]);
         this.attemptAppId.set(null);
         this.logAttempt.set(true);
@@ -1074,6 +1110,11 @@ export class MailboxComponent implements OnInit {
   /** Distinct applications linked to any chosen recipient (cached per contact). */
   private async refreshAttemptCandidates() {
     const recipients = this.composeRecipients();
+    if (recipients.length === 0 && this.followUpApp) {
+      this.attemptCandidates.set([this.followUpApp]);
+      this.attemptAppId.set(this.followUpApp.id);
+      return;
+    }
     if (recipients.length === 0) {
       this.attemptCandidates.set([]);
       this.attemptAppId.set(null);
@@ -1096,13 +1137,14 @@ export class MailboxComponent implements OnInit {
       for (const app of apps) byId.set(app.id, app);
     }
 
+    if (this.followUpApp) byId.set(this.followUpApp.id, this.followUpApp);
     const candidates = [...byId.values()];
     this.attemptCandidates.set(candidates);
 
     // Keep the current pick if still valid; otherwise preselect the first candidate.
     const current = this.attemptAppId();
     if (!candidates.some(a => a.id === current)) {
-      this.attemptAppId.set(candidates[0]?.id ?? null);
+      this.attemptAppId.set(this.followUpApp?.id ?? candidates[0]?.id ?? null);
       this.logAttempt.set(true);
     }
   }
