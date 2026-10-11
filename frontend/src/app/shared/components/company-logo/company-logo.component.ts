@@ -1,4 +1,36 @@
-import { Component, Input, computed, signal } from '@angular/core';
+import { Component, Injectable, Input, computed, inject, signal } from '@angular/core';
+import { HttpService } from '@app/services/http.service';
+import { ApiResponse } from '@app/models/application.model';
+
+const normName = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+/**
+ * Name → saved logo/website for the user's companies, so every <app-company-logo> that only
+ * knows a company name (applications, kanban, calendar…) shows the logo stored on the company
+ * instead of a guessed one. One request, cached; CompanyService invalidates it on create/update.
+ */
+@Injectable({ providedIn: 'root' })
+export class CompanyLogoDirectory {
+  private http = inject(HttpService);
+  private byName = signal(new Map<string, { logoUrl: string | null; website: string | null }>());
+  private loading: Promise<void> | null = null;
+
+  lookup(name: string) {
+    this.ensureLoaded();
+    return this.byName().get(normName(name));
+  }
+
+  invalidate() { this.loading = null; this.ensureLoaded(); }
+
+  private ensureLoaded() {
+    // ponytail: loads up to 2000 companies in one call; page it if a user ever has more.
+    this.loading ??= this.http
+      .get<ApiResponse<{ items: { name: string; logoUrl?: string | null; websiteUrl?: string | null }[] }>>('/api/companies?pageSize=2000')
+      .then(res => this.byName.set(new Map((res.data?.items ?? []).map(c =>
+        [normName(c.name), { logoUrl: c.logoUrl || null, website: c.websiteUrl || null }]))))
+      .catch(() => { this.loading = null; });
+  }
+}
 
 const LEGAL_SUFFIXES = new Set([
   'inc', 'incorp', 'incorporated', 'corp', 'corporation', 'co', 'company',
@@ -99,19 +131,32 @@ export function logoDomain(website: string | null | undefined, name: string): st
   ],
 })
 export class CompanyLogoComponent {
-  @Input() companyName = '';
-  @Input() logoUrl: string | null = null;
-  /** The company's real website, when known — gives an accurate logo domain. */
-  @Input() website: string | null = null;
-  @Input() size: 'sm' | 'md' | 'lg' = 'md';
-
   private logoFailed = signal(false);
   private favFailed = signal(false);
   allFailed = signal(false);
 
+  // Signal-backed so the computeds below follow input changes (e.g. live previews).
+  private _name = signal('');
+  private _logo = signal<string | null>(null);
+  private _website = signal<string | null>(null);
+  @Input() set companyName(v: string | null | undefined) { this._name.set(v ?? ''); this.logoFailed.set(false); this.favFailed.set(false); this.allFailed.set(false); }
+  get companyName(): string { return this._name(); }
+  @Input() set logoUrl(v: string | null | undefined) { this._logo.set(v || null); this.logoFailed.set(false); }
+  get logoUrl(): string | null { return this._logo(); }
+  /** The company's real website, when known — gives an accurate logo domain. */
+  @Input() set website(v: string | null | undefined) { this._website.set(v || null); }
+  get website(): string | null { return this._website(); }
+  @Input() size: 'sm' | 'md' | 'lg' = 'md';
+
+  private directory = inject(CompanyLogoDirectory);
+  /** Explicit inputs win; otherwise use what's saved on the company with this name. */
+  private saved = computed(() => this.companyName ? this.directory.lookup(this.companyName) : undefined);
+
+
   imgSrc = computed<string | null>(() => {
-    if (this.logoUrl && !this.logoFailed()) return this.logoUrl;
-    const d = logoDomain(this.website, this.companyName);
+    const logo = this.logoUrl ?? this.saved()?.logoUrl;
+    if (logo && !this.logoFailed()) return logo;
+    const d = logoDomain(this.website ?? this.saved()?.website, this.companyName);
     if (d && !this.favFailed()) {
       // unavatar aggregates real brand logos; fallback=false returns 404 on a
       // miss so our initials chip shows instead of a generic placeholder image.
@@ -121,7 +166,7 @@ export class CompanyLogoComponent {
   });
 
   onImgError() {
-    if (this.logoUrl && !this.logoFailed()) {
+    if ((this.logoUrl ?? this.saved()?.logoUrl) && !this.logoFailed()) {
       this.logoFailed.set(true);
     } else {
       this.favFailed.set(true);

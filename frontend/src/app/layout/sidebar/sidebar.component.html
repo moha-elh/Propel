@@ -119,6 +119,9 @@
         @if (item.accent) {
           <span class="ai-badge">AI</span>
         }
+        @if (item.icon === 'followup' && dueFollowUps() > 0) {
+          <span class="due-badge" [title]="dueFollowUps() + ' quiet for 7+ days'">{{ dueFollowUps() }}</span>
+        }
       </a>
     }
   </nav>

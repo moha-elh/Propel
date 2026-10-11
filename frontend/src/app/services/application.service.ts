@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpService } from '../services/http.service';
 import {
   ApplicationResponseDto,
@@ -17,6 +17,8 @@ import {
   UpdateAttemptDto,
   ContactSummaryDto,
   ApiResponse,
+  AWAITING_STATUSES,
+  daysQuiet,
 } from '../models/application.model';
 import { CalendarEventDto } from '@app/models/calendar-event.model';
 
@@ -25,6 +27,21 @@ import { CalendarEventDto } from '@app/models/calendar-event.model';
 })
 export class ApplicationService {
   private http = inject(HttpService);
+
+  /** Applications quiet for 7+ days; drives the sidebar badge. Pages that already hold the list set it directly. */
+  readonly dueFollowUps = signal(0);
+
+  async refreshDueFollowUps(): Promise<void> {
+    try {
+      const res = await this.getAll({ statuses: AWAITING_STATUSES, pageSize: 500 });
+      if (res.success && res.data) this.dueFollowUps.set(res.data.items.filter(a => daysQuiet(a) >= 7).length);
+    } catch { /* badge is best-effort */ }
+  }
+
+  /** Emails the follow-up list to the user's connected Gmail now. */
+  sendFollowUpDigest(): Promise<ApiResponse<number>> {
+    return this.http.post<ApiResponse<number>>('/api/applications/follow-ups/digest', {});
+  }
 
   async getAll(params?: {
     candidateId?: string;

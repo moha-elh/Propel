@@ -8,16 +8,28 @@
         @else { Nothing has been quiet for {{ threshold() }}+ days. }
       </p>
     </div>
-    <div class="fu-thresh" role="group" aria-label="Quiet for at least">
-      <span>Quiet for</span>
-      @for (t of THRESHOLDS; track t) {
-        <button [class.on]="threshold() === t" (click)="threshold.set(t)">{{ t }}+ days</button>
-      }
+    <div class="fu-head-right">
+      <div class="fu-thresh" role="group" aria-label="Quiet for at least">
+        <span>Quiet for</span>
+        @for (t of THRESHOLDS; track t) {
+          <button [class.on]="threshold() === t" (click)="threshold.set(t)">{{ t }}+ days</button>
+        }
+      </div>
+      <button class="btn" [disabled]="emailing()" (click)="emailMe()" title="Sends the 7+ day list to your connected Gmail. It also arrives automatically every Monday.">
+        {{ emailing() ? 'Sending…' : 'Email me this list' }}
+      </button>
     </div>
   </header>
 
   <div class="fu-body">
     @if (!loading()) {
+      @if (stale().length) {
+        <div class="fu-stale">
+          <span><strong>{{ stale().length }}</strong> {{ stale().length === 1 ? 'has' : 'have' }} been quiet for 30+ days. After a month without a reply, most of these are closed.</span>
+          <button class="btn" [disabled]="closing()" (click)="closeAllStale()">{{ closing() ? 'Closing…' : 'Close all as ghosted' }}</button>
+        </div>
+      }
+
       @if (due().length) {
         <ul class="fu-list">
           @for (a of due(); track a.id) {
@@ -37,6 +49,28 @@
         <ul class="fu-list muted">
           @for (a of soon(); track a.id) {
             <ng-container *ngTemplateOutlet="row; context: { $implicit: a }" />
+          }
+        </ul>
+      }
+
+      @if (savedByAge().length) {
+        <h2 class="fu-section">Saved, never applied <span>{{ savedByAge().length }}</span></h2>
+        <ul class="fu-list">
+          @for (a of savedByAge(); track a.id) {
+            <li class="fu-row saved">
+              <a class="fu-main" [routerLink]="['/applications', a.id]">
+                <app-company-logo [companyName]="a.companyName" size="md" />
+                <div class="fu-text">
+                  <div class="fu-co">{{ a.companyName }}</div>
+                  <div class="fu-role">{{ a.positionTitle }}</div>
+                </div>
+              </a>
+              <div class="fu-quiet" [attr.data-u]="urgency(a)">Saved {{ daysQuiet(a) }}d ago</div>
+              <div class="fu-actions">
+                <a class="btn primary" [routerLink]="['/applications', a.id]" title="Open it and use Log attempt once you've applied">Apply now</a>
+                <button class="btn ghost" [disabled]="busy() === a.id" (click)="dropSaved(a)" title="Not interested any more, move to Withdrawn">Drop</button>
+              </div>
+            </li>
           }
         </ul>
       }

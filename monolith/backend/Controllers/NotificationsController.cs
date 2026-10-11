@@ -43,7 +43,7 @@ public class NotificationsController : BaseApiController
     {
         var userId = GetUserId();
         var prefs = await _notificationSvc.GetUserPreferencesAsync(userId);
-        return Ok(prefs);
+        return Ok(ApiResponse<NotificationPreferenceDto>.Ok(prefs));
     }
 
     [HttpPut("preferences")]
@@ -51,7 +51,7 @@ public class NotificationsController : BaseApiController
     {
         var userId = GetUserId();
         var prefs = await _notificationSvc.UpdateUserPreferencesAsync(userId, dto);
-        return Ok(prefs);
+        return Ok(ApiResponse<NotificationPreferenceDto>.Ok(prefs));
     }
 }
 

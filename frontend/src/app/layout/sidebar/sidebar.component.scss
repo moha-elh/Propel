@@ -22,6 +22,7 @@
 .sidebar.collapsed .keycap,
 .sidebar.collapsed .nav-label,
 .sidebar.collapsed .ai-badge,
+.sidebar.collapsed .due-badge,
 .sidebar.collapsed .user-info,
 .sidebar.collapsed .user-row .logout-btn {
   display: none;
@@ -319,6 +320,21 @@
   background: var(--bg-2);
   color: var(--text-3);
   border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.due-badge {
+  margin-left: auto;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: oklch(0.55 0.18 25);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
 

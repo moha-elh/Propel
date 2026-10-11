@@ -29,6 +29,26 @@ public class ApplicationsController : ControllerBase
 
     private Guid? UserId => _currentUser.UserId;
 
+    /// POST /applications/follow-ups/digest: email me the applications quiet for 7+ days, now.
+    [HttpPost("follow-ups/digest")]
+    public async Task<IActionResult> SendFollowUpDigest([FromServices] FollowUpDigestService digest)
+    {
+        if (UserId == null) return Unauthorized(ApiResponse<object>.Error("Unable to determine user identity"));
+        try
+        {
+            var count = await digest.SendAsync(UserId.Value);
+            return Ok(ApiResponse<int>.Ok(count, count == 0 ? "Nothing is waiting on a follow-up" : $"Sent a list of {count}"));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<int>.Error(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(502, ApiResponse<int>.Error($"Sending through Gmail failed: {ex.Message}"));
+        }
+    }
+
     /// GET /applications
     [HttpGet]
     public async Task<IActionResult> GetAll(

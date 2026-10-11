@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpService } from './http.service';
+import { CompanyLogoDirectory } from '@app/shared/components/company-logo/company-logo.component';
 import { ApiResponse, ApplicationResponseDto } from '../models/application.model';
 import { ContactDto } from '@app/models/mailbox.model';
 
@@ -82,6 +83,7 @@ export interface CompanyListResponse {
 @Injectable({ providedIn: 'root' })
 export class CompanyService {
   private readonly http = inject(HttpService);
+  private readonly logos = inject(CompanyLogoDirectory);
 
   getCompanies(params?: {
     search?: string;
@@ -120,12 +122,16 @@ export class CompanyService {
     return this.http.get<ApiResponse<CompanyDto>>(`/api/companies/${id}`);
   }
 
-  createCompany(dto: CreateCompanyDto): Promise<ApiResponse<CompanyDto>> {
-    return this.http.post<ApiResponse<CompanyDto>>('/api/companies', dto);
+  async createCompany(dto: CreateCompanyDto): Promise<ApiResponse<CompanyDto>> {
+    const res = await this.http.post<ApiResponse<CompanyDto>>('/api/companies', dto);
+    this.logos.invalidate();
+    return res;
   }
 
-  updateCompany(id: string, dto: UpdateCompanyDto): Promise<ApiResponse<CompanyDto>> {
-    return this.http.put<ApiResponse<CompanyDto>>(`/api/companies/${id}`, dto);
+  async updateCompany(id: string, dto: UpdateCompanyDto): Promise<ApiResponse<CompanyDto>> {
+    const res = await this.http.put<ApiResponse<CompanyDto>>(`/api/companies/${id}`, dto);
+    this.logos.invalidate();
+    return res;
   }
 
   deleteCompany(id: string): Promise<void> {

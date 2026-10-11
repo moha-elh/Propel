@@ -9,6 +9,17 @@
 }
 .fu-sub { margin: 6px 0 0; font-size: 14px; color: var(--text-2); strong { color: var(--text); font-weight: 600; } }
 
+.fu-head-right { display: flex; align-items: center; gap: 16px; }
+
+.fu-stale {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  margin: 16px 0 8px; padding: 10px 14px; border-radius: 8px;
+  background: oklch(0.97 0.02 25); color: var(--text-2); font-size: 14px;
+  strong { color: var(--text); font-weight: 600; }
+}
+
+.fu-row.saved { grid-template-columns: minmax(220px, 1fr) 140px auto; }
+
 .fu-thresh {
   display: flex; align-items: center; gap: 2px; font-size: 12px; color: var(--text-3);
   span { margin-right: 8px; }
@@ -64,7 +75,7 @@
 }
 
 .fu-section {
-  margin: 32px 0 4px; font-size: 14px; font-weight: 600; color: var(--text-2);
+  margin: 40px 0 4px; font-size: 16px; font-weight: 600; color: var(--text-2);
   span { color: var(--text-4); margin-left: 4px; }
 }
 

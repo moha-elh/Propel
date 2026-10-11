@@ -124,6 +124,8 @@ builder.Services.AddSingleton<IMinioStorageService, MinioStorageService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<CvGenerationBackgroundService>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<TemplateRenderBackgroundService>());
 builder.Services.AddHostedService<EmailScheduleWorker>();
+builder.Services.AddScoped<FollowUpDigestService>();
+builder.Services.AddHostedService<FollowUpDigestWorker>();
 
 // SignalR
 builder.Services.AddSignalR();

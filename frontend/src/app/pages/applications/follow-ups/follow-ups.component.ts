@@ -1,8 +1,9 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApplicationService } from '@app/services/application.service';
 import { ToastService } from '@app/services/toast.service';
+import { ConfirmService } from '@app/services/confirm.service';
 import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
 import {
   ApplicationResponseDto, ApplicationStatus, AWAITING_STATUSES, STATUS_LABELS, STATUS_COLORS, daysQuiet,
@@ -18,6 +19,7 @@ import {
 export class FollowUpsComponent implements OnInit {
   private appService = inject(ApplicationService);
   private toast = inject(ToastService);
+  private confirm = inject(ConfirmService);
 
   readonly THRESHOLDS = [7, 14, 30];
   // Loosely typed: the row template's context variable is `any`.
@@ -26,7 +28,11 @@ export class FollowUpsComponent implements OnInit {
   readonly daysQuiet = daysQuiet;
 
   apps = signal<ApplicationResponseDto[]>([]);
+  /** SAVED: bookmarked but never applied to. */
+  saved = signal<ApplicationResponseDto[]>([]);
   loading = signal(true);
+  emailing = signal(false);
+  closing = signal(false);
   busy = signal<string | null>(null);
   threshold = signal(7);
 
@@ -39,12 +45,22 @@ export class FollowUpsComponent implements OnInit {
     .filter(a => daysQuiet(a) < this.threshold())
     .sort((a, b) => daysQuiet(b) - daysQuiet(a)));
 
+  stale = computed(() => this.apps().filter(a => daysQuiet(a) >= 30));
+  savedByAge = computed(() => [...this.saved()].sort((a, b) => daysQuiet(b) - daysQuiet(a)));
+
+  constructor() {
+    effect(() => this.appService.dueFollowUps.set(this.apps().filter(a => daysQuiet(a) >= 7).length));
+  }
+
   ngOnInit() { this.load(); }
 
   async load() {
     try {
-      const res = await this.appService.getAll({ statuses: AWAITING_STATUSES, pageSize: 500 });
-      if (res.success && res.data) this.apps.set(res.data.items);
+      const res = await this.appService.getAll({ statuses: [...AWAITING_STATUSES, 'SAVED'], pageSize: 500 });
+      if (res.success && res.data) {
+        this.apps.set(res.data.items.filter(a => a.status !== 'SAVED'));
+        this.saved.set(res.data.items.filter(a => a.status === 'SAVED'));
+      }
     } catch {
       this.toast.error('Could not load applications');
     } finally { this.loading.set(false); }
@@ -59,17 +75,55 @@ export class FollowUpsComponent implements OnInit {
     return this.act(a, 'REJECTED', 'No response, closed from follow-ups', `${a.companyName} moved to Rejected`);
   }
 
-  private async act(a: ApplicationResponseDto, status: ApplicationStatus, comment: string, done: string) {
+  dropSaved(a: ApplicationResponseDto) {
+    return this.act(a, 'WITHDRAWN', 'Never applied, dropped from follow-ups', `${a.companyName} dropped`);
+  }
+
+  async closeAllStale() {
+    const list = this.stale();
+    const ok = await this.confirm.confirm({
+      title: `Close ${list.length} as ghosted?`,
+      message: `Every application quiet for 30+ days moves to Rejected with the note "No response". You can still reopen any of them from its page.`,
+      confirmText: `Close ${list.length}`,
+      variant: 'danger',
+    });
+    if (!ok) return;
+    this.closing.set(true);
+    let failed = 0;
+    for (const a of list) {
+      // Sequential on purpose: keeps status history ordered and the API calm.
+      if (!(await this.act(a, 'REJECTED', 'No response after 30+ days, bulk-closed from follow-ups', null))) failed++;
+    }
+    this.closing.set(false);
+    failed ? this.toast.error(`${failed} of ${list.length} could not be closed`) : this.toast.success(`Closed ${list.length} quiet applications`);
+  }
+
+  async emailMe() {
+    this.emailing.set(true);
+    try {
+      const res = await this.appService.sendFollowUpDigest();
+      this.toast.success(res.message ?? 'Sent');
+    } catch (e: any) {
+      this.toast.error(e?.error?.message ?? 'Could not send the email');
+    } finally { this.emailing.set(false); }
+  }
+
+  /** Returns whether it worked; `done` = null skips the per-item toast (bulk runs). */
+  private async act(a: ApplicationResponseDto, status: ApplicationStatus, comment: string, done: string | null): Promise<boolean> {
     this.busy.set(a.id);
     try {
       const res = await this.appService.updateStatus(a.id, { status, comment });
       if (!res.success) throw new Error();
-      this.apps.update(list => status === 'REJECTED'
+      const closed = status === 'REJECTED' || status === 'WITHDRAWN';
+      this.apps.update(list => closed
         ? list.filter(x => x.id !== a.id)
         : list.map(x => x.id === a.id ? { ...x, updatedAt: new Date().toISOString() } : x));
-      this.toast.success(done);
+      if (closed) this.saved.update(list => list.filter(x => x.id !== a.id));
+      if (done) this.toast.success(done);
+      return true;
     } catch {
-      this.toast.error('Update failed');
+      if (done) this.toast.error('Update failed');
+      return false;
     } finally { this.busy.set(null); }
   }
 

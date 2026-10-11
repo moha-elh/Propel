@@ -1,7 +1,9 @@
 import { Component, inject, computed, signal, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { filter } from 'rxjs';
+import { ApplicationService } from '@app/services/application.service';
 import { AuthService } from '@app/services/auth.service';
 import { APP_NAME } from '@app/app-name';
 
@@ -27,8 +29,17 @@ export class SidebarComponent {
   private authService = inject(AuthService);
 
   collapsed = signal(false);
+  private appService = inject(ApplicationService);
+  readonly dueFollowUps = this.appService.dueFollowUps;
+  private dueCheckedAt = 0;
 
   constructor() {
+    // Keep the Follow-ups badge roughly current; at most one check per 30s of navigation.
+    this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe(() => {
+      if (!this.authService.currentUser() || Date.now() - this.dueCheckedAt < 30_000) return;
+      this.dueCheckedAt = Date.now();
+      void this.appService.refreshDueFollowUps();
+    });
     try {
       if (typeof localStorage !== 'undefined' && localStorage.getItem('sb-collapsed') === '1') {
         this.collapsed.set(true);
