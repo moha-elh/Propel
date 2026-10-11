@@ -35,6 +35,15 @@ export class RevealOverlayComponent implements OnInit, AfterViewInit {
   constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
+    // Play once per browser session; refreshes and deep links show the app immediately.
+    let seen = false;
+    try { seen = sessionStorage.getItem('reveal-seen') === '1'; sessionStorage.setItem('reveal-seen', '1'); } catch { /* storage blocked */ }
+    if (seen) {
+      this.visible = false;
+      document.body.classList.add('page-revealed', 'reveal-skip');
+      return;
+    }
+
     document.body.classList.add('is-revealing');
 
     // Start typing the tagline after a short delay
@@ -45,6 +54,7 @@ export class RevealOverlayComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
+    if (!this.visible) return;
     this.addParticles(this.curtainLeft.nativeElement, 18);
     this.addParticles(this.curtainRight.nativeElement, 18);
     this.cdr.detectChanges();

@@ -1,9 +1,9 @@
 <div class="skill-library">
   <div class="lib-header">
     <div class="lib-title">
-      <h2>Skills</h2>
-      <p class="lib-sub" *ngIf="loading()">Loading…</p>
-      <p class="lib-sub" *ngIf="!loading()">{{ totalSkills() }} skill{{ totalSkills() === 1 ? '' : 's' }}</p>
+      <h1 class="ph-title">Skills</h1>
+      <p class="lib-sub ph-sub" *ngIf="loading()">Loading…</p>
+      <p class="lib-sub ph-sub" *ngIf="!loading()">{{ totalSkills() }} skill{{ totalSkills() === 1 ? '' : 's' }}</p>
     </div>
     <div class="lib-actions">
       <ng-container *ngIf="!manageMode()">

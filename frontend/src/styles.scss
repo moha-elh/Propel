@@ -305,17 +305,19 @@ input, textarea, select { font-family: inherit; color: inherit; }
 .mono { font-family: var(--font-mono); }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .eyebrow {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-4);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: oklch(0.85 0.005 80); border-radius: 3px; }
+
+/* ── Page header: one title/subtitle style for every app page ── */
+.ph-title { font-family: var(--font-display); font-size: 24px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; color: var(--text); margin: 0; }
+.ph-sub { font-size: 14px; line-height: 1.5; color: var(--text-3); }
 
 /* ── Page reveal animation ── */
 #page-content, app-home {
@@ -333,6 +335,7 @@ body.page-revealed app-home {
 }
 
 body.is-revealing { overflow: hidden; }
+body.reveal-skip #page-content, body.reveal-skip app-home { transition: none; }
 
 /* ── Animations ── */
 @keyframes fadeUp {

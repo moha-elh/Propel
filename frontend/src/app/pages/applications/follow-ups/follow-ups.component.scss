@@ -5,9 +5,9 @@
 .fu-head {
   display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;
   padding: 28px 32px 20px; border-bottom: 1px solid var(--border);
-  h1 { margin: 0; font-size: 24px; font-weight: 600; color: var(--text); }
+  h1 { margin: 0;color: var(--text); }
 }
-.fu-sub { margin: 6px 0 0; font-size: 14px; color: var(--text-2); strong { color: var(--text); font-weight: 600; } }
+.fu-sub { margin: 6px 0 0;color: var(--text-2); strong { color: var(--text); font-weight: 600; } }
 
 .fu-thresh {
   display: flex; align-items: center; gap: 2px; font-size: 12px; color: var(--text-3);

@@ -9,13 +9,9 @@
 }
 .apply-head h1 {
   margin: 0 0 6px;
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.025em;
   color: var(--text);
 }
-.apply-head .sub { color: var(--text-3); margin: 0; font-size: 13px; line-height: 1.5; }
+.apply-head .sub { color: var(--text-3); margin: 0;}
 
 .banner.error {
   background: #fef2f2;
@@ -134,7 +130,7 @@ textarea::placeholder, input::placeholder { color: var(--text-4); }
 
 /* Review grid */
 .review-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.review-grid strong { font-size: 0.72rem; color: var(--text-3); display: block; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 3px; }
+.review-grid strong { font-size: 0.72rem; color: var(--text-3); display: block;margin-bottom: 3px; }
 .review-grid div div { font-size: 0.9rem; color: var(--text); }
 .hint { margin: 8px 0 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 7px; margin: 16px 0 4px; }
@@ -210,9 +206,7 @@ textarea::placeholder, input::placeholder { color: var(--text-4); }
 .doc-pick-group {
   padding: 9px 14px 3px;
   font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-weight: 600;
   color: var(--text-3);
 }
 .doc-pick-row {
@@ -241,8 +235,6 @@ textarea::placeholder, input::placeholder { color: var(--text-4); }
 .preview h4 {
   margin: 0 0 12px;
   font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   color: var(--text-3);
 }
 .pv-row { display: flex; gap: 12px; padding: 5px 0; font-size: 0.86rem; }
@@ -362,8 +354,6 @@ textarea::placeholder, input::placeholder { color: var(--text-4); }
   margin: 0 0 8px;
   font-size: 0.8rem;
   color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 .req { color: var(--accent); }
 .sched-hint { font-size: 12px; color: var(--text-3); }

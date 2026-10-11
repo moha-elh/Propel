@@ -1,8 +1,8 @@
 <div class="fu-shell">
   <header class="fu-head">
     <div>
-      <h1>Follow-ups</h1>
-      <p class="fu-sub">
+      <h1 class="ph-title">Follow-ups</h1>
+      <p class="fu-sub ph-sub">
         @if (loading()) { Checking your pipeline… }
         @else if (due().length) { <strong>{{ due().length }}</strong> {{ due().length === 1 ? 'application has' : 'applications have' }} been quiet for {{ threshold() }}+ days. Nudge them or close them out. }
         @else { Nothing has been quiet for {{ threshold() }}+ days. }
