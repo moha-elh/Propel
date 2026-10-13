@@ -268,6 +268,10 @@ export class ApplicationDetailComponent implements OnInit {
     const s = this.application()?.status;
     return s === 'REJECTED' || s === 'WITHDRAWN';
   });
+  /** How the user applied: channel of the earliest sent attempt. */
+  firstSentChannel = computed(() =>
+    this.attempts().filter(a => a.status === 'SENT').sort((a, b) => a.attemptNumber - b.attemptNumber)[0]?.channel ?? null);
+  notesDirty = computed(() => this.editNotes() !== (this.application()?.notes || ''));
   daysInPipeline = computed(() => {
     const start = this.application()?.appliedAt;
     if (!start) return null;

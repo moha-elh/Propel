@@ -56,7 +56,8 @@ export class HeaderComponent {
       const match = Object.keys(this.ROUTE_NAMES)
         .sort((a, b) => b.length - a.length)
         .find(k => url.startsWith(k));
-      this.pageName = match ? this.ROUTE_NAMES[match] : 'Dashboard';
+      this.pageName = match ? this.ROUTE_NAMES[match]
+        : /^\/applications\/[0-9a-f-]{36}/.test(url) ? 'Application' : 'Dashboard';
     });
   }
 
