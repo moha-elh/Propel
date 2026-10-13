@@ -6,7 +6,7 @@ import { ToastService } from '@app/services/toast.service';
 import { ConfirmService } from '@app/services/confirm.service';
 import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
 import {
-  ApplicationResponseDto, ApplicationStatus, AWAITING_STATUSES, STATUS_LABELS, STATUS_COLORS, daysQuiet,
+  ApplicationResponseDto, ApplicationStatus, AWAITING_STATUSES, STATUS_LABELS, STATUS_COLORS, ATTEMPT_CHANNEL_LABELS, daysQuiet,
 } from '@app/models/application.model';
 
 @Component({
@@ -35,17 +35,35 @@ export class FollowUpsComponent implements OnInit {
   closing = signal(false);
   busy = signal<string | null>(null);
   threshold = signal(7);
+  /** Apply-channel filter: 'ALL', a channel key, or 'NONE' (no sent attempt logged). */
+  channel = signal('ALL');
 
-  due = computed(() => this.apps()
+  /** Channels present among awaiting applications, most used first. */
+  channelOptions = computed(() => {
+    const counts = new Map<string, number>();
+    for (const a of this.apps()) counts.set(a.applyChannel ?? 'NONE', (counts.get(a.applyChannel ?? 'NONE') ?? 0) + 1);
+    return [...counts].sort((x, y) => y[1] - x[1]).map(([value, count]) => ({ value, count, label: this.channelLabel(value) }));
+  });
+
+  private filtered = computed(() => {
+    const c = this.channel();
+    return c === 'ALL' ? this.apps() : this.apps().filter(a => (a.applyChannel ?? 'NONE') === c);
+  });
+
+  channelLabel(c: string | null | undefined): string {
+    return !c || c === 'NONE' ? 'Not logged' : (ATTEMPT_CHANNEL_LABELS as Record<string, string>)[c] ?? c;
+  }
+
+  due = computed(() => this.filtered()
     .filter(a => daysQuiet(a) >= this.threshold())
     .sort((a, b) => daysQuiet(b) - daysQuiet(a)));
 
   /** Quiet but not yet past the threshold, so the user sees what's coming. */
-  soon = computed(() => this.apps()
+  soon = computed(() => this.filtered()
     .filter(a => daysQuiet(a) < this.threshold())
     .sort((a, b) => daysQuiet(b) - daysQuiet(a)));
 
-  stale = computed(() => this.apps().filter(a => daysQuiet(a) >= 30));
+  stale = computed(() => this.filtered().filter(a => daysQuiet(a) >= 30));
   savedByAge = computed(() => [...this.saved()].sort((a, b) => daysQuiet(b) - daysQuiet(a)));
 
   constructor() {

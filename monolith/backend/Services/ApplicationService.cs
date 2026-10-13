@@ -28,7 +28,18 @@ public class ApplicationService : IApplicationService
             .Take(pageSize)
             .ToListAsync();
 
-        return new ApplicationListDto(apps.Select(MapToDto).ToList(), total, page, pageSize);
+        // How each application was sent: channel of its first sent attempt (one extra query for the page).
+        var ids = apps.Select(a => a.Id).ToList();
+        var firstChannel = (await _db.ApplicationAttempts.AsNoTracking()
+                .Where(t => ids.Contains(t.ApplicationId) && t.Status == AttemptStatus.SENT)
+                .Select(t => new { t.ApplicationId, t.AttemptNumber, t.Channel })
+                .ToListAsync())
+            .GroupBy(t => t.ApplicationId)
+            .ToDictionary(g => g.Key, g => g.MinBy(t => t.AttemptNumber)!.Channel.ToString());
+
+        return new ApplicationListDto(
+            apps.Select(a => MapToDto(a) with { ApplyChannel = firstChannel.GetValueOrDefault(a.Id) }).ToList(),
+            total, page, pageSize);
     }
 
     private static IQueryable<Application> ApplySorting(IQueryable<Application> query, string? sortBy, string? sortDir, string? search = null)
@@ -1073,15 +1084,29 @@ var contactCoverage = await GetContactCoverageAsync(userId);
                 EF.Functions.ILike(a.CompanyName, $"%{search}%") ||
                 EF.Functions.ILike(a.PositionTitle, $"%{search}%"));
 
+        // Query-string dates bind as Kind=Unspecified; Npgsql only accepts UTC for timestamptz.
+        static DateTime Day(DateTime d) => DateTime.SpecifyKind(d.Date, DateTimeKind.Utc);
         if (appliedFrom.HasValue)
-            query = query.Where(a => a.AppliedAt != null && a.AppliedAt >= appliedFrom.Value);
+        {
+            var from = Day(appliedFrom.Value);
+            query = query.Where(a => a.AppliedAt != null && a.AppliedAt >= from);
+        }
         if (appliedTo.HasValue)
-            query = query.Where(a => a.AppliedAt != null && a.AppliedAt < appliedTo.Value.Date.AddDays(1));
+        {
+            var to = Day(appliedTo.Value).AddDays(1);
+            query = query.Where(a => a.AppliedAt != null && a.AppliedAt < to);
+        }
 
         if (updatedFrom.HasValue)
-            query = query.Where(a => a.UpdatedAt >= updatedFrom.Value);
+        {
+            var from = Day(updatedFrom.Value);
+            query = query.Where(a => a.UpdatedAt >= from);
+        }
         if (updatedTo.HasValue)
-            query = query.Where(a => a.UpdatedAt < updatedTo.Value.Date.AddDays(1));
+        {
+            var to = Day(updatedTo.Value).AddDays(1);
+            query = query.Where(a => a.UpdatedAt < to);
+        }
 
         return query;
     }

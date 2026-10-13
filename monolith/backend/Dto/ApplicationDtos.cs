@@ -20,7 +20,9 @@ public record ApplicationResponseDto(
     Guid? LinkedEmailMessageId = null,
     Guid? ContactId = null,
     string? RecipientName = null,
-    string? RecipientContact = null
+    string? RecipientContact = null,
+    /// <summary>Channel of the first sent attempt (how the user applied); list endpoint only.</summary>
+    string? ApplyChannel = null
 );
 
 public record StatusHistoryDto(

@@ -23,6 +23,16 @@
 
   <div class="fu-body">
     @if (!loading()) {
+      @if (channelOptions().length > 1) {
+        <div class="fu-channels" role="group" aria-label="Applied via">
+          <span>Applied via</span>
+          <button [class.on]="channel() === 'ALL'" (click)="channel.set('ALL')">All <em>{{ apps().length }}</em></button>
+          @for (o of channelOptions(); track o.value) {
+            <button [class.on]="channel() === o.value" (click)="channel.set(o.value)">{{ o.label }} <em>{{ o.count }}</em></button>
+          }
+        </div>
+      }
+
       @if (stale().length) {
         <div class="fu-stale">
           <span><strong>{{ stale().length }}</strong> {{ stale().length === 1 ? 'has' : 'have' }} been quiet for 30+ days. After a month without a reply, most of these are closed.</span>
@@ -89,7 +99,7 @@
     </a>
     <div class="fu-meta">
       <span class="fu-status"><i [style.background]="statusColors[a.status]"></i>{{ statusLabels[a.status] }}</span>
-      <span class="fu-applied">Applied {{ formatDate(a.appliedAt) }}</span>
+      <span class="fu-applied">Applied {{ formatDate(a.appliedAt) }} · {{ channelLabel(a.applyChannel) }}</span>
     </div>
     <div class="fu-contact" [title]="a.recipientContact || ''">
       @if (a.recipientName || a.recipientContact) { {{ a.recipientName || a.recipientContact }} }

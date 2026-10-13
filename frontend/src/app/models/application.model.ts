@@ -118,6 +118,8 @@ export interface ApplicationResponseDto {
   contactId?: string;
   recipientName?: string;
   recipientContact?: string;
+  /** Channel of the first sent attempt; set on list responses only. */
+  applyChannel?: AttemptChannel | null;
 }
 
 export interface CreateApplicationDto {

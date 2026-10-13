@@ -155,24 +155,32 @@
     <div class="popover-overlay" (click)="closeDayPopover()">
       <div class="day-popover" (click)="$event.stopPropagation()">
         <div class="popover-header">
-          <h3>{{ dayInfo.day }} {{ monthYear() }}</h3>
+          <h3>{{ popoverDate() | date:'EEEE d MMMM' }} · {{ eventsForDay(dayInfo.day, dayInfo.month, dayInfo.year).length }}</h3>
           <button class="close-btn" (click)="closeDayPopover()">✕</button>
         </div>
         <div class="popover-body">
           @for (ev of eventsForDay(dayInfo.day, dayInfo.month, dayInfo.year); track ev.id + ev.type) {
-            <div class="popover-event">
-              @if (ev.companyName) {
+            @if (ev.companyName) {
+              <a class="popover-event is-link" [routerLink]="['/applications', ev.id]" (click)="closeDayPopover()">
                 <app-company-logo [companyName]="ev.companyName" size="md" />
-              } @else {
+                <div class="popover-info">
+                  <div class="popover-title">{{ ev.companyName }}</div>
+                  <div class="popover-sub">{{ ev.positionTitle }}</div>
+                </div>
+                <span class="popover-status" [ngClass]="'ev-' + ev.type">{{ statusLabel(ev.type) }}</span>
+                <svg class="popover-go" viewBox="0 0 24 24" fill="none" width="14" height="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+              </a>
+            } @else {
+              <div class="popover-event">
                 <span class="popover-dot" [ngClass]="'ev-' + ev.type"></span>
-              }
-              <div class="popover-info">
-                <div class="popover-title">{{ ev.title }}</div>
-                @if (ev.subtitle) {
-                  <div class="popover-sub">{{ ev.subtitle }}</div>
-                }
+                <div class="popover-info">
+                  <div class="popover-title">{{ ev.title }}</div>
+                  @if (ev.subtitle) {
+                    <div class="popover-sub">{{ ev.subtitle }}</div>
+                  }
+                </div>
               </div>
-            </div>
+            }
           }
         </div>
       </div>

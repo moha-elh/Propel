@@ -72,6 +72,7 @@ export class CalendarComponent implements OnInit {
   showFilter = signal(false);
   configLoading = signal(false);
   popoverDay = signal<CalendarDay | null>(null);
+  popoverDate = computed(() => { const p = this.popoverDay(); return p ? new Date(p.year, p.month, p.day) : null; });
 
   showForm = signal(false);
   form = {

@@ -74,13 +74,14 @@ export class ApplicationsListComponent implements OnInit {
       chips.push({ label: `Status: ${STATUS_LABELS[s]}`, clear: () => { this.toggleStatus(s); this.reload(); } });
     for (const p of this.selectedPriorities())
       chips.push({ label: `Priority: ${PRIORITY_LABELS[p]}`, clear: () => { this.togglePriority(p); this.reload(); } });
-    const range = (label: string, from: WritableSignal<string>, to: WritableSignal<string>) => {
+    const range = (label: string, from: WritableSignal<string>, to: WritableSignal<string>, singleDay = false) => {
       if (!from() && !to()) return;
-      const txt = from() && to() ? `${this.formatDate(from())} – ${this.formatDate(to())}`
+      const txt = singleDay && from() && !to() ? `on ${this.formatDate(from())}`
+        : from() && to() ? `${this.formatDate(from())} – ${this.formatDate(to())}`
         : from() ? `after ${this.formatDate(from())}` : `before ${this.formatDate(to())}`;
       chips.push({ label: `${label} ${txt}`, clear: () => { from.set(''); to.set(''); this.reload(); } });
     };
-    range('Applied', this.appliedFrom, this.appliedTo);
+    range('Applied', this.appliedFrom, this.appliedTo, true);
     range('Updated', this.updatedFrom, this.updatedTo);
     return chips;
   });
@@ -142,7 +143,7 @@ export class ApplicationsListComponent implements OnInit {
           priorities: priorityArr,
           search: this.searchQuery() || undefined,
           appliedFrom: this.appliedFrom() || undefined,
-          appliedTo: this.appliedTo() || undefined,
+          appliedTo: this.appliedTo() || this.appliedFrom() || undefined, // start date alone = that single day
           updatedFrom: this.updatedFrom() || undefined,
           updatedTo: this.updatedTo() || undefined,
           sortBy: this.sortKey(),

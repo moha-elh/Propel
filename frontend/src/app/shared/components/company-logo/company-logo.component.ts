@@ -17,7 +17,16 @@ export class CompanyLogoDirectory {
 
   lookup(name: string) {
     this.ensureLoaded();
-    return this.byName().get(normName(name));
+    const key = normName(name);
+    const map = this.byName();
+    const exact = map.get(key);
+    if (exact) return exact;
+    // "Capgemini Engineering" → the "Capgemini" company: longest saved name that starts this one at a word boundary.
+    let best: string | undefined;
+    for (const k of map.keys()) {
+      if (key.startsWith(k + ' ') && map.get(k)!.logoUrl && (!best || k.length > best.length)) best = k;
+    }
+    return best ? map.get(best) : undefined;
   }
 
   invalidate() { this.loading = null; this.ensureLoaded(); }
