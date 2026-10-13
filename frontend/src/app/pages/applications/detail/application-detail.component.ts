@@ -24,6 +24,7 @@ import {
   attemptChannelFields,
   ATTEMPT_CHANNEL_LABELS,
   ATTEMPT_STATUS_LABELS,
+  daysQuiet,
 } from '@app/models/application.model';
 import { ContactDto, EmailMessageDto, ScheduleAttachmentRef } from '@app/models/mailbox.model';
 import { MailboxService } from '@app/services/mailbox.service';
@@ -272,6 +273,80 @@ export class ApplicationDetailComponent implements OnInit {
   firstSentChannel = computed(() =>
     this.attempts().filter(a => a.status === 'SENT').sort((a, b) => a.attemptNumber - b.attemptNumber)[0]?.channel ?? null);
   notesDirty = computed(() => this.editNotes() !== (this.application()?.notes || ''));
+  notesState = signal<'idle' | 'saving' | 'saved'>('idle');
+
+  /** Attempts and status changes in one feed, newest first. Status rows that only echo an
+   *  attempt ("Attempt #1 sent via …" with no status change) are dropped as duplicates. */
+  timeline = computed(() => {
+    const app = this.application();
+    type Row = { at: string; att?: AttemptResponseDto; entry?: NonNullable<ApplicationResponseDto['history']>[number] };
+    const rows: Row[] = this.attempts().map(att => ({ at: att.sentAt || att.createdAt, att }));
+    for (const entry of app?.history ?? []) {
+      if (entry.oldStatus === entry.newStatus && /^Attempt #\d+/.test(entry.comment ?? '')) continue;
+      rows.push({ at: entry.changedAt, entry });
+    }
+    return rows.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+  });
+
+  /** What to do next, from status + how long it has been quiet. */
+  nextStep = computed(() => {
+    const app = this.application();
+    if (!app) return null;
+    const quiet = daysQuiet(app);
+    const nudgeOn = new Date(new Date(app.updatedAt).getTime() + 7 * 86400000);
+    switch (app.status) {
+      case 'SAVED':
+        return { tone: 'neutral', title: "You haven't applied yet", text: 'Apply, then log how you did it so follow-ups work.', kind: 'apply' as const };
+      case 'APPLIED': case 'SCREENING': case 'ASSESSMENT':
+        if (app.followUpDate && app.followUpStatus === 'PENDING')
+          return { tone: this.followUpOverdue() ? 'warn' : 'neutral', title: this.followUpOverdue() ? 'Your follow-up date has passed' : `Follow up on ${this.formatDate(app.followUpDate)}`,
+            text: this.followUpOverdue() ? 'Send a short nudge, or close it out if they went silent.' : 'Nothing to do until then.', kind: 'followup' as const };
+        return quiet >= 7
+          ? { tone: 'warn', title: `Quiet for ${quiet} days`, text: 'A short, polite follow-up often gets a reply.', kind: 'followup' as const }
+          : { tone: 'neutral', title: 'Waiting on a reply', text: `No news for ${quiet} day${quiet === 1 ? '' : 's'}. Follow up around ${this.formatDate(nudgeOn.toISOString())} if it stays quiet.`, kind: 'wait' as const };
+      case 'INTERVIEW':
+        return { tone: 'good', title: 'Interview stage', text: 'Prepare with your notes and company research, then send a thank-you within a day.', kind: 'interview' as const };
+      case 'OFFER':
+        return { tone: 'good', title: 'You have an offer', text: 'Record your decision once you make it.', kind: 'offer' as const };
+      default:
+        return null;
+    }
+  });
+
+  /** Statuses offered in the inline status menu: the current one plus legal next steps. */
+  statusChoices = computed(() => {
+    const app = this.application();
+    return app ? [app.status as ApplicationStatus, ...this.availableStatuses()] : [];
+  });
+
+  async quickStatus(status: string, comment?: string) {
+    const app = this.application();
+    if (!app || (status === app.status && !comment)) return;
+    try {
+      const res = await this.appService.updateStatus(app.id, { status: status as ApplicationStatus, comment });
+      if (res.success && res.data) { this.application.set(res.data); this.toast.success(comment ?? `Moved to ${this.getStatusLabel(status)}`); }
+    } catch { this.toast.error('Could not update status'); }
+  }
+
+  /** Notes save themselves on blur; only the notes field is sent. */
+  async saveNotes() {
+    const app = this.application();
+    if (!app || !this.notesDirty()) return;
+    this.notesState.set('saving');
+    try {
+      const res = await this.appService.update(app.id, { notes: this.editNotes() });
+      if (res.success && res.data) this.application.set(res.data);
+      this.notesState.set('saved');
+    } catch {
+      this.notesState.set('idle');
+      this.toast.error('Could not save notes');
+    }
+  }
+
+  writeFollowUp() {
+    const app = this.application();
+    if (app) this.router.navigate(['/mailbox'], { queryParams: { followUp: app.id } });
+  }
   daysInPipeline = computed(() => {
     const start = this.application()?.appliedAt;
     if (!start) return null;

@@ -12,7 +12,7 @@
 
     <div class="det-header-row">
       <div class="det-title-block">
-        <app-company-logo [companyName]="app.companyName" size="lg" />
+        <app-company-logo class="det-logo" [companyName]="app.companyName" size="lg" />
         <div class="det-title-text">
           <h1 class="det-co">{{ app.companyName }}</h1>
           <div class="det-pos" [title]="app.positionTitle">{{ app.positionTitle }}</div>
@@ -22,26 +22,25 @@
         <app-refresh-button [loading]="refreshing()" (refresh)="onRefresh()" />
         <button class="det-btn icon" (click)="openEditModal()" title="Edit application"><i class="ti ti-edit"></i></button>
         <button class="det-btn icon danger" (click)="onDelete()" title="Delete application"><i class="ti ti-trash"></i></button>
-        @if (availableStatuses().length > 0) {
-          <button class="det-btn" (click)="openStatusModal()">Update status</button>
-        }
         <button class="det-btn primary" (click)="openAttemptModal()"><i class="ti ti-send"></i> Log attempt</button>
       </div>
     </div>
 
     <div class="det-facts">
-      <span class="status-pill" [style.color]="statusColor(app.status)"
-        [style.background]="'color-mix(in oklch, ' + statusColor(app.status) + ' 14%, transparent)'">
-        <span class="dot" [style.background]="statusColor(app.status)"></span>{{ getStatusLabel(app.status) }}
-      </span>
+      <app-select class="status-select" [style.--c]="statusColor(app.status)" [value]="app.status" (valueChange)="quickStatus($event)" title="Change status">
+        @for (s of statusChoices(); track s) {
+          <option [value]="s">{{ getStatusLabel(s) }}</option>
+        }
+      </app-select>
       <span class="fact" [style.color]="priorityColor(app.priority)">{{ PRIORITY_LABELS[app.priority || 'MEDIUM'] }} priority</span>
+      @if (reachCompany()?.location || reachCompany()?.country) {
+        <span class="fact">{{ reachCompany()?.location }}{{ reachCompany()?.location && reachCompany()?.country ? ', ' : '' }}{{ reachCompany()?.country }}</span>
+      }
       @if (app.appliedAt) {
         <span class="fact">Applied {{ formatDate(app.appliedAt) }}@if (firstSentChannel(); as ch) { via {{ CHANNEL_LABELS[ch] }}}</span>
       }
       @if (app.offerSource) { <span class="fact">Found on {{ app.offerSource }}</span> }
       @if (app.internshipType) { <span class="fact">{{ app.internshipType }}</span> }
-      @if (daysInPipeline() !== null) { <span class="fact">{{ daysInPipeline() }} days in pipeline</span> }
-      <span class="fact muted">Updated {{ formatDate(app.updatedAt) }}</span>
     </div>
 
     <ol class="pipeline" [class.off]="isOffTrack()">
@@ -53,176 +52,154 @@
       }
     </ol>
     @if (isOffTrack()) {
-      <div class="pl-note">Pipeline ended: <strong [style.color]="statusColor(app.status)">{{ getStatusLabel(app.status) }}</strong></div>
+      <div class="pl-note">Closed as <strong [style.color]="statusColor(app.status)">{{ getStatusLabel(app.status) }}</strong>@if (daysInPipeline() !== null) { after {{ daysInPipeline() }} days}.</div>
     }
   </header>
 
   <div class="det-body">
     <main class="det-main">
-      <section class="sec">
-        <div class="sec-head">
-          <h2>Apply attempts <span class="count">{{ sortedAttempts().length }}</span></h2>
-        </div>
-        @if (sortedAttempts().length > 0) {
-          <div class="timeline">
-            @for (att of sortedAttempts(); track att.id) {
-              <div class="tl-item attempt-item">
-                <div class="tl-dot" [attr.data-astatus]="att.status"></div>
-                <div class="tl-body">
-                  <div class="attempt-head">
-                    <strong class="attempt-channel">{{ CHANNEL_LABELS[att.channel] }}</strong>
-                    <span class="attempt-pill" [attr.data-astatus]="att.status">{{ ATTEMPT_STATUS_LABELS[att.status] }}</span>
-                    <span class="tl-date">
-                      #{{ att.attemptNumber }} · {{ att.sentAt ? 'Sent ' + formatDateTime(att.sentAt) : 'Created ' + formatDateTime(att.createdAt) }}
-                      @if (att.initiatedBy !== 'USER') { · via {{ att.initiatedBy.toLowerCase() }} }
-                    </span>
-                  </div>
-                  @if (att.subject) { <div class="attempt-subject">{{ att.subject }}</div> }
-                  @if (att.contact) {
-                    <button type="button" class="contact-chip" (click)="openContactPanel(att)"
-                      title="View contact details & email history">
-                      <span class="chip-avatar">{{ att.contact.name.charAt(0) }}</span>
-                      <span class="chip-text">
-                        <strong>{{ att.contact.name }}</strong>
-                        @if (att.contact.company) { <em>{{ att.contact.company }}</em> }
-                      </span>
-                    </button>
-                  } @else if (att.recipientName || att.recipientContact) {
-                    <div class="attempt-meta">
-                      To {{ att.recipientName }}
-                      @if (attemptLink(att); as url) {
-                        · <a class="form-link" [href]="url" target="_blank" rel="noopener" [title]="url">{{ hostOf(url) }}</a>
-                      } @else if (att.recipientContact) {
-                        {{ att.recipientName ? '·' : '' }} {{ att.recipientContact }}
-                      }
-                    </div>
-                  }
-                  @if (att.coverLetterTitle && att.coverLetterVersionId) {
-                    <span class="attempt-tag">Cover letter: {{ att.coverLetterTitle }}</span>
-                  }
-                  @if (attemptMetadata(att).accountEmail; as accEmail) {
-                    <div class="attempt-account">
-                      Account {{ accEmail }}
-                      @if (attemptMetadata(att).accountPassword; as accPass) {
-                        <button type="button" class="acc-reveal" (click)="toggleReveal(att.id)"
-                          [title]="revealedPass()[att.id] ? 'Hide password' : 'Show password'">
-                          <span>{{ revealedPass()[att.id] ? accPass : '••••••••' }}</span>
-                          <i [class]="revealedPass()[att.id] ? 'ti ti-eye-off' : 'ti ti-eye'"></i>
-                        </button>
-                      }
-                    </div>
-                  }
-                  @if (att.failureReason) { <div class="attempt-fail">{{ att.failureReason }}</div> }
-                  @if (att.status === 'DRAFT' || att.status === 'SCHEDULED') {
-                    <div class="attempt-actions">
-                      <button class="att-btn ok" (click)="setAttemptStatus(att, 'SENT')">Mark sent</button>
-                      <button class="att-btn fail" (click)="setAttemptStatus(att, 'FAILED', 'Marked as failed')">Mark failed</button>
-                    </div>
-                  }
-                </div>
-              </div>
+
+      @if (nextStep(); as ns) {
+        <section class="next" [attr.data-tone]="ns.tone">
+          <div class="next-text">
+            <div class="next-title">{{ ns.title }}</div>
+            <p>{{ ns.text }}</p>
+          </div>
+          <div class="next-actions">
+            @switch (ns.kind) {
+              @case ('apply') {
+                <button class="det-btn primary" (click)="openAttemptModal()">Log how you applied</button>
+              }
+              @case ('followup') {
+                <button class="det-btn primary" (click)="writeFollowUp()">Write follow-up</button>
+                <button class="det-btn" (click)="quickStatus(app.status, 'Follow-up sent')">I followed up</button>
+                <button class="det-btn ghost" (click)="quickStatus('REJECTED', 'No reply (ghosted)')">They ghosted me</button>
+              }
+              @case ('wait') {
+                <button class="det-btn" (click)="setFollowUp(presetTarget(7))" [disabled]="followUpSaving()">Remind me in a week</button>
+              }
+              @case ('interview') {
+                <button class="det-btn primary" (click)="writeFollowUp()">Write thank-you</button>
+                @if (reachCompany(); as co) {
+                  <a class="det-btn" [routerLink]="['/companies', co.id]">Company notes</a>
+                }
+              }
+              @case ('offer') {
+                <button class="det-btn primary" (click)="quickStatus('ACCEPTED')">Accept</button>
+                <button class="det-btn" (click)="quickStatus('WITHDRAWN', 'Declined offer')">Decline</button>
+              }
             }
           </div>
+        </section>
+      }
+
+      <section class="sec">
+        <div class="sec-head">
+          <h2>Activity</h2>
+          <button class="det-btn sm" (click)="openAttemptModal()">Log attempt</button>
+        </div>
+        @if (timeline().length > 0) {
+          <ol class="feed">
+            @for (row of timeline(); track $index) {
+              @if (row.att; as att) {
+                <li class="feed-item">
+                  <span class="feed-dot attempt" [attr.data-astatus]="att.status"><i class="ti ti-send"></i></span>
+                  <div class="feed-body">
+                    <div class="feed-line">
+                      <strong>{{ att.status === 'SENT' ? 'Applied' : 'Drafted' }} via {{ CHANNEL_LABELS[att.channel] }}</strong>
+                      <span class="attempt-pill" [attr.data-astatus]="att.status">{{ ATTEMPT_STATUS_LABELS[att.status] }}</span>
+                      <time class="feed-date">{{ formatDateTime(row.at) }}</time>
+                    </div>
+                    @if (att.subject) { <div class="attempt-subject">{{ att.subject }}</div> }
+                    @if (att.contact) {
+                      <button type="button" class="contact-chip" (click)="openContactPanel(att)" title="View contact details & email history">
+                        <span class="chip-avatar">{{ att.contact.name.charAt(0) }}</span>
+                        <span class="chip-text"><strong>{{ att.contact.name }}</strong>@if (att.contact.company) { <em>{{ att.contact.company }}</em> }</span>
+                      </button>
+                    } @else if (att.recipientName || att.recipientContact) {
+                      <div class="attempt-meta">
+                        To {{ att.recipientName }}
+                        @if (attemptLink(att); as url) {
+                          · <a class="form-link" [href]="url" target="_blank" rel="noopener" [title]="url">{{ hostOf(url) }}</a>
+                        } @else if (att.recipientContact) {
+                          {{ att.recipientName ? '·' : '' }} {{ att.recipientContact }}
+                        }
+                      </div>
+                    }
+                    @if (att.coverLetterTitle && att.coverLetterVersionId) {
+                      <span class="attempt-tag">Cover letter: {{ att.coverLetterTitle }}</span>
+                    }
+                    @if (attemptMetadata(att).accountEmail; as accEmail) {
+                      <div class="attempt-account">
+                        Account {{ accEmail }}
+                        @if (attemptMetadata(att).accountPassword; as accPass) {
+                          <button type="button" class="acc-reveal" (click)="toggleReveal(att.id)" [title]="revealedPass()[att.id] ? 'Hide password' : 'Show password'">
+                            <span>{{ revealedPass()[att.id] ? accPass : '••••••••' }}</span>
+                            <i [class]="revealedPass()[att.id] ? 'ti ti-eye-off' : 'ti ti-eye'"></i>
+                          </button>
+                        }
+                      </div>
+                    }
+                    @if (att.failureReason) { <div class="attempt-fail">{{ att.failureReason }}</div> }
+                    @if (att.status === 'DRAFT' || att.status === 'SCHEDULED') {
+                      <div class="attempt-actions">
+                        <button class="att-btn ok" (click)="setAttemptStatus(att, 'SENT')">Mark sent</button>
+                        <button class="att-btn fail" (click)="setAttemptStatus(att, 'FAILED', 'Marked as failed')">Mark failed</button>
+                      </div>
+                    }
+                  </div>
+                </li>
+              } @else if (row.entry; as entry) {
+                <li class="feed-item">
+                  <span class="feed-dot" [style.background]="statusColor(entry.newStatus)"></span>
+                  <div class="feed-body">
+                    <div class="feed-line">
+                      <span>
+                        @if (!entry.oldStatus) { Added as <strong>{{ getStatusLabel(entry.newStatus) }}</strong> }
+                        @else if (entry.oldStatus !== entry.newStatus) { Moved to <strong>{{ getStatusLabel(entry.newStatus) }}</strong> }
+                        @else { <strong>{{ entry.comment || 'Updated' }}</strong> }
+                      </span>
+                      <time class="feed-date">{{ formatDateTime(row.at) }}</time>
+                    </div>
+                    @if (entry.comment && entry.oldStatus !== entry.newStatus) { <div class="feed-comment">{{ entry.comment }}</div> }
+                  </div>
+                </li>
+              }
+            }
+          </ol>
         } @else {
-          <div class="empty-block">
-            <p>You haven't logged how you applied yet. Logging the email, form or LinkedIn apply keeps follow-ups accurate.</p>
-            <button class="det-btn primary" (click)="openAttemptModal()"><i class="ti ti-send"></i> Log first attempt</button>
-          </div>
+          <div class="empty-inline">Nothing logged yet.</div>
         }
       </section>
 
       <section class="sec">
         <div class="sec-head">
           <h2>Notes</h2>
-          @if (notesDirty()) {
-            <button class="det-btn primary sm" (click)="saveEdit()">Save notes</button>
-          }
+          <span class="notes-state">
+            @if (notesState() === 'saving') { Saving… }
+            @else if (notesDirty()) { Unsaved, saves when you click away }
+            @else if (notesState() === 'saved') { Saved }
+          </span>
         </div>
-        <textarea class="note-area" placeholder="Interview prep, who you talked to, salary range…" [(ngModel)]="editNotes"></textarea>
-      </section>
-
-      <section class="sec">
-        <div class="sec-head"><h2>History</h2></div>
-        @if (app.history && app.history.length > 0) {
-          <ul class="history">
-            @for (entry of app.history; track entry.id) {
-              <li>
-                <span class="h-date">{{ formatDate(entry.changedAt) }}</span>
-                <span class="h-dot" [style.background]="statusColor(entry.newStatus)"></span>
-                <span class="h-text">
-                  @if (entry.oldStatus && entry.oldStatus !== entry.newStatus) {
-                    {{ getStatusLabel(entry.oldStatus) }} → <strong>{{ getStatusLabel(entry.newStatus) }}</strong>
-                  } @else {
-                    <strong>{{ getStatusLabel(entry.newStatus) }}</strong>
-                  }
-                  @if (entry.comment) { <span class="h-comment">{{ entry.comment }}</span> }
-                </span>
-              </li>
-            }
-          </ul>
-        } @else {
-          <div class="empty-inline">No status changes yet.</div>
-        }
+        <textarea class="note-area" placeholder="Interview prep, who you talked to, salary range…" [(ngModel)]="editNotes" (blur)="saveNotes()"></textarea>
       </section>
     </main>
 
     <aside class="det-side">
       <section class="side-sec">
         <div class="side-head">
-          <h3>Follow-up</h3>
-          @if (app.followUpStatus !== 'NONE') {
-            <span class="fu-status" [class.fu-pending]="app.followUpStatus === 'PENDING'" [class.fu-overdue]="followUpOverdue()" [class.fu-actioned]="app.followUpStatus === 'ACTIONED'">
-              {{ followUpOverdue() ? 'Overdue' : followUpStatusLabel() }}
-            </span>
-          }
+          <h3>Company</h3>
+          @if (reachCompany(); as co) { <a class="side-link" [routerLink]="['/companies', co.id]">Open</a> }
         </div>
-        @if (followUpError()) { <div class="attempt-error">{{ followUpError() }}</div> }
-        @if (followUpDeadline(); as d) {
-          <div class="fu-date-big" [class.overdue]="followUpOverdue()">{{ formatDate(d) }}</div>
-          <p class="side-hint">If they haven't replied by then, the Calendar asks you what happened.</p>
-        } @else {
-          <p class="side-hint">Pick when you expect a reply. After that date the Calendar asks you what happened.</p>
-        }
-        <div class="fu-presets">
-          @for (p of followUpPresets; track p.days) {
-            <button type="button" class="fu-chip" (click)="setFollowUp(presetTarget(p.days))" [disabled]="followUpSaving()">{{ p.label }}</button>
-          }
-        </div>
-        <div class="fu-custom">
-          <input type="date" class="form-input fu-date" [ngModel]="customFollowUpDate()" (ngModelChange)="customFollowUpDate.set($event)" [disabled]="followUpSaving()" aria-label="Custom follow-up date" />
-          <button class="det-btn sm" (click)="setFollowUp(customFollowUpDate())" [disabled]="followUpSaving() || !customFollowUpDate()">
-            {{ followUpSaving() ? 'Saving…' : 'Set' }}
-          </button>
-          @if (app.followUpDate) {
-            <button class="det-btn sm ghost" (click)="setFollowUp('')" [disabled]="followUpSaving()">Clear</button>
-          }
-        </div>
-      </section>
-
-      <section class="side-sec">
-        <div class="side-head"><h3>Contact</h3></div>
         @if (reachLoading()) {
-          <div class="empty-inline">Looking for a contact…</div>
-        } @else {
-          @if (reachContact(); as rc) {
-            <button type="button" class="contact-chip" (click)="openContactPanelById(rc.id)"
-              title="View contact details & email history">
-              <span class="chip-avatar">{{ rc.name.charAt(0) }}</span>
-              <span class="chip-text">
-                <strong>{{ rc.name }}</strong>
-                @if (rc.company) { <em>{{ rc.company }}</em> }
-              </span>
-            </button>
-            <a class="form-link" [href]="'mailto:' + rc.email" [title]="'Email ' + rc.email">{{ rc.email }}</a>
-          } @else if (app.recipientName || app.recipientContact) {
-            @if (app.recipientName) { <div class="contact-name">{{ app.recipientName }}</div> }
-            @if (app.recipientContact?.includes('@')) {
-              <a class="form-link" [href]="'mailto:' + app.recipientContact">{{ app.recipientContact }}</a>
-            } @else if (app.recipientContact) {
-              <span class="reach-plain">{{ app.recipientContact }}</span>
-            }
-          } @else {
-            <p class="side-hint">No contact saved for {{ app.companyName }}.</p>
+          <div class="empty-inline">Loading…</div>
+        } @else if (reachCompany(); as co) {
+          @if (co.sector || co.size) {
+            <div class="kv">{{ co.sector }}{{ co.sector && co.size ? ' · ' : '' }}{{ co.size ? co.size + ' people' : '' }}</div>
+          }
+          @if (co.description) { <p class="side-desc">{{ co.description }}</p> }
+          @if (!co.sector && !co.size && !co.description && reachActions().length === 0) {
+            <p class="side-hint">No details saved yet. Add a website or LinkedIn page in Companies.</p>
           }
           @if (reachActions().length > 0) {
             <div class="reach-links">
@@ -233,8 +210,66 @@
               }
             </div>
           }
+        } @else {
+          <p class="side-hint">{{ app.companyName }} isn't in your Companies yet.</p>
+          @if (reachActions().length > 0) {
+            <div class="reach-links">
+              @for (a of reachActions(); track a.href) {
+                <a class="reach-action" [href]="a.href" target="_blank" rel="noopener" [title]="a.sub"><i [class]="'ti ' + a.icon"></i><span>{{ a.label }}</span></a>
+              }
+            </div>
+          }
         }
       </section>
+
+      <section class="side-sec">
+        <div class="side-head"><h3>Contact</h3></div>
+        @if (reachContact(); as rc) {
+          <button type="button" class="contact-chip" (click)="openContactPanelById(rc.id)" title="View contact details & email history">
+            <span class="chip-avatar">{{ rc.name.charAt(0) }}</span>
+            <span class="chip-text"><strong>{{ rc.name }}</strong>@if (rc.company) { <em>{{ rc.company }}</em> }</span>
+          </button>
+          <a class="form-link" [href]="'mailto:' + rc.email" [title]="'Email ' + rc.email">{{ rc.email }}</a>
+        } @else if (app.recipientName || app.recipientContact) {
+          @if (app.recipientName) { <div class="contact-name">{{ app.recipientName }}</div> }
+          @if (app.recipientContact?.includes('@')) {
+            <a class="form-link" [href]="'mailto:' + app.recipientContact">{{ app.recipientContact }}</a>
+          } @else if (app.recipientContact) {
+            <span class="reach-plain">{{ app.recipientContact }}</span>
+          }
+        } @else {
+          <p class="side-hint">No one saved yet. Add a recruiter when you log an attempt.</p>
+        }
+      </section>
+
+      @if (!isOffTrack() && app.status !== 'ACCEPTED') {
+      <section class="side-sec">
+        <div class="side-head">
+          <h3>Follow-up reminder</h3>
+          @if (app.followUpStatus !== 'NONE') {
+            <span class="fu-status" [class.fu-pending]="app.followUpStatus === 'PENDING'" [class.fu-overdue]="followUpOverdue()" [class.fu-actioned]="app.followUpStatus === 'ACTIONED'">
+              {{ followUpOverdue() ? 'Overdue' : followUpStatusLabel() }}
+            </span>
+          }
+        </div>
+        @if (followUpError()) { <div class="attempt-error">{{ followUpError() }}</div> }
+        @if (followUpDeadline(); as d) {
+          <div class="fu-date-big" [class.overdue]="followUpOverdue()">{{ formatDate(d) }}</div>
+        }
+        <div class="fu-presets">
+          @for (p of followUpPresets; track p.days) {
+            <button type="button" class="fu-chip" (click)="setFollowUp(presetTarget(p.days))" [disabled]="followUpSaving()">{{ p.label }}</button>
+          }
+        </div>
+        <div class="fu-custom">
+          <input type="date" class="form-input fu-date" [ngModel]="customFollowUpDate()" (ngModelChange)="customFollowUpDate.set($event)" [disabled]="followUpSaving()" aria-label="Custom follow-up date" />
+          <button class="det-btn sm" (click)="setFollowUp(customFollowUpDate())" [disabled]="followUpSaving() || !customFollowUpDate()">{{ followUpSaving() ? 'Saving…' : 'Set' }}</button>
+          @if (app.followUpDate) {
+            <button class="det-btn sm ghost" (click)="setFollowUp('')" [disabled]="followUpSaving()">Clear</button>
+          }
+        </div>
+      </section>
+      }
 
       <section class="side-sec">
         <div class="side-head"><h3>Files</h3></div>
@@ -261,9 +296,7 @@
         }
         <input #attachInput type="file" multiple hidden (change)="onFilesSelected($event)">
         <div class="att-actions">
-          <button class="det-btn sm" (click)="attachInput.click()" [disabled]="attachmentsUploading()">
-            {{ attachmentsUploading() ? 'Uploading…' : 'Upload file' }}
-          </button>
+          <button class="det-btn sm" (click)="attachInput.click()" [disabled]="attachmentsUploading()">{{ attachmentsUploading() ? 'Uploading…' : 'Upload file' }}</button>
           <button class="det-btn sm ghost" (click)="openDocsPicker()" [disabled]="attachmentsUploading()">From Documents</button>
         </div>
       </section>
