@@ -18,6 +18,7 @@
       }
     </div>
     <div class="kb-header-right">
+      <app-country-filter (changed)="onCountryChange()" />
       <app-refresh-button [loading]="refreshing()" (refresh)="onRefresh()" />
       <div class="kb-view-group">
         <button class="kb-vbtn" [class.active]="view() === 'board'" (click)="view.set('board')">

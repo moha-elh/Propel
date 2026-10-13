@@ -9,10 +9,12 @@ import {
   ApplicationResponseDto, ApplicationStatus, AWAITING_STATUSES, STATUS_LABELS, STATUS_COLORS, ATTEMPT_CHANNEL_LABELS, daysQuiet,
 } from '@app/models/application.model';
 
+import { CountryFilterComponent } from '@app/shared/components/country-filter/country-filter.component';
+
 @Component({
   selector: 'app-follow-ups',
   standalone: true,
-  imports: [CommonModule, RouterLink, CompanyLogoComponent],
+  imports: [CountryFilterComponent, CommonModule, RouterLink, CompanyLogoComponent],
   templateUrl: './follow-ups.component.html',
   styleUrl: './follow-ups.component.scss',
 })

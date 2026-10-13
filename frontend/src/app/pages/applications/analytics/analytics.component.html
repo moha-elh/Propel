@@ -4,7 +4,10 @@
       <h1>Analytics</h1>
       <p class="muted">How your applications are performing.</p>
     </div>
-    <app-refresh-button [loading]="refreshing()" (refresh)="onRefresh()"></app-refresh-button>
+    <div class="head-actions">
+      <app-country-filter (changed)="load()" />
+      <app-refresh-button [loading]="refreshing()" (refresh)="onRefresh()"></app-refresh-button>
+    </div>
   </header>
 
   @if (loading()) {

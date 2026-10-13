@@ -11,11 +11,30 @@ public class ApplicationService : IApplicationService
 {
     private readonly AppDbContext _db;
     private readonly ILogger<ApplicationService> _logger;
+    private readonly IHttpContextAccessor? _http;
 
-    public ApplicationService(AppDbContext db, ILogger<ApplicationService> logger)
+    public ApplicationService(AppDbContext db, ILogger<ApplicationService> logger, IHttpContextAccessor? http = null)
     {
         _db = db;
         _logger = logger;
+        _http = http;
+    }
+
+    /// <summary>
+    /// Applications narrowed to the request's <c>?country=</c> (list, stats, analytics, calendar, activity read it).
+    /// Country lives on the company; an application belongs to a company by exact name or as
+    /// "Company Suffix" (e.g. "Capgemini Engineering" → Capgemini).
+    /// </summary>
+    private IQueryable<Application> Apps
+    {
+        get
+        {
+            var country = _http?.HttpContext?.Request.Query["country"].ToString();
+            if (string.IsNullOrWhiteSpace(country)) return _db.Applications;
+            return _db.Applications.Where(a => _db.Companies.Any(c => c.UserId == a.CandidateId && c.Country == country
+                && (c.Name.Trim().ToLower() == a.CompanyName.Trim().ToLower()
+                    || a.CompanyName.Trim().ToLower().StartsWith(c.Name.Trim().ToLower() + " "))));
+        }
     }
 
     public async Task<ApplicationListDto> GetAllAsync(Guid userId, int page, int pageSize, string[]? statuses = null, string[]? priorities = null, string? search = null, DateTime? appliedFrom = null, DateTime? appliedTo = null, DateTime? updatedFrom = null, DateTime? updatedTo = null, string? sortBy = null, string? sortDir = null)
@@ -346,9 +365,24 @@ public class ApplicationService : IApplicationService
 
     // ── Statistics ──────────────────────────────────────────────────────────────
 
+    public async Task<List<CountryCountDto>> GetCountriesAsync(Guid userId)
+    {
+        var companies = await _db.Companies.AsNoTracking().Where(c => c.UserId == userId)
+            .Select(c => new { Name = c.Name.Trim().ToLower(), c.Country }).ToListAsync();
+        var names = await _db.Applications.AsNoTracking().Where(a => a.CandidateId == userId && !a.IsDeleted)
+            .Select(a => a.CompanyName.Trim().ToLower()).ToListAsync();
+        // Same match rule as Apps: exact name, else the longest company name that prefixes it.
+        string? CountryOf(string n) =>
+            companies.FirstOrDefault(c => c.Name == n)?.Country
+            ?? companies.Where(c => n.StartsWith(c.Name + " ")).MaxBy(c => c.Name.Length)?.Country;
+        return names.Select(CountryOf).Where(c => !string.IsNullOrWhiteSpace(c))
+            .GroupBy(c => c!).Select(g => new CountryCountDto(g.Key, g.Count()))
+            .OrderByDescending(c => c.Count).ToList();
+    }
+
     public async Task<ApplicationStatisticsDto> GetStatisticsAsync(Guid userId)
     {
-        var stats = await _db.Applications
+        var stats = await Apps
             .Where(a => a.CandidateId == userId && !a.IsDeleted)
             .GroupBy(a => a.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
@@ -385,7 +419,7 @@ public class ApplicationService : IApplicationService
         var daily = await GetDailyTrendsAsync(userId);
         var avg = await GetAverageResponseTimeAsync(userId);
 
-        var apps = _db.Applications.Where(a => a.CandidateId == userId && !a.IsDeleted);
+        var apps = Apps.Where(a => a.CandidateId == userId && !a.IsDeleted);
 
         var priorityCounts = await apps.GroupBy(a => a.Priority)
             .Select(g => new { Key = g.Key.ToString(), Count = g.Count() })
@@ -395,8 +429,9 @@ public class ApplicationService : IApplicationService
             .Select(g => new { Key = g.Key.ToString(), Count = g.Count() })
             .ToDictionaryAsync(x => x.Key, x => x.Count);
 
+        var userApps = Apps.Where(a => a.CandidateId == userId && !a.IsDeleted);
         var channelCounts = await _db.ApplicationAttempts
-            .Where(x => x.Status == AttemptStatus.SENT)
+            .Where(x => x.Status == AttemptStatus.SENT && userApps.Any(a => a.Id == x.ApplicationId))
             .GroupBy(x => x.Channel)
             .Select(g => new { Key = g.Key.ToString(), Count = g.Count() })
             .ToDictionaryAsync(x => x.Key, x => x.Count);
@@ -493,7 +528,7 @@ var contactCoverage = await GetContactCoverageAsync(userId);
     {
         var cutoff = DateTime.UtcNow.AddDays(-(weeks * 7));
 
-        var raw = await _db.Applications
+        var raw = await Apps
             .Where(a => a.CandidateId == userId && !a.IsDeleted && a.AppliedAt != null && a.AppliedAt >= cutoff)
             .ToListAsync();
 
@@ -530,7 +565,7 @@ var contactCoverage = await GetContactCoverageAsync(userId);
     {
         var cutoff = DateTime.UtcNow.AddDays(-days);
 
-        var raw = await _db.Applications
+        var raw = await Apps
             .Where(a => a.CandidateId == userId && !a.IsDeleted && a.AppliedAt != null && a.AppliedAt >= cutoff)
             .GroupBy(a => new { a.AppliedAt!.Value.Date })
             .Select(g => new
@@ -585,7 +620,7 @@ var contactCoverage = await GetContactCoverageAsync(userId);
     {
         var cutoff = DateTime.UtcNow.AddMonths(-months);
 
-        var raw = await _db.Applications
+        var raw = await Apps
             .Where(a => a.CandidateId == userId && !a.IsDeleted && a.AppliedAt != null && a.AppliedAt >= cutoff)
             .GroupBy(a => new { a.AppliedAt!.Value.Year, a.AppliedAt.Value.Month })
             .Select(g => new
@@ -621,7 +656,7 @@ var contactCoverage = await GetContactCoverageAsync(userId);
     {
         var initialStatuses = new[] { ApplicationStatus.APPLIED, ApplicationStatus.SAVED };
 
-        var appsWithResponse = await _db.Applications
+        var appsWithResponse = await Apps
             .Include(a => a.StatusHistory)
             .Where(a => a.CandidateId == userId
                 && !a.IsDeleted
@@ -742,7 +777,7 @@ var contactCoverage = await GetContactCoverageAsync(userId);
     {
         var initialStatuses = new[] { ApplicationStatus.APPLIED, ApplicationStatus.SAVED };
 
-        var apps = await _db.Applications
+        var apps = await Apps
             .Include(a => a.StatusHistory)
             .Where(a => a.CandidateId == userId
                 && a.AppliedAt != null
@@ -786,9 +821,10 @@ var contactCoverage = await GetContactCoverageAsync(userId);
 
     public async Task<ActivityFeedDto> GetActivityFeedAsync(Guid userId, int limit = 50)
     {
+        var scoped = Apps;
         var query = _db.ApplicationStatusHistories
             .Include(h => h.Application)
-            .Where(h => h.Application != null && h.Application.CandidateId == userId);
+            .Where(h => h.Application != null && h.Application.CandidateId == userId && scoped.Any(a => a.Id == h.ApplicationId));
 
         var total = await query.CountAsync();
         var items = await query
@@ -821,7 +857,7 @@ var contactCoverage = await GetContactCoverageAsync(userId);
 
         if (parsedStatuses.Contains(ApplicationStatus.APPLIED))
         {
-            var appliedEvents = await _db.Applications
+            var appliedEvents = await Apps
                 .Where(a => a.CandidateId == userId
                     && !a.IsDeleted
                     && a.AppliedAt != null
@@ -842,7 +878,7 @@ var contactCoverage = await GetContactCoverageAsync(userId);
 
         // Pending follow-up reminders: surface on their deadline date, and clamp
         // overdue ones (deadline passed before the viewed range) to the range start.
-        var followUpRaw = await _db.Applications
+        var followUpRaw = await Apps
             .Where(a => a.CandidateId == userId
                 && a.FollowUpStatus == FollowUpStatus.PENDING
                 && a.FollowUpDate != null)
@@ -867,9 +903,10 @@ var contactCoverage = await GetContactCoverageAsync(userId);
 
         events.AddRange(followUpEvents);
 
+        var scopedApps = Apps;
         var statusEvents = await _db.ApplicationStatusHistories
             .Include(h => h.Application)
-            .Where(h => h.Application != null
+            .Where(h => scopedApps.Any(a => a.Id == h.ApplicationId) && h.Application != null
                 && h.Application.CandidateId == userId
                 && !h.Application.IsDeleted
                 && h.ChangedAt >= from
@@ -1155,7 +1192,7 @@ var contactCoverage = await GetContactCoverageAsync(userId);
 
     private IQueryable<Application> BuildFilteredQuery(Guid userId, string[]? statuses, string[]? priorities, string? search, DateTime? appliedFrom, DateTime? appliedTo, DateTime? updatedFrom, DateTime? updatedTo)
     {
-        var query = _db.Applications.Where(a => a.CandidateId == userId && !a.IsDeleted);
+        var query = Apps.Where(a => a.CandidateId == userId && !a.IsDeleted);
 
         if (statuses is { Length: > 0 })
         {

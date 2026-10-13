@@ -41,10 +41,12 @@ type Granularity = 'day' | 'week' | 'month';
 
 interface ContactBar { label: string; pct: number; color: string; }
 
+import { CountryFilterComponent } from '@app/shared/components/country-filter/country-filter.component';
+
 @Component({
   selector: 'app-analytics',
   standalone: true,
-  imports: [CommonModule, NgxChartsModule, RefreshButtonComponent, RouterLink, CompanyLogoComponent],
+  imports: [CountryFilterComponent, CommonModule, NgxChartsModule, RefreshButtonComponent, RouterLink, CompanyLogoComponent],
   templateUrl: './analytics.component.html',
   styleUrl: './analytics.component.scss',
 })

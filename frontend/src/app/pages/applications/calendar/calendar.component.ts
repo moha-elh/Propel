@@ -44,10 +44,12 @@ const STATUS_OPTIONS = STATUS_ORDER;
 /** Fallback statuses so application events appear even before the user opens the config filter. */
 const DEFAULT_APP_STATUSES = ['SAVED', 'APPLIED', 'SCREENING', 'ASSESSMENT', 'INTERVIEW', 'OFFER', 'ACCEPTED', 'REJECTED', 'WITHDRAWN'];
 
+import { CountryFilterComponent } from '@app/shared/components/country-filter/country-filter.component';
+
 @Component({
   selector: 'app-calendar',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSelectComponent, RefreshButtonComponent, RouterLink, CompanyLogoComponent],
+  imports: [CountryFilterComponent, CommonModule, FormsModule, AppSelectComponent, RefreshButtonComponent, RouterLink, CompanyLogoComponent],
   templateUrl: './calendar.component.html',
   styleUrl: './calendar.component.scss',
 })

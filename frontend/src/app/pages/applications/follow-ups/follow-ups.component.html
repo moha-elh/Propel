@@ -9,6 +9,7 @@
       </p>
     </div>
     <div class="fu-head-right">
+      <app-country-filter (changed)="load()" />
       <div class="fu-thresh" role="group" aria-label="Quiet for at least">
         <span>Quiet for</span>
         @for (t of THRESHOLDS; track t) {

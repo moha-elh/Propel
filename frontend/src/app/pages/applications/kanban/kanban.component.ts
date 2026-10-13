@@ -31,10 +31,12 @@ const COLUMNS: { status: ApplicationStatus; label: string; colorVar: string }[] 
     colorVar: status.toLowerCase(),
   }));
 
+import { CountryFilterComponent } from '@app/shared/components/country-filter/country-filter.component';
+
 @Component({
   selector: 'app-kanban',
   standalone: true,
-  imports: [CommonModule, RouterLink, ApplicationsListComponent, SheetImportDialogComponent, RefreshButtonComponent, CompanyLogoComponent],
+  imports: [CountryFilterComponent, CommonModule, RouterLink, ApplicationsListComponent, SheetImportDialogComponent, RefreshButtonComponent, CompanyLogoComponent],
   templateUrl: './kanban.component.html',
   styleUrl: './kanban.component.scss',
 })
@@ -96,6 +98,15 @@ export class KanbanComponent implements OnInit {
         })));
       }
     } catch { } finally { this.loading.set(false); this.refreshing.set(false); }
+  }
+
+  @ViewChild(ApplicationsListComponent) listView?: ApplicationsListComponent;
+
+  onCountryChange() {
+    this.loadApps();
+    this.listView?.reload();
+    this.activityFeed.set([]);
+    if (this.view() === 'activity') this.loadActivity(true);
   }
 
   onRefresh() {

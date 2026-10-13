@@ -29,6 +29,25 @@ import { CalendarEventDto } from '@app/models/calendar-event.model';
 export class ApplicationService {
   private http = inject(HttpService);
 
+  /** Country filter shared by every applications/stats page; kept across navigation and reloads. */
+  readonly country = signal<string>(ApplicationService.readCountry());
+  setCountry(c: string) {
+    this.country.set(c);
+    try { c ? localStorage.setItem('app-country', c) : localStorage.removeItem('app-country'); } catch { /* storage blocked */ }
+  }
+  private static readCountry(): string {
+    try { return localStorage.getItem('app-country') ?? ''; } catch { return ''; }
+  }
+  /** Appends the active country to a read URL. */
+  private c(url: string): string {
+    const c = this.country();
+    return c ? `${url}${url.includes('?') ? '&' : '?'}country=${encodeURIComponent(c)}` : url;
+  }
+
+  getCountries(): Promise<ApiResponse<{ country: string; count: number }[]>> {
+    return this.http.get<ApiResponse<{ country: string; count: number }[]>>('/api/applications/countries');
+  }
+
   /** Applications quiet for 7+ days; drives the sidebar badge. Pages that already hold the list set it directly. */
   readonly dueFollowUps = signal(0);
 
@@ -73,7 +92,7 @@ export class ApplicationService {
     if (params?.sortDir) qs.set('sortDir', params.sortDir);
     const query = qs.toString();
     return this.http.get<ApiResponse<ApplicationListDto>>(
-      `/api/applications${query ? `?${query}` : ''}`,
+      this.c(`/api/applications${query ? `?${query}` : ''}`),
     );
   }
 
@@ -113,21 +132,21 @@ export class ApplicationService {
     candidateId?: string;
   }): Promise<ApiResponse<ApplicationStatisticsDto>> {
     const query = params?.candidateId ? `?candidateId=${params.candidateId}` : '';
-    return this.http.get<ApiResponse<ApplicationStatisticsDto>>(`/api/applications/statistics${query}`);
+    return this.http.get<ApiResponse<ApplicationStatisticsDto>>(this.c(`/api/applications/statistics${query}`));
   }
 
   async getTrends(params?: {
     candidateId?: string;
   }): Promise<ApiResponse<StatisticsTrendsDto>> {
     const query = params?.candidateId ? `?candidateId=${params.candidateId}` : '';
-    return this.http.get<ApiResponse<StatisticsTrendsDto>>(`/api/applications/statistics/trends${query}`);
+    return this.http.get<ApiResponse<StatisticsTrendsDto>>(this.c(`/api/applications/statistics/trends${query}`));
   }
 
   async getAnalyticsSummary(params?: {
     candidateId?: string;
   }): Promise<ApiResponse<AnalyticsSummaryDto>> {
     const query = params?.candidateId ? `?candidateId=${params.candidateId}` : '';
-    return this.http.get<ApiResponse<AnalyticsSummaryDto>>(`/api/applications/analytics/summary${query}`);
+    return this.http.get<ApiResponse<AnalyticsSummaryDto>>(this.c(`/api/applications/analytics/summary${query}`));
   }
 
   async toggleSave(id: string): Promise<ApiResponse<boolean>> {
@@ -144,7 +163,7 @@ export class ApplicationService {
     qs.set('to', params.to);
     if (params.statuses?.length) qs.set('statuses', params.statuses.join(','));
     const query = qs.toString();
-    return this.http.get<ApiResponse<CalendarEventDto[]>>(`/api/applications/calendar-events?${query}`);
+    return this.http.get<ApiResponse<CalendarEventDto[]>>(this.c(`/api/applications/calendar-events?${query}`));
   }
 
   async getActivity(params?: {
@@ -154,7 +173,7 @@ export class ApplicationService {
     const qs = new URLSearchParams();
     if (params?.limit) qs.set('limit', String(params.limit));
     const query = qs.toString();
-    return this.http.get<ApiResponse<ActivityFeedDto>>(`/api/applications/activity${query ? `?${query}` : ''}`);
+    return this.http.get<ApiResponse<ActivityFeedDto>>(this.c(`/api/applications/activity${query ? `?${query}` : ''}`));
   }
 
   // ── Attempts (apply / re-apply actions) ─────────────────────────────────────

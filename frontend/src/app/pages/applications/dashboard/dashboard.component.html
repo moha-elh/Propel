@@ -6,6 +6,7 @@
     <div class="greeting-row">
       <h1 class="greeting">Good {{ timeOfDay() }}, <span class="greeting-name">{{ firstName() }}</span></h1>
       <div class="top-actions">
+        <app-country-filter (changed)="loadTrends()" />
         <app-refresh-button [loading]="refreshing()" (refresh)="onRefresh()" />
         <button class="btn-secondary-sm" (click)="addApplication()">
           <svg viewBox="0 0 24 24" fill="none" width="13" height="13"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>

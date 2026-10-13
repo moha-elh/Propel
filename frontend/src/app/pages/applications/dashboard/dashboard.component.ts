@@ -27,10 +27,12 @@ interface FollowUpItem {
 
 const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+import { CountryFilterComponent } from '@app/shared/components/country-filter/country-filter.component';
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RefreshButtonComponent, CompanyLogoComponent],
+  imports: [CountryFilterComponent, CommonModule, RefreshButtonComponent, CompanyLogoComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })

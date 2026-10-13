@@ -237,6 +237,14 @@ public class ApplicationsController : ControllerBase
         return Ok(ApiResponse<AnalyticsSummaryDto>.Ok(summary));
     }
 
+    /// GET /applications/countries: countries (from the matched company) the user has applications in, with counts
+    [HttpGet("countries")]
+    public async Task<IActionResult> GetCountries()
+    {
+        if (UserId == null) return Unauthorized(ApiResponse<object>.Error("Unable to determine user identity"));
+        return Ok(ApiResponse<List<CountryCountDto>>.Ok(await _service.GetCountriesAsync(UserId.Value)));
+    }
+
     /// PATCH /applications/{id}/toggle-save
     [HttpPatch("{id}/toggle-save")]
     public async Task<IActionResult> ToggleSave(Guid id)
@@ -261,7 +269,9 @@ public class ApplicationsController : ControllerBase
             ? statuses.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             : null;
 
-        var events = await _service.GetCalendarEventsAsync(UserId.Value, from, to, statusArr);
+        // Date-only query values bind as Kind=Unspecified, which Npgsql rejects for timestamptz.
+        static DateTime Utc(DateTime d) => d.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(d, DateTimeKind.Utc) : d.ToUniversalTime();
+        var events = await _service.GetCalendarEventsAsync(UserId.Value, Utc(from), Utc(to), statusArr);
         return Ok(ApiResponse<List<CalendarEventDto>>.Ok(events));
     }
 

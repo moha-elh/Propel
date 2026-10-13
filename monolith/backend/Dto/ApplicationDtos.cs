@@ -255,3 +255,5 @@ public record ApplicationListDto(
 public record UpdateLinkedEmailDto(
     string? EmailMessageId
 );
+
+public record CountryCountDto(string Country, int Count);

@@ -15,6 +15,7 @@ public interface IApplicationService
     Task<ApplicationResponseDto?> ApplyFollowUpActionAsync(Guid id, FollowUpActionDto dto, Guid userId);
     Task<bool> DeleteAsync(Guid id, Guid userId);
     Task<ApplicationStatisticsDto> GetStatisticsAsync(Guid userId);
+    Task<List<CountryCountDto>> GetCountriesAsync(Guid userId);
     Task<StatisticsTrendsDto> GetTrendsAsync(Guid userId);
     Task<AnalyticsSummaryDto> GetAnalyticsSummaryAsync(Guid userId);
     Task<bool?> ToggleSaveAsync(Guid id, Guid userId);
