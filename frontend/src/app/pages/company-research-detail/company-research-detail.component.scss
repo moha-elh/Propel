@@ -159,7 +159,7 @@
   cursor: pointer;
 
   b { font-size: 18px; color: var(--text); }
-  span { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; }
+  span { font-size: 12px; color: var(--text-3);}
 
   &:hover b { color: var(--accent); }
 }
@@ -237,9 +237,7 @@
   h3 {
     margin: 0 0 14px;
     font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-weight: 600;
     color: var(--text-2);
     display: flex;
     align-items: center;
@@ -263,10 +261,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text-3);
 
   i { font-size: 12px; }

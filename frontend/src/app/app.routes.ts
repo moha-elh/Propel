@@ -10,7 +10,6 @@ import { KanbanComponent } from './pages/applications/kanban/kanban.component';
 import { AnalyticsComponent } from './pages/applications/analytics/analytics.component';
 import { CalendarComponent } from './pages/applications/calendar/calendar.component';
 import { FollowUpsComponent } from './pages/applications/follow-ups/follow-ups.component';
-import { ResumesComponent } from './pages/applications/resumes/resumes.component';
 import { ApplicationDetailComponent } from './pages/applications/detail/application-detail.component';
 import { ApplicationCreateComponent } from './pages/applications/create/application-create.component';
 import { ApplyWizardComponent } from './pages/applications/apply/apply-wizard.component';
@@ -57,7 +56,6 @@ export const routes: Routes = [
       { path: 'analytics', component: AnalyticsComponent },
       { path: 'calendar', component: CalendarComponent },
       { path: 'follow-ups', component: FollowUpsComponent },
-      { path: 'resumes', component: ResumesComponent },
     ],
   },
   { path: 'applications/new', component: ApplicationCreateComponent, canActivate: [authGuard] },

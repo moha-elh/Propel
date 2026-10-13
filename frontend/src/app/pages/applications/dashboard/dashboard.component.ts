@@ -4,19 +4,9 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { ApplicationService } from '@app/services/application.service';
 import { AuthService } from '@app/services/auth.service';
-import { StatisticsTrendsDto, MonthlyTrendDto, ApplicationResponseDto, AWAITING_STATUSES, daysQuiet } from '@app/models/application.model';
+import { StatisticsTrendsDto, ApplicationResponseDto, AWAITING_STATUSES, daysQuiet } from '@app/models/application.model';
 import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
 import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
-
-interface StatCard {
-  label: string;
-  displayValue: string;
-  sub: string;
-  change: number;
-  dotColor: string;
-  valueColor: string;
-  bars: number[];
-}
 
 interface FollowUpItem {
   id: string;
@@ -25,7 +15,6 @@ interface FollowUpItem {
   timeAgo: string;
 }
 
-const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 import { CountryFilterComponent } from '@app/shared/components/country-filter/country-filter.component';
 
@@ -65,49 +54,11 @@ export class DashboardComponent implements OnInit {
   firstName = computed(() => this.authService.currentUser()?.firstName ?? 'there');
   s = computed(() => this.trends()?.current ?? { total: 0, saved: 0, applied: 0, screening: 0, assessment: 0, interview: 0, offer: 0, accepted: 0, rejected: 0, withdrawn: 0 });
 
-  private _monthlyValues = computed<{ total: number[]; interview: number[]; accepted: number[]; responseRate: number[] }>(() => {
-    const data = this.trends()?.monthlyTrends ?? [];
-    const total: number[] = [];
-    const interview: number[] = [];
-    const accepted: number[] = [];
-    const responseRate: number[] = [];
-
-    data.forEach(m => {
-      const t = m.saved + m.applied + m.screening + m.assessment + m.interview + m.offer + m.accepted + m.rejected + m.withdrawn;
-      total.push(t);
-      interview.push(m.interview);
-      accepted.push(m.accepted);
-      responseRate.push(t > 0 ? Math.round(((m.screening + m.assessment + m.interview + m.offer + m.accepted + m.rejected) / t) * 100) : 0);
-    });
-
-    return { total, interview, accepted, responseRate };
-  });
-
-  private _monthOverMonthChange(values: number[]): number {
-    if (values.length < 2) return 0;
-    const prev = values[values.length - 2];
-    const curr = values[values.length - 1];
-    if (prev === 0) return curr > 0 ? 100 : 0;
-    return Math.round(((curr - prev) / prev) * 100);
-  }
-
-  private _scaleBars(values: number[]): number[] {
-    const max = Math.max(...values, 1);
-    return values.map(v => Math.max(4, (v / max) * 24));
-  }
-
   timeOfDay = computed(() => {
     const h = new Date().getHours();
     if (h < 12) return 'morning';
     if (h < 17) return 'afternoon';
     return 'evening';
-  });
-
-  todayLabel = computed(() => {
-    const d = new Date();
-    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return `${days[d.getDay()]} · ${months[d.getMonth()]} ${d.getDate()}`;
   });
 
   private dueFollowUps = computed(() => this.applications()
@@ -130,50 +81,15 @@ export class DashboardComponent implements OnInit {
     return trends.length ? trends[trends.length - 1].applied : 0;
   });
 
-  statCards = computed<StatCard[]>(() => {
+  /** Plain current numbers; no month-over-month badges (a partial month vs a full one misleads). */
+  kpis = computed(() => {
     const s = this.s();
-    const mv = this._monthlyValues();
-    const pct = (a: number, b: number) => a > 0 ? Math.round((b / a) * 100) : 0;
-
+    const responded = s.screening + s.assessment + s.interview + s.offer + s.accepted + s.rejected;
     return [
-      {
-        label: 'Total applications',
-        displayValue: String(s.total),
-        sub: this.trends()?.monthlyTrends?.length
-          ? `${MONTH_LABELS[this.trends()!.monthlyTrends[this.trends()!.monthlyTrends.length - 1].month - 1]} total ${mv.total[mv.total.length - 1] ?? ''}`
-          : 'vs last month',
-        change: this._monthOverMonthChange(mv.total),
-        dotColor: 'oklch(0.22 0.01 80)',
-        valueColor: 'var(--text)',
-        bars: this._scaleBars(mv.total),
-      },
-      {
-        label: 'Interviewing',
-        displayValue: String(s.interview),
-        sub: `${s.interview} active`,
-        change: this._monthOverMonthChange(mv.interview),
-        dotColor: 'oklch(0.6 0.16 250)',
-        valueColor: 'oklch(0.5 0.16 250)',
-        bars: this._scaleBars(mv.interview),
-      },
-      {
-        label: 'Offers',
-        displayValue: String(s.offer),
-        sub: `${s.accepted} accepted`,
-        change: this._monthOverMonthChange(mv.accepted),
-        dotColor: 'oklch(0.62 0.15 155)',
-        valueColor: 'oklch(0.45 0.14 155)',
-        bars: this._scaleBars(mv.accepted),
-      },
-      {
-        label: 'Response rate',
-        displayValue: pct(s.total, s.screening + s.assessment + s.interview + s.offer + s.accepted + s.rejected) + '%',
-        sub: 'industry avg 23%',
-        change: this._monthOverMonthChange(mv.responseRate),
-        dotColor: 'oklch(0.62 0.18 25)',
-        valueColor: 'oklch(0.55 0.18 25)',
-        bars: this._scaleBars(mv.responseRate),
-      },
+      { label: 'Applications', value: String(s.total), sub: `${this.monthApplied()} this month`, route: '/applications/list' },
+      { label: 'Waiting on a reply', value: String(s.applied + s.screening + s.assessment), sub: `${this.pendingFollowUps()} quiet for 7+ days`, route: '/applications/follow-ups' },
+      { label: 'Interviews', value: String(s.interview), sub: `${s.offer} offers · ${s.accepted} accepted`, route: '/applications/kanban' },
+      { label: 'Response rate', value: (s.total ? Math.round(responded / s.total * 100) : 0) + '%', sub: `${responded} of ${s.total} answered`, route: '/applications/analytics' },
     ];
   });
 
@@ -235,6 +151,7 @@ export class DashboardComponent implements OnInit {
 
   logoText(name: string): string { return name.slice(0, 2).toUpperCase(); }
 
+  go(route: string) { this.router.navigate([route]); }
   goToGenerate() { this.router.navigate(['/applications/generate']); }
   addApplication() { this.router.navigate(['/applications/new']); }
   goToFollowUps() { this.router.navigate(['/applications/follow-ups']); }

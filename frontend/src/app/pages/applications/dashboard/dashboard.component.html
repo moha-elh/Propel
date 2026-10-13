@@ -2,68 +2,37 @@
 
   <!-- Top header -->
   <div class="dash-top">
-    <div class="date-pill">{{ todayLabel() }}</div>
-    <div class="greeting-row">
-      <h1 class="greeting">Good {{ timeOfDay() }}, <span class="greeting-name">{{ firstName() }}</span></h1>
-      <div class="top-actions">
-        <app-country-filter (changed)="loadTrends()" />
-        <app-refresh-button [loading]="refreshing()" (refresh)="onRefresh()" />
-        <button class="btn-secondary-sm" (click)="addApplication()">
-          <svg viewBox="0 0 24 24" fill="none" width="13" height="13"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          Add application
-        </button>
-        <button class="btn-dark-sm" (click)="goToGenerate()">
-          <svg viewBox="0 0 24 24" fill="none" width="13" height="13"><path d="M12 4l1.5 4.5L18 10l-4.5 1.5L12 16l-1.5-4.5L6 10l4.5-1.5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-          Generate CV
-        </button>
-      </div>
+    <div>
+      <h1 class="ph-title">Good {{ timeOfDay() }}, {{ firstName() }}</h1>
+      <p class="ph-sub">
+        @if (pendingFollowUps()) {
+          <span class="link" (click)="goToFollowUps()">{{ pendingFollowUps() }} {{ pendingFollowUps() === 1 ? 'application needs' : 'applications need' }} a follow-up</span>.
+        } @else { Nothing to follow up on right now. }
+      </p>
     </div>
-    <p class="greeting-sub">
-      You have <strong class="link" (click)="goToFollowUps()">{{ pendingFollowUps() }} applications to follow up on</strong> and <strong>{{ activeOffers() }} active offers</strong>. Let's keep moving.
-    </p>
+    <div class="top-actions">
+      <app-country-filter (changed)="loadTrends()" />
+      <app-refresh-button [loading]="refreshing()" (refresh)="onRefresh()" />
+      <button class="btn-secondary-sm" (click)="addApplication()">
+        <svg viewBox="0 0 24 24" fill="none" width="13" height="13"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Add application
+      </button>
+      <button class="btn-dark-sm" (click)="goToGenerate()">
+        <svg viewBox="0 0 24 24" fill="none" width="13" height="13"><path d="M12 4l1.5 4.5L18 10l-4.5 1.5L12 16l-1.5-4.5L6 10l4.5-1.5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        Generate CV
+      </button>
+    </div>
   </div>
 
-  <!-- Stat cards -->
-  <div class="stats-row">
-    @for (s of statCards(); track s.label; let i = $index) {
-      <div class="stat-card">
-        <span class="stat-accent" [style.background]="'linear-gradient(90deg, ' + s.dotColor + ', transparent 90%)'"></span>
-        <div class="stat-head">
-          <span class="stat-icon" [style.color]="s.dotColor">
-            @switch (i) {
-              @case (0) { <i class="ti ti-briefcase"></i> }
-              @case (1) { <i class="ti ti-users"></i> }
-              @case (2) { <i class="ti ti-trophy"></i> }
-              @default { <i class="ti ti-mail-forward"></i> }
-            }
-          </span>
-          <span class="stat-label">{{ s.label }}</span>
-          <span class="stat-change" [class.positive]="s.change > 0" [class.negative]="s.change < 0">
-            {{ s.change > 0 ? '+' : '' }}{{ s.change > 0 || s.change < 0 ? s.change + '%' : '—' }}
-          </span>
-        </div>
-        <div class="stat-value" [style.color]="s.valueColor">{{ s.displayValue }}</div>
-        <div class="stat-sub">{{ s.sub }}</div>
-        <div class="stat-bars">
-          @for (b of s.bars; track $index) {
-            <span class="stat-bar" [style.height.px]="b" [class.active]="$last" [style.background]="$last ? s.dotColor : null"></span>
-          }
-        </div>
-      </div>
+  <!-- KPI strip -->
+  <div class="kpis">
+    @for (k of kpis(); track k.label) {
+      <button class="kpi" (click)="go(k.route)">
+        <span class="kpi-value">{{ k.value }}</span>
+        <span class="kpi-label">{{ k.label }}</span>
+        <span class="kpi-sub">{{ k.sub }}</span>
+      </button>
     }
-  </div>
-
-  <!-- Dark CTA banner -->
-  <div class="cta-banner">
-    <div class="cta-left">
-      <div class="credits-pill">
-        <i class="ti ti-send" aria-hidden="true"></i>
-        {{ monthApplied() }} {{ monthApplied() === 1 ? 'application' : 'applications' }} this month
-      </div>
-      <h2 class="cta-title">Got a new role you're chasing?</h2>
-      <p class="cta-sub">Paste a job description. Get a tailored CV in 11 seconds.</p>
-    </div>
-    <button class="cta-btn" (click)="goToGenerate()">Generate a CV →</button>
   </div>
 
   <!-- Bottom grid -->

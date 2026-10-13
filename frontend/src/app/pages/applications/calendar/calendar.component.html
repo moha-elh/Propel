@@ -3,9 +3,8 @@
   <!-- Page header -->
   <div class="cal-page-header">
     <div class="header-left">
-      <span class="badge-pill">Schedule</span>
-      <h1 class="page-title">{{ monthYear() }}</h1>
-      <p class="page-sub">Interviews, follow-ups, and offer deadlines, never miss a beat.</p>
+      <h1 class="page-title ph-title">{{ monthYear() }}</h1>
+      <p class="page-sub ph-sub">Interviews, follow-ups, and offer deadlines, never miss a beat.</p>
     </div>
     <div class="header-right">
       <app-country-filter (changed)="loadAppEvents()" />
@@ -61,13 +60,13 @@
     <!-- Calendar grid -->
     <div class="cal-grid-wrap">
       <div class="cal-grid">
-        <div class="cal-day-name">MON</div>
-        <div class="cal-day-name">TUE</div>
-        <div class="cal-day-name">WED</div>
-        <div class="cal-day-name">THU</div>
-        <div class="cal-day-name">FRI</div>
-        <div class="cal-day-name">SAT</div>
-        <div class="cal-day-name">SUN</div>
+        <div class="cal-day-name">Mon</div>
+        <div class="cal-day-name">Tue</div>
+        <div class="cal-day-name">Wed</div>
+        <div class="cal-day-name">Thu</div>
+        <div class="cal-day-name">Fri</div>
+        <div class="cal-day-name">Sat</div>
+        <div class="cal-day-name">Sun</div>
 
         @for (cell of calendarDays(); track cell.year + '-' + cell.month + '-' + cell.day) {
           <div class="cal-day"

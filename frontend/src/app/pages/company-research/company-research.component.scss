@@ -10,8 +10,8 @@
   margin-bottom: 20px;
   flex-wrap: wrap;
 
-  h1 { font-size: 22px; font-weight: 700; margin: 0; color: var(--text); }
-  .sub { margin: 4px 0 0; font-size: 13px; color: var(--text-3); }
+  h1 {margin: 0; color: var(--text); }
+  .sub { margin: 4px 0 0;color: var(--text-3); }
 }
 
 .head-actions { display: flex; gap: 10px; align-items: center; }
@@ -111,8 +111,6 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   margin-right: 2px;
 }
 
@@ -229,10 +227,8 @@
 .list-head {
   background: var(--bg-2, #f6f7f9);
   border-bottom: 1px solid var(--border);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text-3);
 }
 

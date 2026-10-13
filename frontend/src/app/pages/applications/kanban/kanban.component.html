@@ -4,17 +4,17 @@
   <div class="kb-page-header">
     <div class="kb-header-left">
       @if (view() === 'board') {
-        <h1 class="kb-title">Move applications across stages</h1>
-        <p class="kb-subtitle">{{ totalApps() }} active applications &middot; Drag a card between columns to update status.</p>
+        <h1 class="kb-title ph-title">Applications</h1>
+        <p class="kb-subtitle ph-sub">{{ totalApps() }} active applications &middot; Drag a card between columns to update status.</p>
       } @else if (view() === 'list') {
-        <h1 class="kb-title">All applications</h1>
-        <p class="kb-subtitle">Full list with filters, search, and pagination.</p>
+        <h1 class="kb-title ph-title">All applications</h1>
+        <p class="kb-subtitle ph-sub">Full list with filters, search, and pagination.</p>
       } @else if (view() === 'activity') {
-        <h1 class="kb-title">Activity</h1>
-        <p class="kb-subtitle">Recent status changes across your applications.</p>
+        <h1 class="kb-title ph-title">Activity</h1>
+        <p class="kb-subtitle ph-sub">Recent status changes across your applications.</p>
       } @else if (view() === 'saved') {
-        <h1 class="kb-title">Saved</h1>
-        <p class="kb-subtitle">{{ savedApps().length }} bookmarked applications.</p>
+        <h1 class="kb-title ph-title">Saved</h1>
+        <p class="kb-subtitle ph-sub">{{ savedApps().length }} bookmarked applications.</p>
       }
     </div>
     <div class="kb-header-right">

@@ -10,8 +10,8 @@
   margin-bottom: 20px;
   flex-wrap: wrap;
 
-  h1 { font-size: 22px; font-weight: 700; margin: 0; color: var(--text); }
-  .sub { margin: 4px 0 0; font-size: 13px; color: var(--text-3); }
+  h1 {margin: 0; color: var(--text); }
+  .sub { margin: 4px 0 0;color: var(--text-3); }
 }
 
 .head-actions { display: flex; gap: 10px; align-items: center; }
@@ -177,9 +177,7 @@ select.filter-select {
 
   thead th {
     text-align: left;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: .04em;
+    font-size: 12px;
     color: var(--text-3);
     padding: 12px 16px;
     border-bottom: 1px solid var(--border);
