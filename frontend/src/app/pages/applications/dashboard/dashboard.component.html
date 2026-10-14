@@ -24,62 +24,57 @@
     </div>
   </div>
 
-  <!-- KPI strip -->
+  <!-- ═══ Shared pieces ═══ -->
+  <ng-template #tplWeeks>
+    <div class="wk-chart" role="img" aria-label="Applications per week by current stage">
+      @for (w of weeks(); track $index) {
+        <div class="wk-col">
+          <span class="pl-val">@if (w.total) { <b>{{ w.total }}</b> }</span>
+          @if (w.total) {
+            <div class="wk-stack" [style.height.%]="w.h">
+              @for (sg of w.segs; track sg.label) {
+                <span [style.flex-grow]="sg.n" [style.background]="sg.color" [title]="'Week of ' + (w.start | date:'MMM d') + ' · ' + sg.label + ': ' + sg.n"></span>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+    <div class="wk-axis">@for (w of weeks(); track $index) { <span>{{ w.start | date:'MMM d' }}</span> }</div>
+    <div class="legend">@for (c of STAGES; track c.key) { <span><i [style.background]="c.color"></i>{{ c.label }}</span> }</div>
+  </ng-template>
+
+  <ng-template #tplFollow>
+    <div class="card fu-card">
+      <div class="card-head"><span class="card-title">Follow-ups</span><a class="see-link" (click)="goToFollowUps()">See all →</a></div>
+      <p class="card-sub">Quiet for 7+ days, oldest first</p>
+      <div class="followup-list">
+        @for (f of followUps(); track f.id) {
+          <div class="followup-row" (click)="open(f.id)">
+            <app-company-logo [companyName]="f.company" size="sm" />
+            <div class="followup-body"><div class="followup-company">{{ f.company }}</div><div class="followup-role">{{ f.role }}</div></div>
+            <span class="quiet" [style.color]="quietColor(f.days)" [style.background]="'color-mix(in srgb, ' + quietColor(f.days) + ' 12%, transparent)'">{{ f.days }}d</span>
+          </div>
+        } @empty { <div class="followup-empty">Nothing has been quiet for a week. You're caught up.</div> }
+      </div>
+    </div>
+  </ng-template>
+
   <div class="kpis">
     @for (k of kpis(); track k.label) {
-      <button class="kpi" (click)="go(k.route)">
+      <button class="kpi" (click)="go(k.route)" [style.--k]="k.color">
         <span class="kpi-value">{{ k.value }}</span>
         <span class="kpi-label">{{ k.label }}</span>
         <span class="kpi-sub">{{ k.sub }}</span>
       </button>
     }
   </div>
-
-  <!-- Bottom grid -->
   <div class="bottom-grid">
-    <!-- Pipeline -->
-    <div class="card pipeline-card">
-      <div class="card-head">
-        <span class="card-title">Your pipeline</span>
-        <div class="pipeline-legend">
-          <span class="leg"><span class="leg-dot" style="background:oklch(0.68 0.015 250)"></span>Applied</span>
-          <span class="leg"><span class="leg-dot" style="background:oklch(0.6 0.16 250)"></span>Interview</span>
-          <span class="leg"><span class="leg-dot" style="background:oklch(0.62 0.15 155)"></span>Offer</span>
-          <span class="leg"><span class="leg-dot" style="background:oklch(0.62 0.18 25)"></span>Rejected</span>
-        </div>
-      </div>
-      <p class="card-sub">Applications by status, last 6 months</p>
-      @if (hasPipelineData()) {
-        <div class="pipeline-chart" [innerHTML]="pipelineSvg()"></div>
-      } @else {
-        <div class="pipeline-chart">
-          <div class="followup-empty">No applications yet.</div>
-        </div>
-      }
+    <div class="card">
+      <div class="card-head"><span class="card-title">Applications per week</span><span class="card-sub inline">coloured by where each one stands now</span></div>
+      @if (s().total) { <ng-container [ngTemplateOutlet]="tplWeeks" /> } @else { <div class="followup-empty">No applications yet.</div> }
     </div>
-
-    <!-- Follow-ups -->
-    <div class="card followups-card">
-      <div class="card-head">
-        <span class="card-title">Follow-ups</span>
-        <a class="see-link" (click)="goToFollowUps()">See all →</a>
-      </div>
-      <p class="card-sub">Quiet for 7+ days, oldest first</p>
-      <div class="followup-list">
-        @for (item of followUpItems(); track item.id) {
-          <div class="followup-row" (click)="goToFollowUps()">
-            <app-company-logo [companyName]="item.company" size="sm" />
-            <div class="followup-body">
-              <div class="followup-company">{{ item.company }}</div>
-              <div class="followup-role">{{ item.role }}</div>
-            </div>
-            <span class="followup-time">{{ item.timeAgo }}</span>
-          </div>
-        } @empty {
-          <div class="followup-empty">Nothing has been quiet for a week. You're caught up.</div>
-        }
-      </div>
-    </div>
+    <ng-container [ngTemplateOutlet]="tplFollow" />
   </div>
 
 </div>

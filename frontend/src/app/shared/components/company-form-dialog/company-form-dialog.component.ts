@@ -1,3 +1,4 @@
+import { flagUrl } from '@app/shared/data/flags';
 import { Component, computed, inject, input, model, OnChanges, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -54,6 +55,7 @@ export class CompanyFormDialogComponent implements OnChanges {
   imagePickerOpen = signal(false);
 
   protected readonly COUNTRIES = COUNTRIES;
+  protected readonly flagUrl = flagUrl;
 
   citySuggestions = computed(() =>
     this.formCountry() === 'Morocco' ? MOROCCO_CITIES : []);

@@ -126,14 +126,15 @@ export class AnalyticsComponent implements OnInit, OnDestroy {
 
   kpis = computed<KpiCard[]>(() => {
     const s = this.stats();
-    const responded = s.screening + s.assessment + s.interview + s.offer + s.accepted + s.rejected;
+    // "Seen" (screening) is not a reply; a reply is assessment onwards or a rejection.
+    const responded = s.assessment + s.interview + s.offer + s.accepted + s.rejected;
     const inPipeline = s.total - s.rejected - s.withdrawn - s.accepted;
     const companies = this.summary()?.distinctCompanies ?? 0;
     const avg = this.avgTime();
     return [
       { label: 'Total applications', value: String(s.total), sub: `${s.saved} saved`, color: 'oklch(0.6 0.16 250)' },
       { label: 'In pipeline', value: String(inPipeline), sub: 'active, not closed', color: 'oklch(0.55 0.16 160)' },
-      { label: 'Response rate', value: this.pct(s.total, responded) + '%', sub: `${responded} responded`, color: 'oklch(0.55 0.16 200)' },
+      { label: 'Response rate', value: this.pct(s.total, responded) + '%', sub: `${responded} replied · ${s.screening} seen only`, color: 'oklch(0.55 0.16 200)' },
       { label: 'Companies reached', value: String(companies), sub: 'distinct', color: 'oklch(0.62 0.15 130)' },
       { label: 'Avg. response', value: avg != null ? avg.toFixed(1) + 'd' : '—', sub: 'to first change', color: 'oklch(0.55 0.14 280)' },
     ];

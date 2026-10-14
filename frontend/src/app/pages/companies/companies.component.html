@@ -25,7 +25,7 @@
     <app-select class="filter-select" [ngModel]="countryFilter()" (ngModelChange)="onCountryFilterChange($event)">
       <option value="">All countries</option>
       @for (country of COUNTRIES; track country) {
-        <option [value]="country">{{ country }}</option>
+        <option [value]="country" [attr.data-icon]="flagUrl(country)">{{ country }}</option>
       }
     </app-select>
 

@@ -1,3 +1,4 @@
+import { flagUrl } from '@app/shared/data/flags';
 import { Component, signal, inject, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -244,6 +245,7 @@ export class ApplicationCreateComponent implements OnInit {
 
   // ── New-company extras: location + a drag-dropped logo (saved to the directory) ──
   readonly COUNTRIES = COUNTRIES;
+  protected readonly flagUrl = flagUrl;
   companyCountry = signal('Morocco');
   companyLocation = signal('');
   citySuggestions = computed(() => (this.companyCountry() === 'Morocco' ? MOROCCO_CITIES : []));

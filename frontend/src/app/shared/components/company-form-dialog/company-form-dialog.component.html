@@ -95,7 +95,7 @@
             <label>Country</label>
             <app-select [(ngModel)]="formCountry" name="coCountry">
               @for (country of COUNTRIES; track country) {
-                <option [value]="country">{{ country }}</option>
+                <option [value]="country" [attr.data-icon]="flagUrl(country)">{{ country }}</option>
               }
             </app-select>
           </div>

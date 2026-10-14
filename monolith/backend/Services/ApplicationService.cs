@@ -654,7 +654,8 @@ var contactCoverage = await GetContactCoverageAsync(userId);
 
     private async Task<double?> GetAverageResponseTimeAsync(Guid userId)
     {
-        var initialStatuses = new[] { ApplicationStatus.APPLIED, ApplicationStatus.SAVED };
+        // SCREENING ("Seen") and WITHDRAWN are not a reply from the company.
+        var initialStatuses = new[] { ApplicationStatus.APPLIED, ApplicationStatus.SAVED, ApplicationStatus.SCREENING, ApplicationStatus.WITHDRAWN };
 
         var appsWithResponse = await Apps
             .Include(a => a.StatusHistory)
@@ -775,7 +776,8 @@ var contactCoverage = await GetContactCoverageAsync(userId);
 
     private async Task<List<ResponseTimeBucketDto>> GetResponseTimeHistogramAsync(Guid userId)
     {
-        var initialStatuses = new[] { ApplicationStatus.APPLIED, ApplicationStatus.SAVED };
+        // SCREENING ("Seen") and WITHDRAWN are not a reply from the company.
+        var initialStatuses = new[] { ApplicationStatus.APPLIED, ApplicationStatus.SAVED, ApplicationStatus.SCREENING, ApplicationStatus.WITHDRAWN };
 
         var apps = await Apps
             .Include(a => a.StatusHistory)

@@ -33,6 +33,8 @@ import { DocumentsService } from '@app/services/documents.service';
 import { CompanyService, CompanyDto } from '@app/services/company.service';
 import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
 import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
+import { COUNTRIES } from '@app/shared/data/geo-data';
+import { flagUrl } from '@app/shared/data/flags';
 
 /** Default login used to sign into an external web application portal. */
 const DEFAULT_LOGIN_EMAIL = 'mouhssineelhaouary@gmail.com';
@@ -44,6 +46,8 @@ export interface AttemptMetadata {
   accountEmail?: string;
   accountPassword?: string;
 }
+
+
 
 type AttemptForm = {
   channel: AttemptChannel;
@@ -91,6 +95,8 @@ export class ApplicationDetailComponent implements OnInit {
   editNotes = signal('');
   editInternshipType = signal('');
   editPriority = signal<ApplicationPriority>('MEDIUM');
+  editCountry = signal('');
+  editCity = signal('');
 
   attemptForm = signal<AttemptForm>({
     channel: 'EMAIL_GMAIL',
@@ -208,10 +214,10 @@ export class ApplicationDetailComponent implements OnInit {
   // Follow-up reminder (right-column card): presets relative to the applied date,
   // custom date, or cleared. A set deadline becomes a PENDING reminder on the Calendar.
   followUpPresets = [
-    { label: '3 days', days: 3 },
-    { label: '1 week', days: 7 },
-    { label: '2 weeks', days: 14 },
-    { label: '1 month', days: 30 },
+    { label: '3 days', short: '+3d', days: 3 },
+    { label: '1 week', short: '+1w', days: 7 },
+    { label: '2 weeks', short: '+2w', days: 14 },
+    { label: '1 month', short: '+1m', days: 30 },
   ];
   followUpSaving = signal(false);
   followUpError = signal<string | null>(null);
@@ -363,6 +369,74 @@ export class ApplicationDetailComponent implements OnInit {
   protected readonly INITIATORS: AttemptInitiatedBy[] = ['USER', 'AI_AGENT', 'SCHEDULE'];
   protected readonly channelFields = computed(() => attemptChannelFields(this.attemptForm().channel));
 
+  // ── Company fields, editable from the application ─────────────────────────
+  readonly COUNTRIES = COUNTRIES;
+  readonly flagUrl = flagUrl;
+  companySaving = signal(false);
+
+  /** Saves one company field; creates the company (named like the application) if it doesn't exist yet. */
+  async saveCompanyField(field: 'country' | 'location' | 'websiteUrl' | 'linkedinUrl' | 'sector', raw: string) {
+    const app = this.application();
+    if (!app) return;
+    const value = raw.trim();
+    const co = this.reachCompany();
+    if ((co?.[field] ?? '') === value) return;
+    this.companySaving.set(true);
+    try {
+      const res = co
+        ? await this.companyApi.updateCompany(co.id, { [field]: value })
+        : await this.companyApi.createCompany({ name: app.companyName, [field]: value });
+      if (res.success && res.data) {
+        this.reachCompany.set(res.data);
+        this.toast.success(co ? 'Company updated' : `${app.companyName} added to Companies`);
+      } else {
+        this.toast.error(res.message || 'Could not save company');
+      }
+    } catch {
+      this.toast.error('Could not save company');
+    } finally {
+      this.companySaving.set(false);
+    }
+  }
+
+  /** Furthest pipeline stage reached; for a closed application, the last one before it closed. */
+  reachedIndex = computed(() => {
+    if (!this.isOffTrack()) return this.currentStepIndex();
+    const d = this.stageDates();
+    return this.PIPELINE.reduce((r, st, i) => (d[st] ? i : r), -1);
+  });
+  tab = signal<'overview' | 'notes' | 'timeline' | 'files'>('overview');
+  /** Reminder chip: a preset number of days after applying, or "clear". */
+  pickReminder(v: string) { this.setFollowUp(v === 'clear' ? '' : this.presetTarget(Number(v))); }
+  coEdit = signal(false);
+  /** "Casablanca, Morocco" from the company record. */
+  place = computed(() => [this.reachCompany()?.location, this.reachCompany()?.country].filter(Boolean).join(', '));
+  missingCompanyFields = computed(() => {
+    const co = this.reachCompany();
+    return ([['location', 'city'], ['sector', 'sector'], ['websiteUrl', 'website'], ['linkedinUrl', 'LinkedIn']] as const)
+      .filter(([k]) => !co?.[k]).map(([, label]) => label);
+  });
+  /** First day the application reached each status, for the stage tracker. */
+  stageDates = computed(() => {
+    const app = this.application(), out: Record<string, string> = {};
+    for (const h of [...(app?.history ?? [])].sort((x, y) => x.changedAt.localeCompare(y.changedAt)))
+      out[h.newStatus] ??= h.changedAt;
+    if (app?.appliedAt) out['APPLIED'] = app.appliedAt;
+    return out;
+  });
+  readonly PRIORITIES = Object.keys(PRIORITY_LABELS) as ApplicationPriority[];
+  /** Saves application fields edited inline on the page. */
+  async saveAppField(patch: { priority?: ApplicationPriority; positionTitle?: string; offerSource?: string }) {
+    const app = this.application();
+    if (!app || Object.entries(patch).every(([k, v]) => (app as any)[k] === v || (!v && !(app as any)[k]))) return;
+    try {
+      const res = await this.appService.update(app.id, patch);
+      if (res.success && res.data) { this.application.set(res.data); this.toast.success('Saved'); }
+    } catch { this.toast.error('Could not save'); }
+  }
+
+  lastActivity = computed(() => this.timeline()[0]?.at ?? this.application()?.updatedAt ?? null);
+
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) this.loadApplication(id);
@@ -431,6 +505,8 @@ export class ApplicationDetailComponent implements OnInit {
   }
 
   resetEditForm(app: ApplicationResponseDto) {
+    this.editCountry.set(this.reachCompany()?.country || '');
+    this.editCity.set(this.reachCompany()?.location || '');
     this.editCompanyName.set(app.companyName);
     this.editPositionTitle.set(app.positionTitle);
     this.editOfferSource.set(app.offerSource || '');
@@ -724,6 +800,9 @@ export class ApplicationDetailComponent implements OnInit {
         cvVersionId: this.editCvVersionId().trim() || undefined,
       });
       if (res.success && res.data) this.application.set(res.data);
+      // Company fields live on the company record; only touched ones are saved.
+      if (this.editCountry() && this.editCountry() !== (this.reachCompany()?.country || '')) await this.saveCompanyField('country', this.editCountry());
+      if (this.editCity().trim() !== (this.reachCompany()?.location || '')) await this.saveCompanyField('location', this.editCity());
       this.toast.success('Application saved');
       this.closeEditModal();
     } catch {

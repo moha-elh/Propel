@@ -1,5 +1,6 @@
 <button type="button" class="as-trigger" [class.open]="open()" [class.disabled]="disabled"
         [disabled]="disabled" (click)="toggle()">
+  @if (selectedIcon()) { <img class="as-icon" [src]="selectedIcon()" alt=""> }
   <span class="as-label" [class.placeholder]="!selectedLabel()">{{ selectedLabel() || placeholder }}</span>
   <svg class="as-arrow" viewBox="0 0 24 24" fill="none" width="14" height="14">
     <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
@@ -12,20 +13,25 @@
 @if (open()) {
   <div class="as-backdrop" (click)="close()"></div>
   <div class="as-panel" [ngStyle]="panelStyle()">
-    @for (o of options(); track o.value) {
+    @if (searchable()) {
+      <input class="as-search" type="text" placeholder="Type to search…" [value]="query()"
+             (input)="query.set($any($event.target).value)" (keydown.enter)="pickFirst()">
+    }
+    @for (o of shown(); track o.value) {
       <button type="button" class="as-option"
               [class.selected]="o.value === value"
               [class.disabled]="o.disabled"
               [disabled]="o.disabled"
               title="{{ o.label }}"
               (click)="pick(o)">
+        @if (o.icon) { <img class="as-icon" [src]="o.icon" alt="" loading="lazy"> }
         <span class="as-opt-label">{{ o.label }}</span>
         @if (o.detail) {
           <span class="as-detail">{{ o.detail }}</span>
         }
       </button>
     } @empty {
-      <div class="as-empty">No options</div>
+      <div class="as-empty">{{ query() ? 'No matches' : 'No options' }}</div>
     }
   </div>
 }

@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, output, signal } from '@angular/core';
 import { AppSelectComponent } from '@app/shared/components/app-select/app-select.component';
 import { ApplicationService } from '@app/services/application.service';
+import { flagUrl } from '@app/shared/data/flags';
 
 /** Country picker shared by every applications/stats page. The choice lives in ApplicationService
  *  (and localStorage), so it survives opening an application and coming back. */
@@ -12,7 +13,7 @@ import { ApplicationService } from '@app/services/application.service';
     <app-select class="country-sel" [value]="appService.country()" (valueChange)="pick($event)" title="Filter by country">
       <option value="">All countries</option>
       @for (c of countries(); track c.country) {
-        <option [value]="c.country">{{ c.country }} · {{ c.count }}</option>
+        <option [value]="c.country" [attr.data-icon]="flagUrl(c.country)">{{ c.country }} · {{ c.count }}</option>
       }
     </app-select>
   `,
@@ -20,6 +21,7 @@ import { ApplicationService } from '@app/services/application.service';
 })
 export class CountryFilterComponent implements OnInit {
   appService = inject(ApplicationService);
+  flagUrl = flagUrl;
   countries = signal<{ country: string; count: number }[]>([]);
   changed = output<string>();
 

@@ -1,11 +1,11 @@
 import {
   Component, ElementRef, EventEmitter, Input, Output, ViewChild,
-  AfterContentInit, OnDestroy, forwardRef, signal, HostListener, ChangeDetectorRef,
+  AfterContentInit, OnDestroy, forwardRef, signal, computed, HostListener, ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
 
-interface Opt { value: string; label: string; detail: string; disabled: boolean; }
+interface Opt { value: string; label: string; detail: string; icon: string; disabled: boolean; }
 
 /**
  * Drop-in replacement for a native <select>. Keep the existing <option> markup
@@ -37,6 +37,13 @@ export class AppSelectComponent implements AfterContentInit, OnDestroy, ControlV
   open = signal(false);
   options = signal<Opt[]>([]);
   panelStyle = signal<Record<string, string>>({});
+  /** Type-to-filter, shown only for long lists (e.g. countries). */
+  query = signal('');
+  searchable = computed(() => this.options().length > 12);
+  shown = computed(() => {
+    const q = this.query().trim().toLowerCase();
+    return q ? this.options().filter((o) => o.label.toLowerCase().includes(q)) : this.options();
+  });
 
   private observer?: MutationObserver;
   private onChange: (v: string) => void = () => {};
@@ -62,9 +69,14 @@ export class AppSelectComponent implements AfterContentInit, OnDestroy, ControlV
       value: o.value,
       label: (o.textContent || '').trim(),
       detail: o.getAttribute('data-detail') || '',
+      icon: o.getAttribute('data-icon') || '',
       disabled: o.disabled,
     })));
     this.cdr.markForCheck();
+  }
+
+  selectedIcon(): string {
+    return this.options().find((o) => o.value === this._value)?.icon ?? '';
   }
 
   selectedLabel(): string {
@@ -92,8 +104,20 @@ export class AppSelectComponent implements AfterContentInit, OnDestroy, ControlV
       'max-height': `${maxH}px`,
       'z-index': '5000',
     });
+    this.query.set('');
     this.open.set(true);
     this.onTouched();
+    // Land on the current choice in long lists, and let the user type straight away.
+    setTimeout(() => {
+      const panel = document.querySelector('.as-panel');
+      panel?.querySelector<HTMLElement>('.as-option.selected')?.scrollIntoView({ block: 'nearest' });
+      panel?.querySelector<HTMLInputElement>('.as-search')?.focus();
+    });
+  }
+
+  pickFirst(): void {
+    const first = this.shown().find((o) => !o.disabled);
+    if (first) this.pick(first);
   }
 
   close(): void {

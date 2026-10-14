@@ -131,7 +131,7 @@
               <label>Company country</label>
               <app-select [(ngModel)]="companyCountry" name="companyCountry">
                 @for (c of COUNTRIES; track c) {
-                  <option [value]="c">{{ c }}</option>
+                  <option [value]="c" [attr.data-icon]="flagUrl(c)">{{ c }}</option>
                 }
               </app-select>
             </div>

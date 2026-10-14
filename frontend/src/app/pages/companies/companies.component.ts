@@ -1,3 +1,4 @@
+import { flagUrl } from '@app/shared/data/flags';
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -48,6 +49,7 @@ export class CompaniesComponent implements OnInit {
   refreshing = signal(false);
 
   protected readonly COUNTRIES = COUNTRIES;
+  protected readonly flagUrl = flagUrl;
 
   async ngOnInit() {
     await this.loadCompanies();
