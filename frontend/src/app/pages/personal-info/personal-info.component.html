@@ -1,21 +1,26 @@
 <div class="pi-page">
-  <div class="pi-header">
-    <div class="header-left">
-      <div>
-        <h1 class="ph-title">Personal Info</h1>
-        <p class="subtitle ph-sub">Your canonical profile, used as the base for every tailored CV</p>
-      </div>
-    </div>
+  <header class="pi-header">
     @if (profile(); as p) {
-      <button class="btn btn-primary" (click)="save()" [disabled]="saving() || loading()">
-        @if (saving()) {
-          <span class="mini-spinner"></span> Saving…
-        } @else {
-          <i class="ti ti-device-floppy"></i> Save changes
-        }
-      </button>
+      <div class="avatar" role="button" tabindex="0" title="Change profile picture" (click)="avatarPickerOpen.set(true)" (keydown.enter)="avatarPickerOpen.set(true)">
+        @if (p.avatarUrl && !avatarBroken()) { <img [src]="p.avatarUrl" alt="" (error)="avatarBroken.set(true)" /> } @else { <span class="avatar-initials">{{ initials() }}</span> }
+        <span class="avatar-edit">Edit</span>
+      </div>
     }
-  </div>
+    <div class="pi-title">
+      <h1 class="ph-title">{{ profile() ? fullName() : 'Profile' }}</h1>
+      @if (profile(); as p) {
+        <div class="chips">
+          <span class="ui-chip tone" [style.--c]="p.isActive ? 'var(--st-offer)' : 'var(--text-3)'">{{ p.isActive ? 'Active' : 'Inactive' }}</span>
+          <span class="ui-chip">Member since {{ formatDate(p.createdAt) }}</span>
+          @if (p.lastLogin) { <span class="ui-chip">Last login {{ formatDate(p.lastLogin) }}</span> }
+          <span class="ui-chip">Used as the base for every tailored CV</span>
+        </div>
+      }
+    </div>
+    @if (profile()) {
+      <button class="ui-btn primary" (click)="save()" [disabled]="saving() || loading()">{{ saving() ? 'Saving…' : 'Save changes' }}</button>
+    }
+  </header>
 
   @if (loading()) {
     <div class="loading-state">
@@ -30,46 +35,12 @@
     }
 
     <div class="pi-layout">
-      <!-- Sidebar -->
-      <aside class="pi-sidebar">
-        <div class="avatar-card">
-          <div class="avatar" role="button" tabindex="0" title="Change profile picture" (click)="avatarPickerOpen.set(true)" (keydown.enter)="avatarPickerOpen.set(true)">
-            @if (p.avatarUrl) {
-              <img [src]="p.avatarUrl" alt="Avatar" />
-            } @else {
-              <span class="avatar-initials">{{ initials() }}</span>
-            }
-            <span class="avatar-edit"><i class="ti ti-edit"></i></span>
-          </div>
-          <div class="avatar-name">{{ fullName() }}</div>
-          <div class="avatar-role">{{ p.role }}</div>
-          <div class="avatar-status" [class.active]="p.isActive">
-            <span class="status-dot"></span>
-            {{ p.isActive ? 'Active' : 'Inactive' }}
-          </div>
-        </div>
-
-        <div class="meta-card">
-          <div class="meta-item">
-            <span class="meta-label">Member since</span>
-            <span class="meta-value">{{ formatDate(p.createdAt) }}</span>
-          </div>
-          @if (p.lastLogin) {
-            <div class="meta-item">
-              <span class="meta-label">Last login</span>
-              <span class="meta-value">{{ formatDate(p.lastLogin) }}</span>
-            </div>
-          }
-        </div>
-      </aside>
-
       <!-- Main form -->
       <div class="pi-form">
 
         <!-- Section: Basic Info -->
         <section class="form-card">
           <div class="section-head">
-            <i class="ti ti-user"></i>
             <div>
               <h2>Basic Information</h2>
               <p class="section-desc">Your name, contact details and professional headline</p>
@@ -120,7 +91,6 @@
         <!-- Section: Professional Titles (1:N) -->
         <section class="form-card">
           <div class="section-head">
-            <i class="ti ti-briefcase"></i>
             <div>
               <h2>Professional Titles</h2>
               <p class="section-desc">Multiple role titles you can switch between when applying. One is set as default.</p>
@@ -180,7 +150,6 @@
         <!-- Section: Location & Work Eligibility -->
         <section class="form-card">
           <div class="section-head">
-            <i class="ti ti-map-pin"></i>
             <div>
               <h2>Location &amp; Work Eligibility</h2>
               <p class="section-desc">Where you are and your right to work</p>
@@ -231,7 +200,6 @@
         <!-- Section: Work Preferences -->
         <section class="form-card">
           <div class="section-head">
-            <i class="ti ti-settings"></i>
             <div>
               <h2>Work Preferences</h2>
               <p class="section-desc">Your ideal role setup, helps us match you better</p>
@@ -308,7 +276,6 @@
         <!-- Section: Professional Summary -->
         <section class="form-card">
           <div class="section-head">
-            <i class="ti ti-file-text"></i>
             <div>
               <h2>Professional Summary</h2>
               <p class="section-desc">A short bio that appears at the top of your CV</p>

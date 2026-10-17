@@ -1,16 +1,12 @@
-<div class="settings-page">
-  <header class="settings-header">
-    <div class="header-content">
+<div class="layout-page">
+  <header class="pg-band">
+    <div class="pg-top">
       <div>
-        <h1 class="ph-title">Account Settings</h1>
-        <p class="subtitle ph-sub">Manage your notification preferences and reminders</p>
+        <h1 class="ph-title">Settings</h1>
+        <p class="ph-sub">Reminders, notifications and the AI model your agents use.</p>
       </div>
     </div>
+    <app-tab-bar [tabs]="tabs" baseRoute="/settings" />
   </header>
-
-  <app-tab-bar [tabs]="tabs" baseRoute="/settings" />
-
-  <main class="settings-content">
-    <router-outlet />
-  </main>
+  <main class="layout-content"><router-outlet /></main>
 </div>

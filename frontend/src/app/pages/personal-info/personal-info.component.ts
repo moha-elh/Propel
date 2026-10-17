@@ -27,6 +27,7 @@ export class PersonalInfoComponent implements OnInit {
   saved = signal(false);
   error = signal<string | null>(null);
   avatarPickerOpen = signal(false);
+  avatarBroken = signal(false);
 
   onAvatarPicked(img: ImageDto): void {
     const p = this.profile();

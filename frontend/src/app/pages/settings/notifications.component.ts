@@ -25,6 +25,17 @@ export class NotificationsComponent implements OnInit {
 
   reminderOptions = [1, 2, 3, 5, 7];
 
+  readonly channelRows: { key: keyof NotificationPreference; label: string; desc: string }[] = [
+    { key: 'enableEmail', label: 'Email', desc: 'Get updates in your inbox.' },
+    { key: 'enableInApp', label: 'In the app', desc: 'See them in Propel.' },
+  ];
+  readonly categoryRows: { key: keyof NotificationPreference; label: string; desc: string }[] = [
+    { key: 'applicationUpdates', label: 'Application updates', desc: 'Status changes, replies and follow-ups.' },
+    { key: 'cvUpdates', label: 'CV updates', desc: 'When a generated CV or export is ready.' },
+    { key: 'reminders', label: 'Reminders', desc: 'Follow-up reminders for your applications.' },
+    { key: 'weeklyDigest', label: 'Weekly digest', desc: 'A summary of last week by email.' },
+  ];
+
   private backup: NotificationPreference | null = null;
 
   ngOnInit(): void {

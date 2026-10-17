@@ -1,338 +1,255 @@
-<div class="page">
-  <div class="page-head">
-    <div class="head-left">
-      <a routerLink="/companies" class="back-link" title="Back to companies">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-        Companies
-      </a>
-    </div>
-    @if (company(); as c) {
-<div class="head-actions">
-        <app-refresh-button [loading]="refreshing()" (refresh)="onRefresh()" />
-        <button class="btn btn-secondary" (click)="generateDesc()">Generate description</button>
-        <button class="btn btn-secondary" (click)="openEdit()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-          Edit
-        </button>
-        <button class="btn btn-secondary" (click)="onDelete()">Delete</button>
-        <a class="btn btn-secondary" [routerLink]="['/applications/new']" [queryParams]="{ companyName: c.name }">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Add application
-        </a>
-      </div>
-    }
-  </div>
-
-  @if (loading()) {
-    <div class="empty-state"><p>Loading…</p></div>
-  } @else if (!company()) {
-    <div class="empty-state"><p>Company not found.</p></div>
-  } @else {
-    @if (company(); as c) {
-      <!-- ── Header card ─────────────────────────────────────────────── -->
-      <section class="co-header">
-        @if (c.logoUrl) {
-          <div class="avatar logo-avatar">
-            <img [src]="c.logoUrl" [alt]="c.name + ' logo'" loading="lazy" (error)="$event.target.hidden = true">
-          </div>
-        } @else {
-          <div class="avatar" [style.background]="avatarColor(c.name)">{{ initials(c.name) }}</div>
-        }
-        <div class="co-main">
+<!-- ═══ Company page: same frame as the application page (chip header, tabs that fill the window) ═══ -->
+<div class="cp">
+  <header class="pg-band">
+    <div class="cp-row">
+      <a routerLink="/companies" class="cp-back" title="Back to companies" aria-label="Back to companies">←</a>
+      @if (company(); as c) {
+        <app-company-logo [companyName]="c.name" [logoUrl]="c.logoUrl" [website]="c.websiteUrl" size="lg" />
+        <div class="cp-title">
           <h1>{{ c.name }}</h1>
-          <div class="co-meta">
-            @if (c.websiteUrl) {
-              <a class="meta-chip link" [href]="c.websiteUrl" target="_blank" rel="noopener" [title]="c.websiteUrl">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                {{ hostOf(c.websiteUrl) }}
-              </a>
-            }
-            @if (displayLocation(c); as loc) {
-              @if (c.locationUrl) {
-                <a class="meta-chip link" [href]="c.locationUrl" target="_blank" rel="noopener" title="Open in maps">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                  {{ loc }}
-                </a>
-              } @else {
-                <span class="meta-chip">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                  {{ loc }}
-                </span>
-              }
-            }
-            <span class="meta-chip dim">Added {{ formatDate(c.createdAt) }}</span>
-          </div>
-          @if (editingNote()) {
-            <div class="co-desc-edit">
-              <textarea class="co-desc-input" [(ngModel)]="noteDraft" rows="3" placeholder="Add a note about this company…"></textarea>
-              <div class="row end">
-                <button class="mb-btn" (click)="cancelNote()">Cancel</button>
-                <button class="mb-btn-primary" (click)="saveNote()">Save</button>
-              </div>
-            </div>
-          } @else {
-            @if (c.note) {
-              <p class="co-note">{{ c.note }}</p>
-            }
-            <button class="co-desc-edit-btn" (click)="startEditNote()">{{ c.note ? 'Edit note' : 'Add note' }}</button>
-          }
-          @if (editingDesc()) {
-            <div class="co-desc-edit">
-              <textarea class="co-desc-input" [(ngModel)]="descDraft" rows="4" placeholder="Describe the company (used by {{ '{{company_description}}' }} in templates)…"></textarea>
-              <div class="row end">
-                <button class="mb-btn" (click)="cancelDesc()">Cancel</button>
-                <button class="mb-btn-primary" (click)="saveDesc()">Save</button>
-              </div>
-            </div>
-          } @else {
-            @if (c.description) {
-              <p class="co-desc">{{ c.description }}</p>
-            }
-            <button class="co-desc-edit-btn" (click)="startEditDesc()">{{ c.description ? 'Edit description' : 'Add description' }}</button>
-          }
-        </div>
-      </section>
-
-      <!-- ── Stats strip ─────────────────────────────────────────────── -->
-      <section class="stats-strip">
-        <div class="stat">
-          <span class="stat-num">{{ applications().length }}</span>
-          <span class="stat-label">{{ applications().length === 1 ? 'application' : 'applications' }}</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat">
-          <span class="stat-num">{{ contacts().length }}</span>
-          <span class="stat-label">{{ contacts().length === 1 ? 'contact' : 'contacts' }}</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat">
-          <span class="stat-num">{{ formatDate(c.lastAppliedAt) }}</span>
-          <span class="stat-label">last applied</span>
-        </div>
-        @if (statusCounts().length > 0) {
-          <div class="stat-divider"></div>
-          <div class="status-breakdown">
+          <div class="chips">
             @for (sc of statusCounts(); track sc.status) {
-              <span class="breakdown-chip" [title]="sc.label">
-                <span class="dot" [style.background]="sc.color"></span>
-                {{ sc.count }} {{ sc.label }}
-              </span>
+              <span class="ui-chip tone" [style.--c]="sc.color">{{ sc.count }} {{ sc.label }}</span>
             }
+            @if (c.country) {
+              <span class="ui-chip">@if (flagUrl(c.country); as f) { <img class="flag" [src]="f" alt=""> }{{ c.country }}</span>
+            }
+            @if (c.location) {
+              @if (c.locationUrl) { <a class="ui-chip link" [href]="c.locationUrl" target="_blank" rel="noopener" title="Open in maps">{{ c.location }}</a> }
+              @else { <span class="ui-chip">{{ c.location }}</span> }
+            }
+            @if (c.sector) { <span class="ui-chip">{{ c.sector }}</span> }
+            @if (c.lastAppliedAt) { <span class="ui-chip">Last applied {{ c.lastAppliedAt | date:'MMM d' }}</span> }
+          </div>
+        </div>
+        <div class="pg-actions cp-actions">
+          <a class="ui-btn primary" [routerLink]="['/applications/new']" [queryParams]="{ companyName: c.name }">Add application</a>
+          <button class="ui-btn" (click)="openEdit()">Edit</button>
+          <button class="ui-btn icon danger" (click)="onDelete()" title="Remove company" aria-label="Remove company"><i class="ti ti-trash"></i></button>
+        </div>
+      } @else {
+        <div class="cp-title"><h1>{{ loading() ? 'Loading…' : 'Company not found' }}</h1></div>
+      }
+    </div>
+    @if (company()) {
+      <nav class="pg-tabs cp-tabs" role="tablist">
+        <button role="tab" [class.on]="tab() === 'overview'" (click)="tab.set('overview')">Overview</button>
+        <button role="tab" [class.on]="tab() === 'apps'" (click)="tab.set('apps')">Applications <span class="n">{{ applications().length }}</span></button>
+        <button role="tab" [class.on]="tab() === 'people'" (click)="tab.set('people')">People <span class="n">{{ contacts().length + employees().length }}</span></button>
+        <button role="tab" [class.on]="tab() === 'research'" (click)="tab.set('research')">Research</button>
+      </nav>
+    }
+  </header>
+
+  @if (company(); as c) {
+    <div class="cp-body">
+      @switch (tab()) {
+        @case ('overview') {
+          <div class="ui-panel cp-panel">
+            <div class="cp-cols">
+              <section class="cp-main">
+                <div class="ui-sec-head"><h3>Applications</h3>
+                  @if (applications().length) { <button class="txt-btn" (click)="tab.set('apps')">All activity</button> }
+                </div>
+                <ng-container [ngTemplateOutlet]="tplApps" />
+
+                <hr class="ui-sep">
+                <div class="ui-sec-head"><h3>About</h3>
+                  <span class="head-links">
+                    <button class="txt-btn" (click)="generateDesc()">Draft from details</button>
+                    <button class="txt-btn" (click)="startEditDesc()">{{ c.description ? 'Edit' : 'Add' }}</button>
+                  </span>
+                </div>
+                @if (editingDesc()) {
+                  <textarea class="cp-input" [(ngModel)]="descDraft" rows="4" placeholder="Describe the company (used by {{ '{{company_description}}' }} in templates)…"></textarea>
+                  <div class="cp-edit-actions"><button class="ui-btn" (click)="cancelDesc()">Cancel</button><button class="ui-btn primary" (click)="saveDesc()">Save</button></div>
+                } @else if (c.description) {
+                  <p class="cp-text">{{ c.description }}</p>
+                } @else {
+                  <p class="ui-muted">No description yet. It fills {{ '{{company_description}}' }} in your letter templates.</p>
+                }
+
+                <div class="ui-sec-head gap"><h3>Note</h3><button class="txt-btn" (click)="startEditNote()">{{ c.note ? 'Edit' : 'Add' }}</button></div>
+                @if (editingNote()) {
+                  <textarea class="cp-input" [(ngModel)]="noteDraft" rows="3" placeholder="Anything worth remembering about this company…"></textarea>
+                  <div class="cp-edit-actions"><button class="ui-btn" (click)="cancelNote()">Cancel</button><button class="ui-btn primary" (click)="saveNote()">Save</button></div>
+                } @else if (c.note) {
+                  <p class="cp-text">{{ c.note }}</p>
+                } @else {
+                  <p class="ui-muted">Who referred you, what they build, what to mention.</p>
+                }
+              </section>
+
+              <aside class="cp-side">
+                <div class="ui-sec-head"><h3>Details</h3><button class="txt-btn" (click)="openEdit()">Edit</button></div>
+                <dl class="kv">
+                  @if (c.websiteUrl) { <div><dt>Website</dt><dd><a class="ext" [href]="c.websiteUrl" target="_blank" rel="noopener">{{ hostOf(c.websiteUrl) }}</a></dd></div> }
+                  @if (c.linkedinUrl) { <div><dt>LinkedIn</dt><dd><a class="ext" [href]="c.linkedinUrl" target="_blank" rel="noopener">View page</a></dd></div> }
+                  @if (displayLocation(c); as loc) { <div><dt>Location</dt><dd>{{ loc }}</dd></div> }
+                  @if (c.size) { <div><dt>Size</dt><dd>{{ c.size }}</dd></div> }
+                  @if (c.foundedYear) { <div><dt>Founded</dt><dd>{{ c.foundedYear }}</dd></div> }
+                  <div><dt>Added</dt><dd>{{ c.createdAt | date:'MMM d, y' }}</dd></div>
+                </dl>
+                @if (!c.websiteUrl || !c.linkedinUrl || !c.sector) {
+                  <button class="add-line" (click)="openEdit()">+ Add {{ missingFields(c) }}</button>
+                }
+
+                <div class="ui-sec-head gap"><h3>People</h3><button class="txt-btn" (click)="tab.set('people')">{{ contacts().length + employees().length ? 'Open' : 'Find people' }}</button></div>
+                @if (contacts().length + employees().length) {
+                  <ul class="mini-people">
+                    @for (p of peoplePreview(); track p.id) { <li><strong>{{ p.name }}</strong>@if (p.position) { <span> · {{ p.position }}</span> }</li> }
+                  </ul>
+                } @else {
+                  <p class="ui-muted">No one yet. Extract people from a LinkedIn page or add a contact.</p>
+                }
+
+                <div class="ui-sec-head gap"><h3>Research</h3><button class="txt-btn" (click)="tab.set('research')">{{ c.researchSource === 'web-research' ? 'Open' : 'Run' }}</button></div>
+                @if (c.researchSource === 'web-research') {
+                  <p class="ui-muted">{{ (c.emails?.length ?? 0) + (c.phones?.length ?? 0) }} contact details · {{ c.socialLinks?.length ?? 0 }} links · {{ c.companyFacts?.length ?? 0 }} facts
+                    @if (c.researchUpdatedAt) { · {{ c.researchUpdatedAt | date:'MMM d' }} }</p>
+                } @else {
+                  <p class="ui-muted">Not researched yet.</p>
+                }
+              </aside>
+            </div>
           </div>
         }
-      </section>
 
-      <!-- ── Two-column body ─────────────────────────────────────────── -->
-      <div class="columns">
-        <section class="col col-apps">
-          <h2>Applications</h2>
-          @if (applications().length === 0) {
-            <div class="panel empty-panel">
-              <p>No applications at this company yet.</p>
-              <a class="btn btn-primary btn-sm" [routerLink]="['/applications/new']" [queryParams]="{ companyName: c.name }">Add application</a>
-            </div>
-          } @else {
-            <div class="panel app-list">
-              @for (app of applications(); track app.id) {
-                <a class="app-row" [routerLink]="['/applications', app.id]">
-                  <span class="status-dot" [style.background]="statusColor(app.status)" [title]="statusLabel(app.status)"></span>
-                  <span class="app-main">
-                    <span class="app-position">{{ app.positionTitle }}</span>
-                    <span class="app-sub">
-                      {{ statusLabel(app.status) }} ·
-                      @if (app.appliedAt) { applied {{ formatDate(app.appliedAt) }} }
-                      @else { saved, not sent yet }
-                      @if (app.internshipType) { · {{ app.internshipType }} }
-                    </span>
-                  </span>
-                  @if (app.priority && app.priority !== 'LOW') {
-                    <span class="prio-chip" [class]="app.priority.toLowerCase()">
-                      <span class="priority-dot" [class]="app.priority.toLowerCase()"></span>
-                      {{ priorityLabel(app.priority) }}
-                    </span>
-                  }
-                  <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-                </a>
-              }
-            </div>
-          }
-
-          @if (activity().length > 0) {
-            <h2>Recent activity</h2>
-            <div class="panel feed">
-              @for (item of activity(); track item.entry.id) {
-                <div class="feed-row">
-                  <span class="feed-dot" [style.background]="statusColor(item.entry.newStatus)"></span>
-                  <div class="feed-main">
-                    <p class="feed-text">
-                      <strong>{{ statusLabel(item.entry.newStatus) }}</strong>
-                      — {{ item.position }}
-                      @if (item.entry.comment) {<span class="feed-comment"> · {{ item.entry.comment }}</span>}
-                    </p>
-                    <span class="feed-date">{{ formatDateTime(item.entry.changedAt) }}</span>
-                  </div>
-                </div>
-              }
-            </div>
-          }
-        </section>
-
-        <section class="col col-contacts">
-          <h2>Research</h2>
-          @if (c.researchSource !== 'web-research') {
-            <div class="panel empty-panel">
-              <p>No web research yet — pull this company's contact details, social links and facts from its homepage.</p>
-              <a class="btn btn-primary btn-sm" routerLink="/company-research">Run research</a>
-            </div>
-          } @else {
-            <div class="panel research-panel">
-              @if (c.researchLink || c.researchUpdatedAt) {
-                <p class="research-meta">
-                  @if (c.researchLink) {
-                    Source: <a [href]="c.researchLink" target="_blank" rel="noopener">{{ hostOf(c.researchLink) }}</a>
-                  }
-                  @if (c.researchUpdatedAt) { · {{ formatDateTime(c.researchUpdatedAt) }} }
-                </p>
-              }
-              @if (c.address) {
-                <div class="research-block">
-                  <span class="rb-label"><i class="ti ti-map-pin"></i> Address</span>
-                  <p class="rb-value">{{ c.address }}</p>
-                </div>
-              }
-              @if (c.emails && c.emails.length) {
-                <div class="research-block">
-                  <span class="rb-label"><i class="ti ti-mail"></i> Emails</span>
-                  @for (email of c.emails; track email) {
-                    <a class="rb-value link" [href]="'mailto:' + email">{{ email }}</a>
-                  }
-                </div>
-              }
-              @if (c.phones && c.phones.length) {
-                <div class="research-block">
-                  <span class="rb-label"><i class="ti ti-phone"></i> Phones</span>
-                  @for (phone of c.phones; track phone) {
-                    <a class="rb-value link" [href]="'tel:' + phone">{{ phone }}</a>
-                  }
-                </div>
-              }
-              @if (c.socialLinks && c.socialLinks.length) {
-                <div class="research-block">
-                  <span class="rb-label"><i class="ti ti-share"></i> Social</span>
-                  <div class="rb-social">
-                    @for (soc of c.socialLinks; track soc.key) {
-                      <a class="social-chip" [href]="soc.url" target="_blank" rel="noopener" [title]="soc.url">{{ soc.key }}</a>
+        @case ('apps') {
+          <div class="ui-panel cp-panel scroll">
+            <div class="cp-cols even">
+              <section>
+                <div class="ui-sec-head"><h3>Applications</h3><a class="txt-btn" [routerLink]="['/applications/new']" [queryParams]="{ companyName: c.name }">Add</a></div>
+                <ng-container [ngTemplateOutlet]="tplApps" />
+              </section>
+              <section>
+                <div class="ui-sec-head"><h3>Activity</h3></div>
+                @if (activity().length) {
+                  <ol class="feed">
+                    @for (item of activity(); track item.entry.id) {
+                      <li>
+                        <span class="feed-dot" [style.background]="statusColor(item.entry.newStatus)"></span>
+                        <div>
+                          <p><strong>{{ statusLabel(item.entry.newStatus) }}</strong> · {{ item.position }}@if (item.entry.comment) { <span class="dim"> · {{ item.entry.comment }}</span> }</p>
+                          <span class="feed-date">{{ item.entry.changedAt | date:'MMM d, HH:mm' }}</span>
+                        </div>
+                      </li>
                     }
-                  </div>
+                  </ol>
+                } @else {
+                  <p class="ui-muted">Status changes and sent attempts show up here.</p>
+                }
+              </section>
+            </div>
+          </div>
+        }
+
+        @case ('people') {
+          <div class="ui-panel cp-panel scroll">
+            <div class="cp-cols even">
+              <section>
+                <div class="ui-sec-head">
+                  <div><h3>Contacts</h3><p>People you can write to.</p></div>
+                  <span class="head-links">
+                    @if (contacts().length) { <button class="txt-btn" (click)="copyContactsToEmployees()">Save as employees</button> }
+                    <a class="txt-btn" [routerLink]="['/mailbox']" [queryParams]="{ tab: 'contacts', newContact: 1, company: c.name }">Add</a>
+                  </span>
                 </div>
-              }
-              @if (c.companyFacts && c.companyFacts.length) {
-                <div class="research-block">
-                  <span class="rb-label"><i class="ti ti-list-check"></i> Facts</span>
-                  <ul class="rb-facts">
-                    @for (fact of c.companyFacts; track fact) {
-                      <li>{{ fact }}</li>
+                @if (contacts().length) {
+                  <ul class="people">
+                    @for (ct of contacts(); track ct.id) {
+                      <li>
+                        @if (ct.avatarBase64; as img) { <img class="pp" [src]="'data:image/png;base64,' + img" [alt]="ct.name"> }
+                        @else { <span class="pp" [style.background]="avatarColor(ct.name)">{{ initials(ct.name) }}</span> }
+                        <div class="pp-main">
+                          <div class="pp-name">{{ ct.name }}
+                            <button class="star" [class.on]="ct.isFavorite" (click)="toggleFavorite(ct)" [title]="ct.isFavorite ? 'Remove from favorites' : 'Add to favorites'">★</button>
+                          </div>
+                          @if (ct.position) { <div class="pp-sub">{{ ct.position }}</div> }
+                          <app-contact-quick-actions [linkedinUrl]="ct.linkedinUrl" [email]="ct.email" [phone]="ct.phone" />
+                        </div>
+                      </li>
                     }
                   </ul>
+                } @else {
+                  <p class="ui-muted">No contacts linked to {{ c.name }}.</p>
+                }
+              </section>
+              <section>
+                <div class="ui-sec-head">
+                  <div><h3>Employees</h3><p>Team members found by the AI extractor.</p></div>
+                  <button class="txt-btn" (click)="extractOpen.set(true)">Extract people</button>
                 </div>
-              }
-              <a class="btn btn-secondary btn-sm" routerLink="/company-research">Re-run research</a>
+                @if (employees().length) {
+                  <ul class="people">
+                    @for (emp of employees(); track emp.id) {
+                      <li>
+                        <span class="pp" [style.background]="avatarColor(emp.name)">{{ initials(emp.name) }}</span>
+                        <div class="pp-main">
+                          <div class="pp-name">{{ emp.name }}</div>
+                          @if (emp.position) { <div class="pp-sub">{{ emp.position }}</div> }
+                          <app-contact-quick-actions [linkedinUrl]="emp.linkedinUrl" [email]="emp.email" [phone]="emp.phone" />
+                          @if (emp.notes) { <div class="pp-sub">{{ emp.notes }}</div> }
+                        </div>
+                        <button class="row-del" (click)="deleteEmployee(emp)" title="Remove employee" aria-label="Remove employee">×</button>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <p class="ui-muted">Paste a LinkedIn "People" page into the extractor to fill this in.</p>
+                }
+              </section>
             </div>
-          }
+          </div>
+        }
 
-          <h2>Contacts
-            <span class="btn-group-head">
-              <button type="button" class="btn btn-secondary btn-sm" (click)="extractOpen.set(true)">Extract contacts</button>
-              @if (contacts().length > 0) {
-                <button type="button" class="btn btn-secondary btn-sm" (click)="copyContactsToEmployees()">Save as employees</button>
+        @case ('research') {
+          <div class="ui-panel cp-panel scroll">
+            <div class="ui-sec-head">
+              <div><h3>Web research</h3>
+                <p>@if (c.researchSource === 'web-research') {
+                  @if (c.researchLink) { From <a class="ext" [href]="c.researchLink" target="_blank" rel="noopener">{{ hostOf(c.researchLink) }}</a> }
+                  @if (c.researchUpdatedAt) { · {{ c.researchUpdatedAt | date:'MMM d, HH:mm' }} }
+                } @else { Contact details, social links and facts pulled from the company's homepage. }</p>
+              </div>
+              <a class="ui-btn" routerLink="/company-research">{{ c.researchSource === 'web-research' ? 'Run again' : 'Run research' }}</a>
+            </div>
+            @if (c.researchSource === 'web-research') {
+              <dl class="kv wide">
+                @if (c.address) { <div><dt>Address</dt><dd class="wrap">{{ c.address }}</dd></div> }
+                @if (c.emails?.length) { <div><dt>Emails</dt><dd class="wrap">@for (e of c.emails; track e; let l = $last) { <a class="ext" [href]="'mailto:' + e">{{ e }}</a>@if (!l) {, } }</dd></div> }
+                @if (c.phones?.length) { <div><dt>Phones</dt><dd class="wrap">@for (p of c.phones; track p; let l = $last) { <a class="ext" [href]="'tel:' + p">{{ p }}</a>@if (!l) {, } }</dd></div> }
+                @if (c.socialLinks?.length) { <div><dt>Social</dt><dd class="wrap chips-in">@for (s of c.socialLinks; track s.key) { <a class="ui-chip sm" [href]="s.url" target="_blank" rel="noopener" [title]="s.url">{{ s.key }}</a> }</dd></div> }
+              </dl>
+              @if (c.companyFacts?.length) {
+                <hr class="ui-sep">
+                <h3 class="facts-h">Facts</h3>
+                <ul class="facts">@for (f of c.companyFacts; track f) { <li>{{ f }}</li> }</ul>
               }
-            </span>
-          </h2>
-          @if (contacts().length === 0) {
-            <div class="panel empty-panel">
-              <p>No contacts linked to this company.</p>
-              <a class="btn btn-primary btn-sm" [routerLink]="['/mailbox']" [queryParams]="{ tab: 'contacts', newContact: 1, company: c.name }">Add contact</a>
-            </div>
-          } @else {
-            <div class="panel contact-list">
-              @for (ct of contacts(); track ct.id) {
-                <div class="contact-row">
-                  @if (ct.avatarBase64; as img) {
-                    <img class="contact-avatar" [src]="'data:image/png;base64,' + img" [alt]="ct.name">
-                  } @else {
-                    <span class="contact-avatar fallback" [style.background]="avatarColor(ct.name)">{{ initials(ct.name) }}</span>
-                  }
-                  <div class="contact-main">
-                    <div class="contact-name-row">
-                      <span class="contact-name">{{ ct.name }}</span>
-                      <button class="star-btn" [class.active]="ct.isFavorite" (click)="toggleFavorite(ct)"
-                        [title]="ct.isFavorite ? 'Remove from favorites' : 'Add to favorites'">
-                        <svg width="13" height="13" viewBox="0 0 24 24" [attr.fill]="ct.isFavorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                      </button>
-                    </div>
-                    @if (ct.position || ct.company) {
-                      <span class="contact-role">{{ ct.position }}{{ ct.position && ct.company ? ' · ' : '' }}{{ ct.company }}</span>
-                    }
-                    <div class="contact-links">
-                      @if (ct.email) {
-                        <a class="contact-link" [href]="'mailto:' + ct.email" [title]="'Email ' + ct.name">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                          {{ ct.email }}
-                        </a>
-                      }
-                      @if (ct.phone) {
-                        <a class="contact-link" [href]="'tel:' + ct.phone" [title]="'Call ' + ct.name">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                          {{ ct.phone }}
-                        </a>
-                      }
-                      @if (ct.linkedinUrl) {
-                        <a class="contact-link" [href]="ct.linkedinUrl" target="_blank" rel="noopener" [title]="ct.name + ' on LinkedIn'">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.36-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z"/></svg>
-                          LinkedIn
-                        </a>
-                      }
-                    </div>
-                  </div>
-                </div>
-              }
-            </div>
-          }
-
-          <h2>Employees
-            <span class="sec-note">team members from AI extracts</span>
-          </h2>
-          @if (employees().length === 0) {
-            <div class="panel empty-panel">
-              <p>No employees linked to this company yet.</p>
-              <button type="button" class="btn btn-secondary btn-sm" (click)="extractOpen.set(true)">Extract contacts</button>
-            </div>
-          } @else {
-            <div class="panel employee-list">
-              @for (emp of employees(); track emp.id) {
-                <div class="employee-row">
-                  <span class="contact-avatar fallback" [style.background]="avatarColor(emp.name)">{{ initials(emp.name) }}</span>
-                  <div class="contact-main">
-                    <div class="contact-name-row">
-                      <span class="contact-name">{{ emp.name }}</span>
-                    </div>
-                    @if (emp.position || emp.company) {
-                      <span class="contact-role">{{ emp.position }}{{ emp.position && emp.company ? ' · ' : '' }}{{ emp.company }}</span>
-                    }
-                    <app-contact-quick-actions [linkedinUrl]="emp.linkedinUrl" [email]="emp.email" [phone]="emp.phone" />
-                    @if (emp.notes) {
-                      <span class="contact-role dim">{{ emp.notes }}</span>
-                    }
-                  </div>
-                  <button type="button" class="row-del" (click)="deleteEmployee(emp)" title="Remove employee">×</button>
-                </div>
-              }
-            </div>
-          }
-        </section>
-      </div>
-    }
+            }
+          </div>
+        }
+      }
+    </div>
   }
+
+  <ng-template #tplApps>
+    @if (applications().length) {
+      <ul class="apps">
+        @for (app of applications(); track app.id) {
+          <li>
+            <a [routerLink]="['/applications', app.id]">
+              <span class="ui-chip tone sm" [style.--c]="statusColor(app.status)">{{ statusLabel(app.status) }}</span>
+              <span class="apps-pos">{{ app.positionTitle }}</span>
+              <span class="apps-sub">@if (app.appliedAt) { Applied {{ app.appliedAt | date:'MMM d' }} } @else { Saved, not sent }@if (app.internshipType) { · {{ app.internshipType }} }</span>
+            </a>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="ui-muted">Nothing sent to {{ company()?.name }} yet.</p>
+    }
+  </ng-template>
 
   <app-contacts-extract-dialog [(open)]="extractOpen" [company]="company()?.name ?? ''" (saved)="loadAll()" />
   <app-company-form-dialog [(open)]="dialogOpen" [editing]="editingCompany()" (saved)="onSaved($event)" />

@@ -1,219 +1,47 @@
-<div class="notifications-page">
-  @if (loading()) {
-    <div class="loading-state">
-      <div class="spinner"></div>
-      <p>Loading preferences…</p>
+@if (loading()) {
+  <p class="ui-muted">Loading preferences…</p>
+} @else if (preferences(); as prefs) {
+  <div class="ui-panel set-panel">
+   <section>
+    <div class="ui-sec-head">
+      <div><h3>Channels</h3><p>Where notifications reach you.</p></div>
+      <span class="save-state">@if (saving()) { Saving… } @else if (showSuccess()) { Saved }</span>
     </div>
-  } @else if (preferences(); as prefs) {
-    <!-- Channels -->
-    <section class="pref-section">
-      <div class="section-header">
-        <i class="ti ti-device-desktop-analytics"></i>
-        <div>
-          <h2>Notification Channels</h2>
-          <p>Choose how you receive notifications</p>
-        </div>
-      </div>
-      <div class="cards-grid two-col">
-        <div class="pref-card channel-card email-card">
-          <div class="card-left">
-            <div class="card-icon email-icon">
-              <i class="ti ti-mail"></i>
-            </div>
-            <div>
-              <span class="card-label">Email Notifications</span>
-              <span class="card-desc">Receive updates via email</span>
-            </div>
-          </div>
-          <label class="toggle" [class.active]="prefs.enableEmail">
-            <input
-              type="checkbox"
-              [checked]="prefs.enableEmail"
-              (change)="toggleField('enableEmail')"
-            />
-            <span class="toggle-track">
-              <span class="toggle-thumb"></span>
-            </span>
-          </label>
-        </div>
-
-        <div class="pref-card channel-card inapp-card">
-          <div class="card-left">
-            <div class="card-icon inapp-icon">
-              <i class="ti ti-bell"></i>
-            </div>
-            <div>
-              <span class="card-label">In-App Notifications</span>
-              <span class="card-desc">See notifications in your dashboard</span>
-            </div>
-          </div>
-          <label class="toggle" [class.active]="prefs.enableInApp">
-            <input
-              type="checkbox"
-              [checked]="prefs.enableInApp"
-              (change)="toggleField('enableInApp')"
-            />
-            <span class="toggle-track">
-              <span class="toggle-thumb"></span>
-            </span>
-          </label>
-        </div>
-      </div>
-    </section>
-
-    <!-- Categories -->
-    <section class="pref-section">
-      <div class="section-header">
-        <i class="ti ti-category"></i>
-        <div>
-          <h2>Notification Categories</h2>
-          <p>Select which types of notifications you want to receive</p>
-        </div>
-      </div>
-      <div class="cards-grid">
-        <div class="pref-card category-card updates-card">
-          <div class="card-left">
-            <div class="card-icon updates-icon">
-              <i class="ti ti-briefcase"></i>
-            </div>
-            <div>
-              <span class="card-label">Application Updates</span>
-              <span class="card-desc">Status changes, responses, follow-ups</span>
-            </div>
-          </div>
-          <label class="toggle" [class.active]="prefs.applicationUpdates">
-            <input
-              type="checkbox"
-              [checked]="prefs.applicationUpdates"
-              (change)="toggleField('applicationUpdates')"
-            />
-            <span class="toggle-track">
-              <span class="toggle-thumb"></span>
-            </span>
-          </label>
-        </div>
-
-        <div class="pref-card category-card cv-card">
-          <div class="card-left">
-            <div class="card-icon cv-icon">
-              <i class="ti ti-file-cv"></i>
-            </div>
-            <div>
-              <span class="card-label">CV Updates</span>
-              <span class="card-desc">CV generation and export notifications</span>
-            </div>
-          </div>
-          <label class="toggle" [class.active]="prefs.cvUpdates">
-            <input
-              type="checkbox"
-              [checked]="prefs.cvUpdates"
-              (change)="toggleField('cvUpdates')"
-            />
-            <span class="toggle-track">
-              <span class="toggle-thumb"></span>
-            </span>
-          </label>
-        </div>
-
-        <div class="pref-card category-card reminder-card">
-          <div class="card-left">
-            <div class="card-icon reminder-icon">
-              <i class="ti ti-calendar"></i>
-            </div>
-            <div>
-              <span class="card-label">Reminders</span>
-              <span class="card-desc">Follow-up reminders for applications</span>
-            </div>
-          </div>
-          <label class="toggle" [class.active]="prefs.reminders">
-            <input
-              type="checkbox"
-              [checked]="prefs.reminders"
-              (change)="toggleField('reminders')"
-            />
-            <span class="toggle-track">
-              <span class="toggle-thumb"></span>
-            </span>
-          </label>
-        </div>
-
-        <div class="pref-card category-card digest-card">
-          <div class="card-left">
-            <div class="card-icon digest-icon">
-              <i class="ti ti-chart-bar"></i>
-            </div>
-            <div>
-              <span class="card-label">Weekly Digest</span>
-              <span class="card-desc">Weekly summary of activity</span>
-            </div>
-          </div>
-          <label class="toggle" [class.active]="prefs.weeklyDigest">
-            <input
-              type="checkbox"
-              [checked]="prefs.weeklyDigest"
-              (change)="toggleField('weeklyDigest')"
-            />
-            <span class="toggle-track">
-              <span class="toggle-thumb"></span>
-            </span>
-          </label>
-        </div>
-      </div>
-    </section>
-
-    <!-- Default Reminder -->
-    <section class="pref-section">
-      <div class="section-header">
-        <i class="ti ti-clock"></i>
-        <div>
-          <h2>Default Reminder Timing</h2>
-          <p>How many days before an event should we remind you?</p>
-        </div>
-      </div>
-      <div class="reminder-picker">
-        <app-select
-          class="reminder-select"
-          [ngModel]="prefs.defaultReminderDaysBefore"
-          (ngModelChange)="onReminderChange($event)"
-        >
-          @for (option of reminderOptions; track option) {
-            <option [value]="option">{{ option }} day{{ option > 1 ? 's' : '' }} before</option>
-          }
-        </app-select>
-        <span class="reminder-hint">
-          @if (prefs.reminders) {
-            Reminders are active
-          } @else {
-            Enable Reminders above to use this
-          }
-        </span>
-      </div>
-    </section>
-
-    <!-- Save indicator -->
-    @if (saving()) {
-      <div class="saving-indicator">
-        <div class="mini-spinner"></div>
-        Saving…
-      </div>
+    @for (r of channelRows; track r.key) {
+      <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: r, on: prefs[r.key] }" />
     }
-  } @else {
-    <div class="empty-state">
-      <i class="ti ti-bell-off"></i>
-      <h3>Could not load preferences</h3>
-      <p>Please try refreshing the page.</p>
-    </div>
-  }
 
-  <!-- Toast -->
-  @if (showSuccess()) {
-    <div class="toast" [class.visible]="showSuccess()">
-      <div class="toast-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M20 6L9 17l-5-5" />
-        </svg>
+    <div class="ui-sec-head gap"><div><h3>Reminders</h3><p>Defaults for the calendar.</p></div></div>
+    <div class="set-row">
+      <div class="set-text">
+        <strong>Default reminder</strong>
+        <span>@if (prefs.reminders) { How early a calendar reminder fires. } @else { Turn on Reminders to use this. }</span>
       </div>
-      <span>Preferences saved</span>
+      <app-select class="set-select" [ngModel]="prefs.defaultReminderDaysBefore" (ngModelChange)="onReminderChange($event)" [disabled]="!prefs.reminders">
+        @for (option of reminderOptions; track option) {
+          <option [value]="option">{{ option }} day{{ option > 1 ? 's' : '' }} before</option>
+        }
+      </app-select>
     </div>
-  }
-</div>
+   </section>
+   <section>
+    <div class="ui-sec-head"><div><h3>What to notify about</h3><p>Turn off anything you don't want to hear about.</p></div></div>
+    @for (r of categoryRows; track r.key) {
+      <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: r, on: prefs[r.key] }" />
+    }
+
+   </section>
+  </div>
+} @else {
+  <p class="ui-muted">Couldn't load your preferences. Refresh the page to try again.</p>
+}
+
+<ng-template #row let-r let-on="on">
+  <label class="set-row">
+    <span class="set-text"><strong>{{ r.label }}</strong><span>{{ r.desc }}</span></span>
+    <span class="toggle" [class.active]="on">
+      <input type="checkbox" [checked]="on" (change)="toggleField(r.key)" />
+      <span class="toggle-track"><span class="toggle-thumb"></span></span>
+    </span>
+  </label>
+</ng-template>

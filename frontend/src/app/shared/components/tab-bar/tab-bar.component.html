@@ -1,13 +1,5 @@
-<nav class="tab-bar">
+<nav class="pg-tabs">
   @for (tab of tabs(); track tab.route) {
-    <a
-      class="tab"
-      [routerLink]="baseRoute() + '/' + tab.route"
-      routerLinkActive="active"
-      [routerLinkActiveOptions]="{ exact: false }"
-    >
-      <i class="ti ti-{{ tab.icon }}" aria-hidden="true"></i>
-      <span>{{ tab.label }}</span>
-    </a>
+    <a [routerLink]="baseRoute() + '/' + tab.route" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">{{ tab.label }}</a>
   }
 </nav>

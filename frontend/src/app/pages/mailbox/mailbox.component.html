@@ -1,46 +1,25 @@
 <div class="mb-shell">
-  <div class="mb-page-header">
-    <div class="mb-header-left">
-      <h1 class="mb-title ph-title">Mailbox</h1>
-      <p class="mb-subtitle ph-sub">
-        @if (view() === 'compose') { Send professional emails to recruiters and companies. }
-        @else if (view() === 'history') { Track all sent emails. }
-        @else if (view() === 'contacts') { Manage recruiters and companies. }
-        @else if (view() === 'schedules') { Automate recurring email outreach. }
-        @else if (view() === 'templates') { Reusable generic schedules with auto-injected variables. }
-        @else { Manage email providers and preferences. }
-      </p>
-    </div>
-    <div class="mb-header-right">
-      <app-refresh-button [loading]="refreshing()" (refresh)="onRefresh()" />
-      <div class="mb-view-group">
-        <button class="mb-vbtn" [class.active]="view() === 'compose'" (click)="view.set('compose')">
-          <svg viewBox="0 0 14 14" fill="none" width="13" height="13" stroke="currentColor" stroke-width="1.6"><path d="M2 4a1 1 0 011-1h8a1 1 0 011 1v6a1 1 0 01-1 1H3a1 1 0 01-1-1V4z"/><path d="M2 4l5 4 5-4"/></svg>
-          Compose
-        </button>
-        <button class="mb-vbtn" [class.active]="view() === 'history'" (click)="view.set('history')">
-          <svg viewBox="0 0 14 14" fill="none" width="13" height="13" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="6"/><polyline points="7 4 7 7 9 9"/></svg>
-          History
-        </button>
-        <button class="mb-vbtn" [class.active]="view() === 'contacts'" (click)="view.set('contacts')">
-          <svg viewBox="0 0 14 14" fill="none" width="13" height="13" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="5" r="3"/><path d="M2 13c1.5-3 5-3 5-3s3.5 0 5 3"/></svg>
-          Contacts
-        </button>
-        <button class="mb-vbtn" [class.active]="view() === 'schedules'" (click)="view.set('schedules')">
-          <svg viewBox="0 0 14 14" fill="none" width="13" height="13" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="6"/><polyline points="7 4 7 7 9 8"/></svg>
-          Schedules
-        </button>
-        <button class="mb-vbtn" [class.active]="view() === 'templates'" (click)="view.set('templates')">
-          <svg viewBox="0 0 14 14" fill="none" width="13" height="13" stroke="currentColor" stroke-width="1.6"><path d="M3 2h5l3 3v7a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M8 2v3h3"/></svg>
-          Templates
-        </button>
-        <button class="mb-vbtn" [class.active]="view() === 'settings'" (click)="view.set('settings')">
-          <svg viewBox="0 0 14 14" fill="none" width="13" height="13" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="2"/><path d="M7 1v2M7 11v2M1 7h2M11 7h2M3.3 3.3l1.4 1.4M9.3 9.3l1.4 1.4M3.3 10.7l1.4-1.4M9.3 4.7l1.4-1.4"/></svg>
-          Settings
-        </button>
+  <header class="pg-band">
+    <div class="pg-top">
+      <div>
+        <h1 class="ph-title">Mailbox</h1>
+        <p class="ph-sub">
+          @if (view() === 'compose') { Send professional emails to recruiters and companies. }
+          @else if (view() === 'history') { Track all sent emails. }
+          @else if (view() === 'contacts') { Manage recruiters and companies. }
+          @else if (view() === 'schedules') { Automate recurring email outreach. }
+          @else if (view() === 'templates') { Reusable generic schedules with auto-injected variables. }
+          @else { Manage email providers and preferences. }
+        </p>
       </div>
+      <div class="pg-actions"><app-refresh-button [loading]="refreshing()" (refresh)="onRefresh()" /></div>
     </div>
-  </div>
+    <nav class="pg-tabs">
+      @for (v of mbViews; track v.id) {
+        <button [class.on]="view() === v.id" (click)="view.set(v.id)">{{ v.label }}</button>
+      }
+    </nav>
+  </header>
 
   @if (loading()) {
     <div class="mb-loading">Loading mailbox…</div>

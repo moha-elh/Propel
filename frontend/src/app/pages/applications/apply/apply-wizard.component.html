@@ -16,32 +16,36 @@
   </ol>
 
   @if (step() === 1) {
-    <section class="card">
-      <label>Paste job post text</label>
-      <textarea [(ngModel)]="inputText" rows="8" placeholder="Paste the job description here..."></textarea>
+    <section class="card step1">
+      <div class="step1-form">
+        <label>Paste job post text</label>
+        <textarea [(ngModel)]="inputText" rows="12" placeholder="Paste the job description here..."></textarea>
 
-      <label>…or a URL</label>
-      <input type="text" [(ngModel)]="inputUrl" placeholder="https://careers.example.com/role" />
+        <label>…or a URL</label>
+        <input type="text" [(ngModel)]="inputUrl" placeholder="https://careers.example.com/role" />
 
-      <div class="row">
-        <button class="btn primary" (click)="extract()" [disabled]="extracting()">
-          {{ extracting() ? 'Extracting…' : 'Extract & organize' }}
-        </button>
+        <div class="row">
+          <button class="btn primary" (click)="extract()" [disabled]="extracting()">
+            {{ extracting() ? 'Extracting…' : 'Extract & organize' }}
+          </button>
+        </div>
       </div>
 
-      @if (history().length) {
-        <div class="history">
-          <h3>Recent extractions</h3>
+      <div class="history">
+        <h3>Recent extractions</h3>
+        @if (history().length) {
           <ul>
             @for (h of history(); track h.id) {
               <li>
-                <button class="link" (click)="selectHistory(h.id)">{{ h.companyName }} — {{ h.jobRole }}</button>
-                <span class="muted">{{ h.createdAt | date: 'short' }}</span>
+                <button class="link" (click)="selectHistory(h.id)">{{ extractionTitle(h) }}</button>
+                <span class="muted">{{ h.createdAt | date: 'MMM d, HH:mm' }}</span>
               </li>
             }
           </ul>
-        </div>
-      }
+        } @else {
+          <p class="muted">Job posts you extract show up here so you can pick them up again.</p>
+        }
+      </div>
     </section>
   }
 

@@ -7,14 +7,13 @@ import { ToastService } from '@app/services/toast.service';
 import { CompanyFormDialogComponent } from '@app/shared/components/company-form-dialog/company-form-dialog.component';
 import { ContactsExtractDialogComponent } from '@app/shared/components/contacts-extract-dialog/contacts-extract-dialog.component';
 import { ContactQuickActionsComponent } from '@app/shared/components/contact-quick-actions/contact-quick-actions.component';
-import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
+import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
+import { flagUrl } from '@app/shared/data/flags';
 import {
   ApplicationResponseDto,
   StatusHistoryDto,
   STATUS_LABELS,
   STATUS_COLORS,
-  PRIORITY_LABELS,
-  PRIORITY_COLORS,
 } from '@app/models/application.model';
 import { ContactDto } from '@app/models/mailbox.model';
 import { ContactService } from '@app/services/contact.service';
@@ -27,7 +26,7 @@ interface ActivityEntry { appId: string; position: string; entry: StatusHistoryD
 @Component({
   selector: 'app-companies-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, CompanyFormDialogComponent, ContactsExtractDialogComponent, ContactQuickActionsComponent, RefreshButtonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, CompanyFormDialogComponent, ContactsExtractDialogComponent, ContactQuickActionsComponent, CompanyLogoComponent],
   templateUrl: './companies-detail.component.html',
   styleUrl: './companies-detail.component.scss',
 })
@@ -50,6 +49,12 @@ export class CompaniesDetailComponent {
   dialogOpen = signal(false);
   editingCompany = signal<CompanyDto | null>(null);
   extractOpen = signal(false);
+  tab = signal<'overview' | 'apps' | 'people' | 'research'>('overview');
+  protected readonly flagUrl = flagUrl;
+
+  /** First three people (contacts before employees) for the Overview. */
+  peoplePreview = computed(() => [...this.contacts(), ...this.employees()].slice(0, 3)
+    .map(p => ({ id: p.id, name: p.name, position: p.position })));
 
   statusCounts = computed<StatusCount[]>(() => {
     const counts = new Map<string, number>();
@@ -102,11 +107,6 @@ export class CompaniesDetailComponent {
   private async loadEmployees(companyName?: string): Promise<void> {
     const name = companyName ?? this.company()?.name;
     this.employees.set(name ? (await this.employeeService.list({ company: name })).data ?? [] : []);
-  }
-
-  onRefresh() {
-    this.refreshing.set(true);
-    this.loadAll();
   }
 
   openEdit() {
@@ -271,12 +271,9 @@ export class CompaniesDetailComponent {
     return STATUS_LABELS[status as keyof typeof STATUS_LABELS] ?? status;
   }
 
-  priorityLabel(p?: string): string {
-    return p ? (PRIORITY_LABELS[p as keyof typeof PRIORITY_LABELS] ?? p) : '';
-  }
-
-  priorityColor(p?: string): string {
-    return p ? (PRIORITY_COLORS[p as keyof typeof PRIORITY_COLORS] ?? 'var(--text-3)') : 'transparent';
+  /** "website, LinkedIn, sector" — whichever the company is missing. */
+  missingFields(c: CompanyDto): string {
+    return [!c.websiteUrl && 'website', !c.linkedinUrl && 'LinkedIn', !c.sector && 'sector'].filter(Boolean).join(', ');
   }
 
   hostOf(url?: string | null): string {
@@ -287,18 +284,6 @@ export class CompaniesDetailComponent {
   displayLocation(c: CompanyDto): string {
     if (c.location && c.country) return `${c.location}, ${c.country}`;
     return c.location || c.country || '';
-  }
-
-  formatDate(iso?: string | null): string {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-  }
-
-  formatDateTime(iso?: string | null): string {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleString('en-GB', {
-      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-    });
   }
 
   initials(name: string): string {

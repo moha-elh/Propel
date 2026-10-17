@@ -1,6 +1,4 @@
-.letters-tab {
-  max-width: 900px;
-}
+.letters-tab {}
 
 .toolbar {
   display: flex;
@@ -10,14 +8,14 @@
   margin-bottom: 16px;
 
   h2 {
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 600;
     color: var(--text);
     font-family: var(--font-display);
   }
 
   .muted {
-    font-size: 12.5px;
+    font-size: 12px;
     color: var(--text-3);
     margin-top: 2px;
   }
@@ -46,7 +44,7 @@
   padding: 8px 14px;
   background: var(--dark);
   color: white;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 
   &:disabled {
@@ -55,7 +53,7 @@
   }
 
   i {
-    font-size: 15px;
+    font-size: 16px;
   }
 }
 
@@ -64,7 +62,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-2);
   background: white;
@@ -85,7 +83,7 @@
   }
 
   i {
-    font-size: 13px;
+    font-size: 14px;
   }
 }
 
@@ -103,7 +101,7 @@
   }
 
   i {
-    font-size: 13px;
+    font-size: 14px;
   }
 }
 
@@ -131,7 +129,7 @@
   border: 1px dashed var(--border-2);
   border-radius: var(--radius-sm);
   color: var(--text-3);
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
   transition: border-color 0.15s;
 
@@ -238,7 +236,7 @@
 
   h3 {
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--text);
     font-family: var(--font-display);
   }
@@ -248,7 +246,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 999px;
@@ -271,7 +269,7 @@
   gap: 16px;
   margin-top: 8px;
   color: var(--text-3);
-  font-size: 12.5px;
+  font-size: 12px;
 
   span {
     display: inline-flex;
@@ -280,7 +278,7 @@
   }
 
   i {
-    font-size: 13px;
+    font-size: 14px;
   }
 }
 
@@ -311,7 +309,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-2);
 
   i {
@@ -337,7 +335,7 @@
 .state-row {
   padding: 24px 0;
   color: var(--text-3);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .empty-state {
@@ -360,7 +358,7 @@
   }
 
   span {
-    font-size: 12.5px;
+    font-size: 12px;
     max-width: 520px;
     text-align: center;
   }
@@ -382,7 +380,7 @@
   select,
   textarea {
     padding: 8px 10px;
-    font-size: 13px;
+    font-size: 14px;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background: white;
@@ -433,7 +431,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-2);
   cursor: pointer;
   margin-top: 4px;
@@ -477,8 +475,8 @@
   padding: 16px 20px 12px;
 
   h2 {
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 600;
     color: var(--text);
     font-family: var(--font-display);
   }
@@ -551,7 +549,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-3);
   background: var(--bg-2);
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
@@ -564,3 +562,7 @@
   background: var(--bg-2);
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 }
+/* Shared frame: page-wide, one list panel with hairline rows (matches the application pages). */
+.toolbar h2 { font-family: inherit; }
+.cl-list { gap: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.cl-card { border: 0; border-radius: 0; box-shadow: none; background: transparent; padding: 16px 20px; & + & { border-top: 1px solid var(--hairline); } }

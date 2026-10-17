@@ -46,19 +46,29 @@ export class HeaderComponent {
     '/company-research':       'Company Research',
     '/company-research/:id':   'Research Details',
     '/settings':               'Settings',
+    '/applications/new':       'New application',
+    '/applications/apply':     'Apply',
+    '/mailbox':                'Mailbox',
+    '/documents':              'Documents',
+    '/skills':                 'Skills',
+    '/profile':                'Profile',
   };
 
   constructor() {
+    // The header is created after the first navigation, so read the current url too.
+    this.pageName = this.nameFor(this.router.url);
     this.router.events.pipe(
       filter(e => e instanceof NavigationEnd)
-    ).subscribe((e: any) => {
-      const url: string = e.urlAfterRedirects || e.url;
-      const match = Object.keys(this.ROUTE_NAMES)
-        .sort((a, b) => b.length - a.length)
-        .find(k => url.startsWith(k));
-      this.pageName = match ? this.ROUTE_NAMES[match]
-        : /^\/applications\/[0-9a-f-]{36}/.test(url) ? 'Application' : 'Dashboard';
-    });
+    ).subscribe((e: any) => this.pageName = this.nameFor(e.urlAfterRedirects || e.url));
+  }
+
+  private nameFor(url: string): string {
+    url = url.split(/[?#]/)[0];
+    const match = Object.keys(this.ROUTE_NAMES)
+      .sort((a, b) => b.length - a.length)
+      .find(k => url.startsWith(k.replace('/:id', '/')) || url === k);
+    return match ? this.ROUTE_NAMES[match]
+      : /^\/applications\/[0-9a-f-]{36}/.test(url) ? 'Application' : 'Dashboard';
   }
 
   initials = computed(() => {

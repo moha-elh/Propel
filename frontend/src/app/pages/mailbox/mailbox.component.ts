@@ -211,6 +211,10 @@ export class MailboxComponent implements OnInit {
   private followUpApp: ApplicationResponseDto | null = null;
 
   view = signal<MailboxView>((localStorage.getItem('mailbox-view') as MailboxView) || 'compose');
+  protected readonly mbViews: { id: MailboxView; label: string }[] = [
+    { id: 'compose', label: 'Compose' }, { id: 'history', label: 'History' }, { id: 'contacts', label: 'Contacts' },
+    { id: 'schedules', label: 'Schedules' }, { id: 'templates', label: 'Templates' }, { id: 'settings', label: 'Settings' },
+  ];
 
   constructor() {
     effect(() => localStorage.setItem('mailbox-view', this.view()));

@@ -11,7 +11,7 @@ import { TabBarComponent, TabItem } from '@app/shared/components/tab-bar/tab-bar
 })
 export class SettingsLayoutComponent {
   tabs: TabItem[] = [
-    { label: 'Notifications', route: 'notifications', icon: 'bell' },
-    { label: 'AI Model', route: 'llm', icon: 'cpu' },
+    { label: 'Notifications', route: 'notifications' },
+    { label: 'AI Model', route: 'llm' },
   ];
 }

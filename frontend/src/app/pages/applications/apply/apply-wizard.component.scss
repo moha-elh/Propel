@@ -1,7 +1,5 @@
 .apply-page {
-  max-width: 880px;
-  margin: 0 auto;
-  padding: 28px 20px 72px;
+  padding: 28px 40px 72px;
 }
 
 .apply-head {
@@ -139,12 +137,16 @@ textarea::placeholder, input::placeholder { color: var(--text-4); }
 .chip-x:hover { opacity: 1; }
 .skill-input { flex: 1; min-width: 180px; }
 
-.history h3 { font-family: var(--font-display); font-size: 0.9rem; margin: 18px 0 8px; color: var(--text); }
+.step1 { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 40px; align-items: start; }
+.step1 .history { padding-left: 32px; border-left: 1px solid var(--hairline); max-height: 560px; overflow-y: auto; }
+@media (max-width: 1100px) { .step1 { grid-template-columns: 1fr; } .step1 .history { padding-left: 0; border-left: 0; } }
+.history h3 { font-size: 16px; font-weight: 600; margin: 0 0 8px; color: var(--text); }
 .history ul { list-style: none; padding: 0; margin: 0; }
-.history li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.history li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--hairline); }
+.history li .link { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
 .history li .muted { white-space: nowrap; }
 
-.muted { color: var(--text-4); font-size: 0.78rem; }
+.muted { color: var(--text-3); font-size: 12px; }
 
 /* Segmented control */
 .seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin: 10px 0 14px; background: var(--surface); }

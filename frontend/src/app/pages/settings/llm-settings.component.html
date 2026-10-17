@@ -1,76 +1,34 @@
-<div class="llm-page">
-  <div class="section-header">
-    <div class="icon-wrap">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18">
-        <rect x="3" y="5" width="18" height="14" rx="2" />
-        <path d="M3 9h18M9 5v14" />
-      </svg>
+@if (loading()) {
+  <p class="ui-muted">Loading the AI model settings…</p>
+} @else {
+  <div class="ui-panel llm-panel">
+    <div class="ui-sec-head">
+      <div><h3>AI model</h3><p>The provider and model every agent uses: job extraction, CV generation, email drafts.</p></div>
     </div>
-    <div>
-      <h2>AI Language Model</h2>
-      <p>Choose the provider and model used by your AI agents (BIME, Job Extractor, etc.)</p>
-    </div>
-  </div>
-
-  @if (loading()) {
-    <div class="loading-state">
-      <div class="spinner"></div>
-      <p>Loading LLM configuration...</p>
-    </div>
-  } @else {
-    <div class="form-card">
-      <div class="field">
-        <label class="label">Provider</label>
-        <app-select
-          class="select"
-          [ngModel]="selectedProvider()"
-          (ngModelChange)="onProviderChange($event)"
-        >
+    <div class="llm-grid">
+      <label class="field"><span>Provider</span>
+        <app-select [ngModel]="selectedProvider()" (ngModelChange)="onProviderChange($event)">
           @for (p of providers(); track p.name) {
-            <option [value]="p.name" [disabled]="!p.available">
-              {{ p.label }} {{ p.available ? '' : '(no API key)' }}
-            </option>
+            <option [value]="p.name" [disabled]="!p.available">{{ p.label }}{{ p.available ? '' : ' (no API key)' }}</option>
           }
         </app-select>
-      </div>
-
-      <div class="field">
-        <label class="label">Model</label>
+      </label>
+      <label class="field"><span>Model</span>
         @if (modelsLoading()) {
-          <div class="models-loading">Loading available models...</div>
+          <p class="ui-muted">Loading models…</p>
         } @else {
-          <app-select class="select" [(ngModel)]="selectedModel">
-            @if (models().length === 0) {
-              <option value="">No models available</option>
-            }
-            @for (m of models(); track m) {
-              <option [value]="m">{{ m }}</option>
-            }
+          <app-select [(ngModel)]="selectedModel">
+            @if (models().length === 0) { <option value="">No models available</option> }
+            @for (m of models(); track m) { <option [value]="m">{{ m }}</option> }
           </app-select>
         }
-      </div>
-
-      @if (error()) {
-        <div class="error-banner">{{ error() }}</div>
-      }
-
-      <div class="actions">
-        <button
-          class="save-btn"
-          [class.loading]="saving()"
-          (click)="save()"
-          [disabled]="saving() || !selectedProvider() || !selectedModel()"
-        >
-          {{ saving() ? 'Saving...' : 'Save' }}
-        </button>
-        @if (showSuccess()) {
-          <span class="saved-hint">Saved</span>
-        }
-      </div>
-
-      <p class="hint">
-        Your selection is saved and used as the default for all AI agents. Models are fetched live from the provider so the list is always current.
-      </p>
+      </label>
     </div>
-  }
-</div>
+    @if (error()) { <p class="llm-error">{{ error() }}</p> }
+    <div class="llm-actions">
+      <button class="ui-btn primary" (click)="save()" [disabled]="saving() || !selectedProvider() || !selectedModel()">{{ saving() ? 'Saving…' : 'Save' }}</button>
+      @if (showSuccess()) { <span class="ui-muted">Saved</span> }
+      <span class="ui-muted llm-hint">Models are fetched live from the provider.</span>
+    </div>
+  </div>
+}

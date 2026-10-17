@@ -4,8 +4,8 @@
       <h1 class="ph-title">Company Research</h1>
       <p class="sub ph-sub">{{ total() }} {{ total() === 1 ? 'company' : 'companies' }} · crawl homepages and extract contacts, social links and company facts.</p>
     </div>
-    <div class="head-actions">
-      <div class="search-box">
+    <div class="pg-actions">
+      <div class="ui-search">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" placeholder="Search companies…" [ngModel]="search()" (ngModelChange)="onSearchInput($event)">
       </div>
@@ -13,7 +13,7 @@
     </div>
   </header>
 
-  <div class="filter-bar">
+  <div class="filter-bar ui-toolbar">
     <app-select class="filter-select" [ngModel]="sectorFilter()" (ngModelChange)="sectorFilter.set($event); onFilterChange()">
       <option value="">All sectors</option>
       @for (s of sectors(); track s) {
@@ -57,7 +57,6 @@
         (click)="toggleType(opt.key)"
         [title]="opt.desc"
       >
-        <i [class]="opt.icon"></i>
         {{ opt.label }}
       </button>
     }
@@ -65,9 +64,7 @@
       <input type="checkbox" [checked]="allTypesSelected()" (change)="selectAllTypes()">
       All
     </label>
-  </div>
-
-  <div class="run-bar">
+    <span class="dt-spacer"></span>
     <span class="run-count">
       {{ selectedIds().size }} selected
       @if (pageSelectedCount() > 0) {
@@ -78,15 +75,15 @@
       <button class="clear-btn" (click)="clearSelection()">Clear selection</button>
     }
     <button
-      class="btn-primary run-btn"
+      class="ui-btn primary run-btn"
       [disabled]="!canRun()"
       (click)="run()"
     >
-      <i class="ti ti-search"></i>
       Research selected
     </button>
-    <p class="run-hint">Only companies with a saved website are researched — companies without one are skipped with a hint.</p>
   </div>
+  <p class="run-hint">Only companies with a saved website are researched; the rest are skipped with a hint.</p>
+
 
   @if (loading()) {
     <div class="skeleton-list">

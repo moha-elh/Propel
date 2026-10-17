@@ -203,6 +203,10 @@ export class ApplyWizardComponent implements OnInit {
     }
   }
 
+  extractionTitle(h: ExtractionHistoryItem): string {
+    return [h.companyName, h.jobRole].filter(Boolean).join(' — ') || 'Untitled extraction';
+  }
+
   async selectHistory(id: string) {
     this.error.set('');
     try {
