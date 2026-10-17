@@ -237,6 +237,25 @@ export class ApplicationDetailComponent implements OnInit {
   /** How the user applied: channel of the earliest sent attempt. */
   firstSentChannel = computed(() =>
     this.attempts().filter(a => a.status === 'SENT').sort((a, b) => a.attemptNumber - b.attemptNumber)[0]?.channel ?? null);
+  /** Every link saved on this application (form URLs, profile links, URLs in notes/messages), deduped. */
+  links = computed(() => {
+    const app = this.application();
+    const out = new Map<string, string>();
+    const add = (raw: string | null | undefined, label: string) => {
+      const url = raw ? this.toUrl(raw) : null;
+      if (url && !out.has(url)) out.set(url, /linkedin\.com/i.test(url) ? 'LinkedIn' : label);
+    };
+    const scan = (text: string | null | undefined, label: string) =>
+      (text?.match(/https?:\/\/[^\s<>"')\]]+/gi) ?? []).forEach(u => add(u.replace(/[.,;:!?]+$/, ''), label));
+    for (const att of this.attempts()) {
+      add(this.attemptMetadata(att).formUrl, 'Form');
+      add(att.recipientContact, att.channel === 'WEB_FORM' ? 'Form' : 'Attempt');
+      scan(att.body, 'Message');
+    }
+    add(app?.recipientContact, 'Contact');
+    scan(app?.notes, 'Notes');
+    return [...out].map(([url, label]) => ({ url, label }));
+  });
   notesDirty = computed(() => this.editNotes() !== (this.application()?.notes || ''));
   notesState = signal<'idle' | 'saving' | 'saved'>('idle');
 
@@ -548,6 +567,11 @@ export class ApplicationDetailComponent implements OnInit {
 
   hostOf(url: string): string {
     try { return new URL(url).hostname; } catch { return url; }
+  }
+
+  /** Path part shown after the host so two links on the same site stay distinguishable. */
+  pathOf(url: string): string {
+    try { const p = new URL(url).pathname; return p === '/' ? '' : p; } catch { return ''; }
   }
 
   toggleReveal(id: string) {

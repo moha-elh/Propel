@@ -301,6 +301,15 @@
                   @if (missingCompanyFields().length) { <button class="add-line" (click)="coEdit.set(true)">+ Add {{ missingCompanyFields().join(', ') }}</button> }
                 }
 
+                @if (links().length) {
+                  <div class="sec-head gap"><h3>Links</h3></div>
+                  <dl class="kv">
+                    @for (l of links(); track l.url) {
+                      <div><dt>{{ l.label }}</dt><dd><a class="ext" [href]="l.url" target="_blank" rel="noopener" [title]="l.url">{{ hostOf(l.url) }}{{ pathOf(l.url) }}</a></dd></div>
+                    }
+                  </dl>
+                }
+
                 <div class="sec-head gap"><h3>CV sent</h3></div>
                 <app-select class="tag-select plain" [ngModel]="selectedCvValue()" (ngModelChange)="setApplicationCv($event)" name="cvOv" [disabled]="docLoading()">
                   <option value="">{{ docLoading() ? 'Loading…' : 'None' }}</option>
