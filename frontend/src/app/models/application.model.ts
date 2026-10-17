@@ -268,14 +268,10 @@ export interface AnalyticsSummaryDto {
   priorityCounts: Record<string, number>;
   originCounts: Record<string, number>;
   channelCounts: Record<string, number>;
-  funnel: FunnelStageDto[];
   topCompanies: TopCompanyDto[];
-  email: EmailStatsDto;
   cvPerformance?: CvPerformanceDto[];
   contactCoverage: ContactCoverageDto;
   companyDistribution: CompanyDistributionDto;
-  careerInventory: CareerInventoryDto;
-  toolingUsage: ToolingUsageDto;
   responseTimeHistogram: ResponseTimeBucketDto[];
 }
 
@@ -289,11 +285,6 @@ export interface CvPerformanceDto {
   linkedApplications: number;
   interviewCount: number;
   offerCount: number;
-}
-
-export interface FunnelStageDto {
-  stage: string;
-  count: number;
 }
 
 export interface ContactCoverageDto {
@@ -327,34 +318,6 @@ export interface CountryLocationDto {
   withoutCity: number;
 }
 
-export interface CareerInventoryDto {
-  experiences: number;
-  projects: number;
-  skills: number;
-  educations: number;
-  certifications: number;
-  hackathons: number;
-  languages: number;
-  interests: number;
-  academicActivities: number;
-  distinctTags: number;
-}
-
-export interface ToolingUsageDto {
-  jobExtractions: number;
-  templateRenders: number;
-  cvGenerations: number;
-  savedToolItems: number;
-  cvs: number;
-  cvVersions: number;
-  cvTemplates: number;
-  coverLetters: number;
-  coverLetterVersions: number;
-  userImages: number;
-  schedulesActive: number;
-  schedulesTotal: number;
-}
-
 export interface ResponseTimeBucketDto {
   bucket: string;
   count: number;
@@ -369,13 +332,6 @@ export interface TopCompanyDto {
   name: string;
   count: number;
   lastAppliedAt: string | null;
-}
-
-export interface EmailStatsDto {
-  emailsSent: number;
-  emailsFailed: number;
-  successRate: number;
-  activeSchedules: number;
 }
 
 
@@ -489,6 +445,9 @@ export const PRIORITY_COLORS: Record<ApplicationPriority, string> = {
   MEDIUM: 'oklch(0.72 0.14 80)',
   HIGH: 'oklch(0.62 0.19 25)',
 };
+
+export const priorityColor = (p?: string): string =>
+  PRIORITY_COLORS[p as ApplicationPriority] ?? PRIORITY_COLORS.MEDIUM;
 
 // ── Origin metadata ──────────────────────────────────────────────────────────
 

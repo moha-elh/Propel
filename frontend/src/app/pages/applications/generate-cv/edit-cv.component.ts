@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CvGenerationService } from '@app/services/cv-generation.service';
-import { CvGenerationResult, EditCvSection, EditExperience, EditProject } from '@app/models/cv-generation.models';
+import { CvGenerationResult, EditCvSection } from '@app/models/cv-generation.models';
 
 @Component({
   selector: 'app-edit-cv',

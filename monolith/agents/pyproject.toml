@@ -17,7 +17,6 @@ dependencies = [
     "langchain-openai>=0.1.0",
     "langchain-google-genai>=2.0.0",
     "langchain-mistralai>=0.2.0",
-    "langchain-postgres>=0.0.17",
     "langgraph>=0.1.0",
     "google-genai>=1.0.0",
     # Extractor
@@ -25,8 +24,6 @@ dependencies = [
     "lxml>=5.0",
     "python-multipart>=0.0.9",
     # Template / PDF
-    "weasyprint>=60.0",
-    "fpdf2>=2.7",
     "pypdf>=4.0",
     "pymupdf>=1.24.0",
     "minio>=7.0",
@@ -38,12 +35,7 @@ dependencies = [
     "pandas>=2.0",
     # Contact
     "requests>=2.31",
-    # Kafka (optional)
-    "confluent-kafka>=2.8.0; extra == 'kafka'",
 ]
-
-[project.optional-dependencies]
-kafka = ["confluent-kafka>=2.8.0"]
 
 [build-system]
 requires = ["hatchling"]

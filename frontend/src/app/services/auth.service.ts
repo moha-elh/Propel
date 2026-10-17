@@ -1,6 +1,5 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpService } from './http.service';
-import { firstValueFrom } from 'rxjs';
 
 export interface User {
   userId: string;

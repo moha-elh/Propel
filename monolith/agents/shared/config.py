@@ -45,8 +45,6 @@ class Settings(BaseSettings):
     MINIO_ROOT_PASSWORD: str = "minioadmin"
     MINIO_SECURE: bool = False
 
-    KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9092"
-
     DATABASE_URL: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")

@@ -4,8 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { ContactService } from '@app/services/contact.service';
 import { EmployeeService } from '@app/services/employee.service';
 import { ToastService } from '@app/services/toast.service';
-import { ContactExtractResult } from '@app/models/mailbox.model';
-import { EmployeeExtractResult } from '@app/models/employee.model';
 
 /** One parsed, reviewable contact row. */
 export interface DraftContact {

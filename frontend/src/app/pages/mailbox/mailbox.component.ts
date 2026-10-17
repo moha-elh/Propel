@@ -29,11 +29,11 @@ import {
 import { CvDocumentDto, CvVersionDto } from '@app/models/document.model';
 import {
   ContactDto, EmailMessageDto, EmailScheduleDto, ScheduleHistoryItem,
-  MailboxStatsDto, SendEmailDto, ContactHistoryResponse, EmailAttachmentPayload,
+  MailboxStatsDto, SendEmailDto, EmailAttachmentPayload,
 } from '@app/models/mailbox.model';
 import { ApplicationResponseDto, STATUS_LABELS } from '@app/models/application.model';
 import {
-  ScheduleTemplateDto, ApplyTemplateDto, ApplyTemplateResultDto, ScheduleAttachmentRef,
+  ScheduleTemplateDto, ApplyTemplateDto, ScheduleAttachmentRef,
 } from '@app/models/apply.model';
 
 type MailboxView = 'compose' | 'history' | 'contacts' | 'schedules' | 'templates' | 'settings';

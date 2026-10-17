@@ -11,14 +11,10 @@ public record AnalyticsSummaryDto(
     Dictionary<string, int> PriorityCounts,
     Dictionary<string, int> OriginCounts,
     Dictionary<string, int> ChannelCounts,
-    List<FunnelStageDto> Funnel,
     List<TopCompanyDto> TopCompanies,
-    EmailStatsDto Email,
     List<CvPerformanceDto> CvPerformance,
     ContactCoverageDto ContactCoverage,
     CompanyDistributionDto CompanyDistribution,
-    CareerInventoryDto CareerInventory,
-    ToolingUsageDto ToolingUsage,
     List<ResponseTimeBucketDto> ResponseTimeHistogram
 );
 
@@ -50,11 +46,7 @@ public record WeeklyTrendDto(
     int Withdrawn
 );
 
-public record FunnelStageDto(string Stage, int Count);
-
 public record TopCompanyDto(string Name, int Count, DateTime? LastAppliedAt);
-
-public record EmailStatsDto(int EmailsSent, int EmailsFailed, double SuccessRate, int ActiveSchedules);
 
 public record ContactCoverageDto(
     int Total,
@@ -82,33 +74,5 @@ public record CompanyDistributionDto(
 
 /// <summary>Companies in one country, with their city breakdown.</summary>
 public record CountryLocationDto(string Country, int Count, Dictionary<string, int> Cities, int WithoutCity);
-
-public record CareerInventoryDto(
-    int Experiences,
-    int Projects,
-    int Skills,
-    int Educations,
-    int Certifications,
-    int Hackathons,
-    int Languages,
-    int Interests,
-    int AcademicActivities,
-    int DistinctTags
-);
-
-public record ToolingUsageDto(
-    int JobExtractions,
-    int TemplateRenders,
-    int CvGenerations,
-    int SavedToolItems,
-    int Cvs,
-    int CvVersions,
-    int CvTemplates,
-    int CoverLetters,
-    int CoverLetterVersions,
-    int UserImages,
-    int SchedulesActive,
-    int SchedulesTotal
-);
 
 public record ResponseTimeBucketDto(string Bucket, int Count);

@@ -16,8 +16,6 @@ import { ExtractorOutput, ExtractionHistoryItem } from '@app/models/extraction.t
 import {
   ScheduleTemplateDto,
   ApplyEmailResult,
-  ApplyPrepFormRequest,
-  ApplyPrepMessageRequest,
   FormResponseItem,
 } from '@app/models/apply.model';
 import { CvDocumentDto, CvVersionDto } from '@app/models/document.model';
@@ -209,7 +207,6 @@ export class ApplyWizardComponent implements OnInit {
     this.error.set('');
     try {
       const output = await this.extractionSvc.getExtraction(id);
-      const item = this.history().find(h => h.id === id);
       this.extractionId.set(id);
       this.applyExtraction(output, id);
       this.step.set(2);

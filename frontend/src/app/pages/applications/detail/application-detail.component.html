@@ -26,13 +26,6 @@
     </app-select>
   </ng-template>
 
-  <ng-template #tplActions>
-    <app-refresh-button [loading]="refreshing()" (refresh)="onRefresh()" />
-    <button class="det-btn icon" (click)="openEditModal()" title="Edit application"><i class="ti ti-edit"></i></button>
-    <button class="det-btn icon danger" (click)="onDelete()" title="Delete application"><i class="ti ti-trash"></i></button>
-    <button class="det-btn primary" (click)="openAttemptModal()"><i class="ti ti-send"></i> Log attempt</button>
-  </ng-template>
-
   <ng-template #tplNextActions let-ns>
     @switch (ns.kind) {
       @case ('apply') { <button class="det-btn primary" (click)="openAttemptModal()">Log how you applied</button> }
@@ -138,10 +131,6 @@
     </span>
   </ng-template>
 
-  <ng-template #tplNotes>
-    <textarea class="note-area" placeholder="Interview prep, who you talked to, salary range…" [(ngModel)]="editNotes" (blur)="saveNotes()"></textarea>
-  </ng-template>
-
   <ng-template #tplCompanyFields>
     <dl class="co-fields">
       <div><dt>Country</dt><dd><ng-container [ngTemplateOutlet]="tplCountry" /></dd></div>
@@ -178,27 +167,6 @@
     } @else {
       <p class="side-hint">No one saved yet. Add a recruiter when you log an attempt.</p>
     }
-  </ng-template>
-
-  <ng-template #tplFollowUp>
-    @if (followUpError()) { <div class="attempt-error">{{ followUpError() }}</div> }
-    @if (followUpDeadline(); as d) {
-      <div class="fu-date-big" [class.overdue]="followUpOverdue()">{{ formatDate(d) }}
-        @if (app.followUpStatus !== 'NONE') {
-          <span class="fu-status" [class.fu-pending]="app.followUpStatus === 'PENDING'" [class.fu-overdue]="followUpOverdue()" [class.fu-actioned]="app.followUpStatus === 'ACTIONED'">{{ followUpOverdue() ? 'Overdue' : followUpStatusLabel() }}</span>
-        }
-      </div>
-    }
-    <div class="fu-presets">
-      @for (p of followUpPresets; track p.days) {
-        <button type="button" class="fu-chip" (click)="setFollowUp(presetTarget(p.days))" [disabled]="followUpSaving()">{{ p.label }}</button>
-      }
-    </div>
-    <div class="fu-custom">
-      <input type="date" class="form-input fu-date" [ngModel]="customFollowUpDate()" (ngModelChange)="customFollowUpDate.set($event)" [disabled]="followUpSaving()" aria-label="Custom follow-up date" />
-      <button class="det-btn sm" (click)="setFollowUp(customFollowUpDate())" [disabled]="followUpSaving() || !customFollowUpDate()">{{ followUpSaving() ? 'Saving…' : 'Set' }}</button>
-      @if (app.followUpDate) { <button class="det-btn sm ghost" (click)="setFollowUp('')" [disabled]="followUpSaving()">Clear</button> }
-    </div>
   </ng-template>
 
   <ng-template #tplFiles>
@@ -378,30 +346,6 @@
     </dd></div></dl>
     <div class="files"><ng-container [ngTemplateOutlet]="tplFiles" /></div>
   </ng-template>
-}
-
-<!-- Status Modal -->
-@if (showStatusModal()) {
-  <div class="modal-backdrop" (click)="closeStatusModal()">
-    <div class="modal" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <span class="modal-title">Update status</span>
-        <button class="modal-close" (click)="closeStatusModal()">&times;</button>
-      </div>
-      <div class="modal-body">
-        <app-select class="form-select" [(ngModel)]="newStatus">
-          @for (s of availableStatuses(); track s) {
-            <option [value]="s">{{ getStatusLabel(s) }}</option>
-          }
-        </app-select>
-        <textarea class="form-textarea" style="margin-top:10px" [(ngModel)]="statusComment" placeholder="Comment (optional)" rows="3"></textarea>
-      </div>
-      <div class="modal-footer">
-        <button class="det-btn" (click)="closeStatusModal()">Cancel</button>
-        <button class="det-btn primary" (click)="updateStatus()" [disabled]="saving()">{{ saving() ? 'Saving...' : 'Update' }}</button>
-      </div>
-    </div>
-  </div>
 }
 
 <!-- Attempt Modal -->

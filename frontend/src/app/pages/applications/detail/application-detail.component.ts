@@ -20,7 +20,7 @@ import {
   NEXT_STATUSES,
   PRIORITY_LABELS,
   PRIORITY_ORDER,
-  PRIORITY_COLORS,
+  priorityColor,
   attemptChannelFields,
   ATTEMPT_CHANNEL_LABELS,
   ATTEMPT_STATUS_LABELS,
@@ -31,7 +31,6 @@ import { MailboxService } from '@app/services/mailbox.service';
 import { CoverLetterDto, CoverLetterVersionDto, CvDocumentDto, CvVersionDto } from '@app/models/document.model';
 import { DocumentsService } from '@app/services/documents.service';
 import { CompanyService, CompanyDto } from '@app/services/company.service';
-import { RefreshButtonComponent } from '@app/shared/components/refresh-button/refresh-button.component';
 import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
 import { COUNTRIES } from '@app/shared/data/geo-data';
 import { flagUrl } from '@app/shared/data/flags';
@@ -47,8 +46,6 @@ export interface AttemptMetadata {
   accountPassword?: string;
 }
 
-
-
 type AttemptForm = {
   channel: AttemptChannel;
   initiatedBy: AttemptInitiatedBy;
@@ -62,7 +59,7 @@ type AttemptForm = {
 @Component({
   selector: 'app-application-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppSelectComponent, RouterLink, RefreshButtonComponent, CompanyLogoComponent],
+  imports: [CommonModule, FormsModule, AppSelectComponent, RouterLink, CompanyLogoComponent],
   templateUrl: './application-detail.component.html',
   styleUrl: './application-detail.component.scss',
 })
@@ -80,15 +77,11 @@ export class ApplicationDetailComponent implements OnInit {
   application = signal<ApplicationResponseDto | null>(null);
   attempts = signal<AttemptResponseDto[]>([]);
   loading = signal(true);
-  refreshing = signal(false);
   saving = signal(false);
   error = signal<string | null>(null);
-  showStatusModal = signal(false);
   showEditModal = signal(false);
   showAttemptModal = signal(false);
 
-  newStatus = signal<ApplicationStatus>('APPLIED');
-  statusComment = signal('');
   editCompanyName = signal('');
   editPositionTitle = signal('');
   editOfferSource = signal('');
@@ -152,26 +145,6 @@ export class ApplicationDetailComponent implements OnInit {
   reachContact = signal<ContactSummaryDto | null>(null);
   reachCompany = signal<CompanyDto | null>(null);
 
-  /** Quick reach-out links built from the company directory + the offer source. */
-  protected readonly reachActions = computed(() => {
-    const actions: { href: string; icon: string; label: string; sub: string }[] = [];
-    const co = this.reachCompany();
-    const seen = new Set<string>();
-    const add = (href: string | null | undefined, icon: string, label: string, sub: string) => {
-      if (!href || seen.has(href)) return;
-      seen.add(href);
-      actions.push({ href, icon, label, sub });
-    };
-    if (co?.websiteUrl) add(co.websiteUrl, 'ti-world', 'Website', this.hostOf(co.websiteUrl));
-    if (co?.linkedinUrl) add(co.linkedinUrl, 'ti-brand-linkedin', 'LinkedIn', this.hostOf(co.linkedinUrl));
-    if (co?.locationUrl) add(co.locationUrl, 'ti-map-pin', 'Location', this.hostOf(co.locationUrl));
-    for (const p of co?.phones ?? []) add(p.startsWith('+') ? `tel:${p}` : `tel:+${p.replace(/\D/g, '')}`, 'ti-phone', 'Call', p);
-    const source = this.application()?.offerSource;
-    const src = source ? this.toUrl(source) : null;
-    if (src) add(src, 'ti-external-link', 'Offer link', this.hostOf(src));
-    return actions;
-  });
-
   // Linked-CV support (which CV version was used in the attachments)
   cvDocs = signal<CvDocumentDto[]>([]);
   cvLoading = signal(false);
@@ -187,11 +160,6 @@ export class ApplicationDetailComponent implements OnInit {
       }
     }
     return opts;
-  });
-
-  linkedCv = computed<string | null>(() => {
-    if (!this.application()?.cvVersionId) return null;
-    return this.cvOptions().find(o => o.id === this.application()?.cvVersionId)?.label ?? null;
   });
 
   availableStatuses = computed(() => NEXT_STATUSES[this.application()?.status || 'SAVED'] || []);
@@ -221,13 +189,8 @@ export class ApplicationDetailComponent implements OnInit {
   ];
   followUpSaving = signal(false);
   followUpError = signal<string | null>(null);
-  customFollowUpDate = signal('');
 
   followUpDeadline = computed(() => this.application()?.followUpDate ?? null);
-  followUpStatusLabel = computed(() => {
-    const s = this.application()?.followUpStatus;
-    return s === 'PENDING' ? 'Pending reply' : s === 'ACTIONED' ? 'Actioned' : 'Not set';
-  });
   followUpOverdue = computed(() => {
     const d = this.followUpDeadline();
     if (!d) return false;
@@ -261,10 +224,6 @@ export class ApplicationDetailComponent implements OnInit {
       this.followUpSaving.set(false);
     }
   }
-
-  sortedAttempts = computed(() =>
-    [...this.attempts()].sort((a, b) => b.attemptNumber - a.attemptNumber)
-  );
 
   // Happy-path pipeline for the status stepper; REJECTED / WITHDRAWN are off-track.
   protected readonly PIPELINE: ApplicationStatus[] =
@@ -409,8 +368,6 @@ export class ApplicationDetailComponent implements OnInit {
   /** Reminder chip: a preset number of days after applying, or "clear". */
   pickReminder(v: string) { this.setFollowUp(v === 'clear' ? '' : this.presetTarget(Number(v))); }
   coEdit = signal(false);
-  /** "Casablanca, Morocco" from the company record. */
-  place = computed(() => [this.reachCompany()?.location, this.reachCompany()?.country].filter(Boolean).join(', '));
   missingCompanyFields = computed(() => {
     const co = this.reachCompany();
     return ([['location', 'city'], ['sector', 'sector'], ['websiteUrl', 'website'], ['linkedinUrl', 'LinkedIn']] as const)
@@ -434,8 +391,6 @@ export class ApplicationDetailComponent implements OnInit {
       if (res.success && res.data) { this.application.set(res.data); this.toast.success('Saved'); }
     } catch { this.toast.error('Could not save'); }
   }
-
-  lastActivity = computed(() => this.timeline()[0]?.at ?? this.application()?.updatedAt ?? null);
 
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
@@ -495,13 +450,7 @@ export class ApplicationDetailComponent implements OnInit {
       const attRes = await this.appService.getAttempts(id);
       if (attRes.success && attRes.data) this.attempts.set(attRes.data);
     } catch { this.error.set('Failed to load'); }
-    finally { this.loading.set(false); this.refreshing.set(false); }
-  }
-
-  onRefresh() {
-    this.refreshing.set(true);
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) this.loadApplication(id);
+    finally { this.loading.set(false); }
   }
 
   resetEditForm(app: ApplicationResponseDto) {
@@ -516,12 +465,6 @@ export class ApplicationDetailComponent implements OnInit {
     this.editCvVersionId.set(app.cvVersionId ?? '');
   }
 
-  openStatusModal() {
-    this.newStatus.set(this.availableStatuses()[0] || 'APPLIED');
-    this.statusComment.set('');
-    this.showStatusModal.set(true);
-  }
-  closeStatusModal() { this.showStatusModal.set(false); }
   openEditModal() { const app = this.application(); if (app) this.resetEditForm(app); this.showEditModal.set(true); }
   closeEditModal() { this.showEditModal.set(false); }
 
@@ -552,11 +495,6 @@ export class ApplicationDetailComponent implements OnInit {
   closeAttemptModal() {
     this.showAttemptModal.set(false);
     this.resetPicker();
-  }
-
-  onAttemptChannelChange(ch: AttemptChannel) {
-    // Replace the form object so `channelFields` (a computed on attemptForm) re-evaluates.
-    this.attemptForm.update(f => ({ ...f, channel: ch }));
   }
 
   async loadCoverLetters(): Promise<void> {
@@ -776,17 +714,6 @@ export class ApplicationDetailComponent implements OnInit {
     } catch { }
   }
 
-  async updateStatus() {
-    const app = this.application();
-    if (!app) return;
-    this.saving.set(true);
-    try {
-      const res = await this.appService.updateStatus(app.id, { status: this.newStatus(), comment: this.statusComment() || undefined });
-      if (res.success && res.data) this.application.set(res.data);
-      this.closeStatusModal();
-    } catch { } finally { this.saving.set(false); }
-  }
-
   async saveEdit() {
     const app = this.application();
     if (!app) return;
@@ -833,20 +760,7 @@ export class ApplicationDetailComponent implements OnInit {
     return STATUS_COLORS[s as ApplicationStatus] ?? STATUS_COLORS.SAVED;
   }
 
-  priorityColor(p?: string): string {
-    return PRIORITY_COLORS[p as ApplicationPriority] ?? PRIORITY_COLORS.MEDIUM;
-  }
-
-  initials(name: string): string {
-    return (name || '').split(/\s+/).filter(Boolean).slice(0, 2)
-      .map(w => w[0]!.toUpperCase()).join('') || '?';
-  }
-
-  avatarHue(name: string): number {
-    let hash = 0;
-    for (let i = 0; i < (name || '').length; i++) hash = (hash * 31 + name.charCodeAt(i)) % 360;
-    return hash;
-  }
+  readonly priorityColor = priorityColor;
 
   attachmentDownloadUrl(index: number): string {
     const app = this.application();

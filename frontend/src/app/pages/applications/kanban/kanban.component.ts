@@ -8,9 +8,8 @@ import {
   ActivityItemDto,
   STATUS_ORDER,
   STATUS_LABELS,
-  STATUS_COLORS,
   PRIORITY_LABELS,
-  PRIORITY_COLORS,
+  priorityColor,
 } from '@app/models/application.model';
 import { ApplicationsListComponent } from '../list/applications-list.component';
 import { SheetImportDialogComponent } from '@app/shared/components/sheet-import-dialog/sheet-import-dialog.component';
@@ -260,9 +259,7 @@ export class KanbanComponent implements OnInit {
 
   protected readonly PRIORITY_LABELS = PRIORITY_LABELS;
 
-  priorityColor(p?: string): string {
-    return PRIORITY_COLORS[p as 'LOW' | 'MEDIUM' | 'HIGH'] ?? PRIORITY_COLORS.MEDIUM;
-  }
+  readonly priorityColor = priorityColor;
 
   formatDate(d: string | null | undefined): string {
     if (!d) return '—';

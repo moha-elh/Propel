@@ -10,7 +10,6 @@ import { CategoryService } from '@app/services/category.service';
 import { ToastService } from '@app/services/toast.service';
 import { CategoryTreeComponent } from '@app/shared/components/category-tree/category-tree.component';
 import { AutoFillDialogComponent } from '@app/shared/components/auto-fill-dialog/auto-fill-dialog.component';
-import { AutofillField } from '@app/services/autofill.service';
 
 @Component({
   selector: 'app-entity-form',

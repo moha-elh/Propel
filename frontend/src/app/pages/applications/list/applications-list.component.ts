@@ -14,7 +14,7 @@ import {
   STATUS_COLORS,
   PRIORITY_LABELS,
   PRIORITY_ORDER,
-  PRIORITY_COLORS,
+  PRIORITY_COLORS, priorityColor,
 } from '@app/models/application.model';
 import { CompanyLogoComponent } from '@app/shared/components/company-logo/company-logo.component';
 
@@ -213,9 +213,7 @@ export class ApplicationsListComponent implements OnInit {
 
   getStatusLabel(s: string) { return STATUS_LABELS[s as ApplicationStatus] || s; }
 
-  priorityColor(p?: string): string {
-    return PRIORITY_COLORS[p as ApplicationPriority] ?? PRIORITY_COLORS.MEDIUM;
-  }
+  readonly priorityColor = priorityColor;
 
   formatDate(d: string | null | undefined) {
     if (!d) return '—';
